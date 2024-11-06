@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import PlanEpisode from './plan-episode'
-import CustomAppBar from './app-bar'
-import ClosePlayAppBar from './close-play-bar'
 import { createTheme, ThemeProvider } from '@mui/material/styles'
 import useMediaPlayer from "../hooks/useMediaPlayer"
 import { isEmptyObj } from '../utils/obj-functions'
@@ -28,7 +26,7 @@ const defaultBackgroundStyle = {
   color: 'whitesmoke',
 }
 
-const BibleviewerApp = ({onClose,topIdStr,lng}) => {
+const BibleviewerApp = ({topIdStr,lng}) => {
   const { startPlay, curPlay } = useMediaPlayer()
   const { size, width, height } = useBrowserData()
   const { t } = useTranslation()
@@ -99,12 +97,10 @@ const BibleviewerApp = ({onClose,topIdStr,lng}) => {
       }
     }
   }
-  const handleClose = () => onClose && onClose()
  
   return (
     <div style={defaultBackgroundStyle}>
       <ThemeProvider theme={theme}>
-        {showCloseButton ? <ClosePlayAppBar/> : (!isPlaying) && <CustomAppBar onClose={handleClose} lng={lng}/>}
         <div
           style={{
             width: '100%',
@@ -120,7 +116,7 @@ const BibleviewerApp = ({onClose,topIdStr,lng}) => {
             completedList={completedList}
             daysSinceFirst={daysSinceFirst}
             firstDateOfPlan={firstDateOfPlan}  
-            onClickClose={handleClose}
+            // onClickClose={handleClose}
             onClickMenuBookIcon={() => props.onClickMenuBookIcon()}
             onNewNavigationDate={(newDate) => handleNewNavigationDate(newDate)}
             onClickPlay={(inx,curSer,curEp) => handlePlay(inx,curSer,curEp)}

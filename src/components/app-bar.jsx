@@ -4,7 +4,7 @@ import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
 import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
-import ChevronLeft from '@mui/icons-material/ChevronLeft'
+import MenuIcon from '@mui/icons-material/Menu'
 import PropTypes from 'prop-types'
 import { useTranslation } from 'react-i18next'
 import useBrowserData from '../hooks/useBrowserData'
@@ -57,23 +57,12 @@ const CustomAppBar = (props) => {
               m: 1,
             }}>
             <Item>
-              <IconButton
-                sx={{color: 'white',backgroundColor: 'lightblue'}}
-                onClick={handleClose}>
-                <ChevronLeft/>
-              </IconButton>
             </Item>
             <Item>
               <Typography
-                sx={{
-                    fontFamily: "'Work Sans', sans-serif",
-                    fontSize: (size === "sm") ? 25 : (size === "xs") ? 14 : 35,
-                    textDecoration: 'none',
-                    width: '100%'
-                  }}
+                sx={{width: '100%'}}
                 color="inherit"
               >
-                {t("JohnLongTitle",{lng})}
               </Typography>
             </Item>
             <Item>
