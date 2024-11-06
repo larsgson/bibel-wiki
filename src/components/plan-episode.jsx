@@ -7,7 +7,7 @@ import IconButton from '@mui/material/IconButton'
 import PlayArrow from '@mui/icons-material/PlayArrow'
 import PlayCircleOutlinedIcon from '@mui/icons-material/PlayCircleOutlined'
 import ItemImage from './item-image'
-import BibleView from './bible-view'
+import BiblePlanView from './bible-plan-view'
 import BiblePlanDatePicker from './bible-plan-date-picker'
 import ChevronLeft from '@mui/icons-material/ChevronLeft'
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
@@ -21,6 +21,7 @@ import { isEmptyObj } from '../utils/obj-functions'
 import PropTypes from 'prop-types'
 import { format, differenceInCalendarDays } from 'date-fns';
 import { de } from 'date-fns/locale/de';
+import DailyTeaser from './daily-teaser'
 
 const NewlineText = ({text}) => text.split('\n').map((line,i) => (
   <span key={i}>
@@ -101,13 +102,20 @@ const PlanEpisode = (props) => {
     <Box>
       <Grid container alignItems="center" spacing={2}>
         <Grid item>
-          {!isPlaying && (<ItemImage
-            item={curSerie}
-            curEp={curEp}
-            onClick={() => handleClickPlay(episodeNumber,curSerie,curEp)}
-            width={"100%"}
-            float={"left"}
-            mTop={0}
+          {!isPlaying && (<DailyTeaser
+            lng={lng}
+            curSerie={curSerie}
+            navigationDate={navigationDate}
+            daysSinceFirst={daysSinceFirst}
+            firstDateOfPlan={firstDateOfPlan}  
+            onClickPlay={() => handleClickPlay(episodeNumber,curSerie,curEp)}
+          // <ItemImage
+          //   item={curSerie}
+          //   curEp={curEp}
+          //   onClick={() => handleClickPlay(episodeNumber,curSerie,curEp)}
+          //   width={"100%"}
+          //   float={"left"}
+          //   mTop={0}
           />)}
         </Grid>
         {!isPlaying && !isDatePickerOpen && (
@@ -185,19 +193,11 @@ const PlanEpisode = (props) => {
           </Box>
         </div>
       </Grid>
-      {curEp && <Typography sx={{pl: 0.5, pt: 1,fontWeight: 400,fontSize: '110%'}}>{t(curEp.title,{lng})}</Typography>}
       {curEp && curEp.descr && <Typography sx={{pl: 0.5, pt: 0.5,fontWeight: 100,fontSize: '85%',width: '100%'}}><NewlineText text={t(curEp.descr,{lng})}/></Typography>}
       <Grid container alignItems="center" spacing={2}>
         <Grid item>
-          <Typography
-            sx={{pl: 0.5, fontWeight: 400,fontSize: '90%'}}
-          >
-            {t(curSerie.title,{lng}) + ` ${curEp?.begin?.ch},${curEp?.begin?.v}-${curEp?.end?.v}`}
-          </Typography>
-        </Grid>
-        <Grid item>
           <IconButton
-            sx={{color: 'black',backgroundColor: 'darkgrey'}}
+            sx={{ml: 3, mt: 2, color: 'black',backgroundColor: 'darkgrey'}}
             onClick={() => onClickExpand(episodeNumber)}>
               {expandIcon}
           </IconButton>
@@ -205,7 +205,7 @@ const PlanEpisode = (props) => {
         {!isPlaying && (
           <Grid item>
             <IconButton
-              sx={{color: 'darkblue',backgroundColor: 'darkgrey'}}
+              sx={{ml: 3, mt: 2, color: 'darkblue',backgroundColor: 'darkgrey'}}
               onClick={() => handleClickPlay(episodeNumber,curSerie,curEp)}>
               <PlayArrow/>
             </IconButton>
@@ -214,7 +214,7 @@ const PlanEpisode = (props) => {
       </Grid>
       {expanded && (
         <div sx={{pt: 0.5,fontWeight: 100,fontSize: '85%',width: '100%'}}>
-          <BibleView
+          <BiblePlanView
             lng={lng}
             curEp={curEp}
           />

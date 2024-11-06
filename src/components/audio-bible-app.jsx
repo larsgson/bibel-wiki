@@ -1,7 +1,40 @@
-import React, {useState} from 'react'
-import { createTheme, ThemeProvider } from '@mui/material/styles'
-import BibleNavigation from './bible-navigation'
+import * as React from 'react';
+import { styled, useTheme, createTheme, ThemeProvider } from '@mui/material/styles'
+import LibraryView from './library-view'
+import BibleView from './bible-view'
+import HomeView from './home-view'
+import Box from '@mui/material/Box';
+import MuiDrawer from '@mui/material/Drawer';
+import MuiAppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import List from '@mui/material/List';
+import CssBaseline from '@mui/material/CssBaseline';
+import BottomNavigation from '@mui/material/BottomNavigation';
+import BottomNavigationAction from '@mui/material/BottomNavigationAction';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
+import Divider from '@mui/material/Divider';
+import IconButton from '@mui/material/IconButton';
+import HomeIcon from '@mui/icons-material/Home'
+import VideoLibraryIcon from '@mui/icons-material/VideoLibrary';
+import MenuBookIcon from '@mui/icons-material/MenuBook'
+import MenuIcon from '@mui/icons-material/Menu'
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
 import useMediaPlayer from '../hooks/useMediaPlayer'
+import useBrowserData from '../hooks/useBrowserData'
+import { isEmptyObj } from '../utils/obj-functions'
+
+const drawerWidth = 240;
+const topLevelNavItems = [
+  {text: "Home", icon: <HomeIcon/>},
+  {text: "Library", icon: <VideoLibraryIcon/>},
+  {text: "Bible", icon: <MenuBookIcon/>}
+]
 
 const theme = createTheme({
   palette: {
@@ -17,27 +50,264 @@ const defaultBackgroundStyle = {
   color: 'whitesmoke',
 }
 
-const AudioBibleNavigationApp = () => {
-  // eslint-disable-next-line no-unused-vars
+const ToggleMiniListItem = (index,isActive,wide,text,icon,onClickMenu) => (
+  <ListItem key={text} disablePadding sx={{ display: 'block' }}>
+    <ListItemButton
+      onClick={()=>onClickMenu(index)}
+      sx={[
+        {minHeight: 48,px: 2.5},
+        wide
+          ? {justifyContent: 'initial'}
+          : {justifyContent: 'center'}
+      ]}
+    >
+      <ListItemIcon
+        sx={[
+          {minWidth: 0, justifyContent: 'center'},
+          wide
+            ? {mr: 3}
+            : {mr: 'auto'},
+            isActive 
+            ? {color: 'white'}
+            : {color: 'darkgrey'},
+        ]}
+      >
+        {icon}
+      </ListItemIcon>
+      <ListItemText
+        primary={text}
+        sx={[wide
+            ? {opacity: 1}
+            : {opacity: 0},
+            isActive && {backgroundColor: '#3e3e3e'},
+            isActive 
+            ? {color: 'white'}
+            : {color: 'lightgrey'},
+        ]}
+      />
+    </ListItemButton>
+  </ListItem>
+)
+
+const openedMixin = (theme) => ({
+  width: drawerWidth,
+  transition: theme.transitions.create('width', {
+    easing: theme.transitions.easing.sharp,
+    duration: theme.transitions.duration.enteringScreen,
+  }),
+  overflowX: 'hidden',
+});
+
+const closedMixin = (theme) => ({
+  transition: theme.transitions.create('width', {
+    easing: theme.transitions.easing.sharp,
+    duration: theme.transitions.duration.leavingScreen,
+  }),
+  overflowX: 'hidden',
+  width: `calc(${theme.spacing(7)} + 1px)`,
+  [theme.breakpoints.up('sm')]: {
+    width: `calc(${theme.spacing(8)} + 1px)`,
+  },
+});
+
+const DrawerHeader = styled('div')(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'flex-end',
+  padding: theme.spacing(0, 1),
+  // necessary for content to be below app bar
+  ...theme.mixins.toolbar,
+}));
+
+const AppBar = styled(MuiAppBar, {
+  shouldForwardProp: (prop) => prop !== 'open',
+})(({ theme }) => ({
+  zIndex: theme.zIndex.drawer + 1,
+  backgroundColor: '#04034f',
+  transition: theme.transitions.create(['width', 'margin'], {
+    easing: theme.transitions.easing.sharp,
+    duration: theme.transitions.duration.leavingScreen,
+  }),
+  variants: [
+    {
+      props: ({ open }) => open,
+      style: {
+        marginLeft: drawerWidth,
+        width: `calc(100% - ${drawerWidth}px)`,
+        transition: theme.transitions.create(['width', 'margin'], {
+          easing: theme.transitions.easing.sharp,
+          duration: theme.transitions.duration.enteringScreen,
+        }),
+      },
+    },
+  ],
+}));
+
+const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' })(
+  ({ theme }) => ({
+    width: drawerWidth,
+    flexShrink: 0,
+    whiteSpace: 'nowrap',
+    boxSizing: 'border-box',
+    variants: [
+      {
+        props: ({ open }) => open,
+        style: {
+          ...openedMixin(theme),
+          '& .MuiDrawer-paper': openedMixin(theme),
+        },
+      },
+      {
+        props: ({ open }) => !open,
+        style: {
+          ...closedMixin(theme),
+          '& .MuiDrawer-paper': closedMixin(theme),
+        },
+      },
+    ],
+  }),
+);
+
+export default function MiniDrawer() {
+  const theme = useTheme();
   const { curPlay, startPlay } = useMediaPlayer()
+  const isPlaying = !isEmptyObj(curPlay)
+  const { size, width } = useBrowserData()
+  const isMobileSize = (size === "sm" || size === "xs")
+  const [wide,setWide] = React.useState(false) 
+  const [menuValue, setMenuValue] = React.useState(0);
+  const [open, setOpen] = React.useState(false);
+
+  const ref = React.useRef(null);
+
+  React.useEffect(() => {
+    if (isMobileSize) {
+      (ref.current).ownerDocument.body.scrollTop = 0;
+    // setMessages(refreshMessages());
+    }
+  }, [menuValue,isMobileSize]);
+
   const handleStartBiblePlay = (topIdStr,curSerie,bookObj,id) => {
     const {bk} = bookObj
     const curEp = {bibleType: true,bk,bookObj,id}
     startPlay(topIdStr,id,curSerie,curEp)
   }
+  const handleDrawerOpen = () => setOpen(true);
+  const handleDrawerClose = () => setOpen(false);
+  const handleClickMenu = (inx) => setMenuValue(inx)
+
   return (
     <div style={defaultBackgroundStyle}>
       <ThemeProvider theme={theme}>
-        <BibleNavigation
-          //      isPaused={isPaused}
-          onReset={() => console.log("onReset")}
-          onExitNavigation={() => console.log("onExitNavigation")}
+        {!isPlaying && isMobileSize && (
+          <Box sx={{ pb: 7 }} ref={ref}>
+            <CssBaseline />
+            {(menuValue===2) && (<BibleView
+                onExitNavigation={() => console.log("onExitNavigation - AddContent")}
+                onStartPlay={handleStartBiblePlay}
+            />)}
+            {(menuValue===1) && (<LibraryView
+              onExitNavigation={() => console.log("onExitNavigation - AddContent")}
+              onStartPlay={handleStartBiblePlay}
+            />)}
+            {(menuValue===0) && (<HomeView
+              onExitNavigation={() => console.log("onExitNavigation - Top")}
+              onAddNavigation={()=>setMenuValue(1)}
+              onStartPlay={handleStartBiblePlay}
+            />)}
+            <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0 }} elevation={3}>
+              <BottomNavigation
+                showLabels
+                value={menuValue}
+                onChange={(event, newValue) => {
+                  setMenuValue(newValue);
+                }}
+              >
+                {topLevelNavItems.map(item => {
+                  return <BottomNavigationAction key={item.text} label={item.text} icon={item.icon}/>
+                })}
+                <BottomNavigationAction key={"Menu"} label={""} icon={<MenuIcon/>}/>
+              </BottomNavigation>
+            </Paper>
+          </Box>
+        )}
+        {!isPlaying && !isMobileSize && (
+          <Box sx={{ display: 'flex' }}>
+            <CssBaseline />
+            <AppBar position="fixed" open={open}>
+              <Toolbar>
+                <IconButton
+                  color="inherit"
+                  aria-label="open drawer"
+                  onClick={handleDrawerOpen}
+                  edge="start"
+                  sx={[
+                    {
+                      marginRight: 5,
+                    },
+                    open && { display: 'none' },
+                  ]}
+                >
+                  <MenuIcon />
+                </IconButton>
+                <Typography variant="h6" noWrap component="div">
+                  Bible Wiki
+                </Typography>
+              </Toolbar>
+            </AppBar>
+            <Drawer variant="permanent" open={open} PaperProps={{ sx: { backgroundColor: "#282828" } }}>
+              <DrawerHeader>
+                <IconButton onClick={handleDrawerClose}>
+                  {theme.direction === 'rtl' ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+                </IconButton>
+              </DrawerHeader>
+              <Divider />
+              <List >
+                {topLevelNavItems.map((item,inx) => ToggleMiniListItem(
+                  inx,
+                  (inx===menuValue),
+                  open,
+                  item.text,
+                  item.icon,
+                  handleClickMenu
+                ))}
+              </List>
+              <Divider />
+              <List>
+              </List>
+            </Drawer>
+            <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+              <DrawerHeader />
+              {(menuValue===2) && (<BibleView
+                onExitNavigation={() => console.log("onExitNavigation - AddContent")}
+                onStartPlay={handleStartBiblePlay}
+              />)}
+              {(menuValue===1) && (<LibraryView
+                onExitNavigation={() => console.log("onExitNavigation - AddContent")}
+                onStartPlay={handleStartBiblePlay}
+              />)}
+              {(menuValue===0) && (<HomeView
+                onExitNavigation={() => console.log("onExitNavigation - Top")}
+                onAddNavigation={()=>setMenuValue(1)}
+                onStartPlay={handleStartBiblePlay}
+              />)}
+            </Box>
+          </Box>
+        )}
+        {isPlaying && (menuValue===2) && (<BibleView
+            onExitNavigation={() => console.log("onExitNavigation - AddContent")}
+            onStartPlay={handleStartBiblePlay}
+        />)}
+        {isPlaying && (menuValue===1) && (<LibraryView
+          onExitNavigation={() => console.log("onExitNavigation - AddContent")}
           onStartPlay={handleStartBiblePlay}
-          onClickGospelJohn={() => setGospelJohn(true)}
-        />
+        />)}
+        {isPlaying && (menuValue===0) && (<HomeView
+          onExitNavigation={() => console.log("onExitNavigation - Top")}
+          onAddNavigation={()=>setMenuValue(1)}
+          onStartPlay={handleStartBiblePlay}
+        />)}
       </ThemeProvider>
     </div>
-  )
+);
 }
-
-export default AudioBibleNavigationApp

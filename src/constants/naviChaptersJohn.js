@@ -271,7 +271,9 @@ export const gospelOfJohnObj = {
   },
   listYtbURL: {
     en: "https://www.youtube.com/watch?v=xEK-0n88zSI",
-    de: "https://www.youtube.com/watch?v=MpGiPo8UuVk"
+    de: "https://www.youtube.com/watch?v=MpGiPo8UuVk",
+    por: "https://www.youtube.com/watch?v=dR3NP2tnWl4",
+    es: "https://www.youtube.com/watch?v=yGEPSKZJmCA"
   },  
   language: "en",
   mediaType: "vid"

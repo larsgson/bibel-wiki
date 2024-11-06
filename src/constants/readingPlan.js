@@ -438,10 +438,12 @@ export const gospelOfJohnObjBPlus = {
   title: "John",
   description: "John.Descr",
   uniqueID: "BPlus.Thun.Johannes",
-  beginDate: "2024-10-01",
+  beginDate: "2024-11-01",
   listYtbURL: {
     en: "https://www.youtube.com/watch?v=xEK-0n88zSI",
-    de: "https://www.youtube.com/watch?v=MpGiPo8UuVk"
+    de: "https://www.youtube.com/watch?v=MpGiPo8UuVk",
+    por: "https://www.youtube.com/watch?v=dR3NP2tnWl4",
+    es: "https://www.youtube.com/watch?v=yGEPSKZJmCA"
   },  
   image: {
     origin: "ImgId",

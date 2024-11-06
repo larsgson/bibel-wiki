@@ -3,10 +3,17 @@ import { useTranslation } from 'react-i18next'
 import Typography from '@mui/material/Typography'
 import Fab from '@mui/material/Fab'
 import Home from '@mui/icons-material/Home'
+import Add from '@mui/icons-material/Add'
 import ChevronLeft from '@mui/icons-material/ChevronLeft'
+import Grid from '@mui/material/Grid'
 import ImageList from '@mui/material/ImageList'
 import ImageListItem from '@mui/material/ImageListItem'
 import ImageListItemBar from '@mui/material/ImageListItemBar'
+import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import VideoLibraryIcon from '@mui/icons-material/VideoLibrary';
 import { rangeArray, pad, isEmptyObj } from '../utils/obj-functions'
 import { obsTitles, obsStoryList } from '../constants/obsHierarchy'
 import { osisIconId, osisIconList } from '../constants/osisIconList'
@@ -20,7 +27,6 @@ import OBSPictureNavigationApp from './obs-viewer-app'
 import { bibleDataEN, bibleDataDE_ML_1912 } from '../constants/bibleData'
 import { naviSortOrder, chInBook,
           naviBooksLevel1, naviBooksLevel2, naviChapters } from '../constants/naviChapters'
-import DailyTeaserView from './daily-teaser-view'
 import { gospelOfJohnObj } from '../constants/naviChaptersJohn'
 
 const bibleDataEnOBSStory = {
@@ -115,13 +121,13 @@ const SerieGridBar = (props) => {
   )
 }
 
-const BibleNavigation = (props) => {
+const HomeView = (props) => {
   // eslint-disable-next-line no-unused-vars
   const { size, width } = useBrowserData()
   const { navHist, startPlay, curPlay, syncImgSrc } = useMediaPlayer()
   const isPlaying = !isEmptyObj(curPlay)
   const { t } = useTranslation()
-  const { onExitNavigation, onStartPlay } = props
+  const { onExitNavigation, onAddNavigation, onStartPlay } = props
 
   const [curLevel, setCurLevel] = useState(0)
   const [level0, setLevel0] = useState()
@@ -246,6 +252,14 @@ const BibleNavigation = (props) => {
     setLevel0("audioBible")
   }
 
+  const navigateAdd = () => {
+    console.log("add")
+    onAddNavigation && onAddNavigation()
+  }
+
+  const handleDrawerClick = () => {
+    setWide(prev => (!prev))
+  }
   const handleHistoryClick = (obj) => {
     const useLevel0 = obj?.ep?.topIdStr
     setLevel0(useLevel0)
@@ -403,7 +417,23 @@ const BibleNavigation = (props) => {
   }) || []
   return (
     <div>
-      {(naviType==="audioBible") && (!isPlaying) && (curLevel>1) && (
+      {rootLevel && (
+        <Grid container alignItems="center" spacing={2}>
+          <Grid item>
+            {(myList.length>0) && (<Typography
+              type="title"
+            >My List</Typography>)}
+            {rootLevel && (myList.length>0) && (
+              <HistoryView
+                onClick={(item) => handleHistoryClick(item)} 
+                epList={myList}
+                lng={lng}
+              />      
+            )}
+          </Grid>
+      </Grid>
+    )}
+    {(naviType==="audioBible") && (!isPlaying) && (curLevel>1) && (
         <Fab
           onClick={navigateHome}
           // className={largeScreen ? classes.exitButtonLS : classes.exitButton}
@@ -425,28 +455,12 @@ const BibleNavigation = (props) => {
         type="title"
       >Today</Typography>)}
       {rootLevel && (naviType==="audioBible") && (
-        <DailyTeaserView
-          onClick={() => handleClick(undefined,"en-jhn-plan")} 
-          lng={"en"}
-        />      
+        <BibleviewerApp onClose={handleClose} topIdStr={level0} lng={"en"}/>
       )}
-      {rootLevel && (myList.length>0) && (<Typography
-        type="title"
-      >My List</Typography>)}
-      {rootLevel && (myList.length>0) && (
-        <HistoryView
-          onClick={(item) => handleHistoryClick(item)} 
-          epList={myList}
-          lng={lng}
-        />      
-      )}
-      {(naviType==="audioBible") && (<Typography
-        type="title"
-      >Bibel Wiki</Typography>)}
-      {(naviType==="videoPlan") && <BibleviewerApp onClose={handleClose} topIdStr={level0} lng={lng}/>}
-      {(naviType==="videoSerie") && <GospelJohnNavi onClose={handleClose} topIdStr={level0} lng={lng}/>}
-      {(naviType==="audioStories") && (!isPlaying) && <OBSPictureNavigationApp topIdStr={level0} onClose={handleClose}/>}
-      {(naviType==="audioBible") && (!isPlaying) && (<ImageList
+      {/* {!rootLevel && (naviType==="videoPlan") && } */}
+      {!rootLevel && (naviType==="videoSerie") && <GospelJohnNavi onClose={handleClose} topIdStr={level0} lng={lng}/>}
+      {!rootLevel && (naviType==="audioStories") && (!isPlaying) && <OBSPictureNavigationApp topIdStr={level0} onClose={handleClose}/>}
+      {!rootLevel && (naviType==="audioBible") && (!isPlaying) && (<ImageList
         rowHeight="auto"
         cols={useCols}
       >
@@ -493,4 +507,4 @@ const BibleNavigation = (props) => {
   )
 }
 
-export default BibleNavigation
+export default HomeView

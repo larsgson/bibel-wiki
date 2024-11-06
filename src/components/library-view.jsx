@@ -38,31 +38,53 @@ const bibleDataEnOBSStory = {
 }
 
 const topObjList = {
-  "de-audio-bible-ML": {
-    title: "Hörbibel",
-    imgSrc: "/navIcons/40_Mt_03_08.png",
-    subtitle: "einfach zum Navigieren"
+  "de-jhn-serie": {
+    title: "Das Johannesevangelium",
+    imgSrc: "/navIcons/VB-John1v1.png",
+    subtitle: "Videoserie"
   },
-  "en-audio-bible-WEB": {
-    title: "Audio Bible",
-    imgSrc: "/navIcons/40_Mt_08_12.png",
+  "en-jhn-serie": {
+    title: "Gospel of John",
+    imgSrc: "/navIcons/VB-John1v1.png",
+    subtitle: "Video serie"
+  },
+  "de-jhn-plan": {
+    title: "Das Johannesevangelium",
+    imgSrc: "/navIcons/VB-John1v3.png",
+    subtitle: "täglich - in 90 Tagen"
+  },
+  "en-jhn-plan": {
+    title: "Gospel of John",
+    imgSrc: "/navIcons/VB-John1v3.png",
+    subtitle: "daily - in 90 days"
+  },
+  "en-audio-OBS": {
+    title: "Audio Bible Stories",
+    imgSrc: "/navIcons/Bible_NT.png",
     subtitle: "with easy navigation"
-  },
+  }
 }
           
 const useSerie = {
-  "de-audio-bible-ML": bibleDataDE_ML_1912,
-  "en-audio-bible-WEB": bibleDataEN,
+  "de-jhn-serie": gospelOfJohnObj,
+  "en-jhn-serie": gospelOfJohnObj,
+  "en-audio-OBS": bibleDataEnOBSStory,
 }
 
 const serieLang = {
-  "de-audio-bible-ML": "de",
-  "en-audio-bible-WEB": "en",
+  "de-jhn-serie": "de",
+  "en-jhn-serie": "en",
+  "de-jhn-plan": "de",
+  "en-jhn-plan": "en",
+  "en-audio-OBS": "en",
 }
 
 const serieNaviType = {
-  "de-audio-bible-ML": "audioBible",
-  "en-audio-bible-WEB": "audioBible",
+  "de-jhn-serie": "videoSerie",
+  "en-jhn-serie": "videoSerie",
+  "de-jhn-plan": "videoPlan",
+  "en-jhn-plan": "videoPlan",
+  "en-audio-OBS": "audioStories",
 }
 
 const SerieGridBar = (props) => {
