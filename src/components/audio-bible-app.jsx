@@ -58,7 +58,8 @@ const ToggleMiniListItem = (index,isActive,wide,text,icon,onClickMenu) => (
         {minHeight: 48,px: 2.5},
         wide
           ? {justifyContent: 'initial'}
-          : {justifyContent: 'center'}
+          : {justifyContent: 'center'},
+        isActive && {backgroundColor: '#3e3e3e'}
       ]}
     >
       <ListItemIcon
@@ -79,7 +80,6 @@ const ToggleMiniListItem = (index,isActive,wide,text,icon,onClickMenu) => (
         sx={[wide
             ? {opacity: 1}
             : {opacity: 0},
-            isActive && {backgroundColor: '#3e3e3e'},
             isActive 
             ? {color: 'white'}
             : {color: 'lightgrey'},
@@ -174,7 +174,6 @@ export default function MiniDrawer() {
   const isPlaying = !isEmptyObj(curPlay)
   const { size, width } = useBrowserData()
   const isMobileSize = (size === "sm" || size === "xs")
-  const [wide,setWide] = React.useState(false) 
   const [menuValue, setMenuValue] = React.useState(0);
   const [open, setOpen] = React.useState(false);
 
@@ -257,7 +256,10 @@ export default function MiniDrawer() {
             </AppBar>
             <Drawer variant="permanent" open={open} PaperProps={{ sx: { backgroundColor: "#282828" } }}>
               <DrawerHeader>
-                <IconButton onClick={handleDrawerClose}>
+                <IconButton 
+                  onClick={handleDrawerClose} 
+                  sx={{color:'whitesmoke', backgroundColor:'#3e3e3e'}}
+                >
                   {theme.direction === 'rtl' ? <ChevronRightIcon /> : <ChevronLeftIcon />}
                 </IconButton>
               </DrawerHeader>
