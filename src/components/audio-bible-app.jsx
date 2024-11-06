@@ -218,14 +218,15 @@ export default function MiniDrawer() {
               <BottomNavigation
                 showLabels
                 value={menuValue}
+                sx={{ color: 'white', backgroundColor: '#1e1e1e'}}
                 onChange={(event, newValue) => {
                   setMenuValue(newValue);
                 }}
               >
                 {topLevelNavItems.map(item => {
-                  return <BottomNavigationAction key={item.text} label={item.text} icon={item.icon}/>
+                  return <BottomNavigationAction sx={{ color: 'darkgrey'}} key={item.text} label={item.text} icon={item.icon}/>
                 })}
-                <BottomNavigationAction key={"Menu"} label={""} icon={<MenuIcon/>}/>
+                <BottomNavigationAction sx={{ color: 'darkgrey'}} key={"Menu"} label={""} icon={<MenuIcon/>}/>
               </BottomNavigation>
             </Paper>
           </Box>
