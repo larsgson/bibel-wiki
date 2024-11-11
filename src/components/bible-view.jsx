@@ -14,13 +14,11 @@ import { getOsisChTitle, getChoiceTitle } from '../constants/osisChTitles'
 import useBrowserData from '../hooks/useBrowserData'
 import useMediaPlayer from "../hooks/useMediaPlayer"
 import BibleviewerApp from './bible-viewer-app'
-import HistoryView from './history-view'
 import GospelJohnNavi from './gospel-john-video-navi'
 import OBSPictureNavigationApp from './obs-viewer-app'
 import { bibleDataEN, bibleDataDE_ML_1912 } from '../constants/bibleData'
 import { naviSortOrder, chInBook,
           naviBooksLevel1, naviBooksLevel2, naviChapters } from '../constants/naviChapters'
-import { gospelOfJohnObj } from '../constants/naviChaptersJohn'
 
 const bibleDataEnOBSStory = {
   freeType: false,
@@ -76,7 +74,7 @@ const SerieGridBar = (props) => {
   )
 }
 
-const BibleNavigation = (props) => {
+const BibleView = (props) => {
   // eslint-disable-next-line no-unused-vars
   const { size, width } = useBrowserData()
   const { navHist, startPlay, curPlay, syncImgSrc } = useMediaPlayer()
@@ -432,4 +430,4 @@ const BibleNavigation = (props) => {
   )
 }
 
-export default BibleNavigation
+export default BibleView

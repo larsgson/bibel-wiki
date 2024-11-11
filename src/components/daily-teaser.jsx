@@ -12,6 +12,7 @@ const DailyTeaser = (props) => {
     navigationDate,
     firstDateOfPlan,
     onClickPlay,
+    dateIcon,
     lng
   } = props
   const { t } = useTranslation()
@@ -42,6 +43,7 @@ const DailyTeaser = (props) => {
         <ItemBar
           title={t(curEp?.title,{lng})}
           descr={t(curSerie?.title,{lng}) + ` ${curEp?.begin?.ch},${curEp?.begin?.v}-${curEp?.end?.v}`}
+          dateIcon={dateIcon}
           // useIcon={useIcon}
           // bkgrd={bkgrd}
           // percentVal={percentVal}

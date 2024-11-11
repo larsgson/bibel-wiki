@@ -98,7 +98,7 @@ const SerieGridBar = (props) => {
   )
 }
 
-const BibleNavigation = (props) => {
+const LibraryView = (props) => {
   // eslint-disable-next-line no-unused-vars
   const { size, width } = useBrowserData()
   const { navHist, startPlay, curPlay, syncImgSrc } = useMediaPlayer()
@@ -454,4 +454,4 @@ const BibleNavigation = (props) => {
   )
 }
 
-export default BibleNavigation
+export default LibraryView

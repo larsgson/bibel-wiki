@@ -13,7 +13,7 @@ const ItemProgressBar = ({value}) => (
     value={value}/>
 )
 
-const ItemBar = ({title, hideTitle, descr, percentVal}) => {
+const ItemBar = ({title, hideTitle, descr, percentVal,dateIcon}) => {
   const useTitle = !hideTitle || (percentVal>0)
   return (
     <ImageListItemBar
@@ -21,6 +21,7 @@ const ItemBar = ({title, hideTitle, descr, percentVal}) => {
       subtitle={(<div>
                     {percentVal && (<ItemProgressBar value={percentVal}/>)}{descr}
                 </div>)}
+      actionIcon={dateIcon}                
       sx={{ background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0) 100%)'}}
     />
   )
