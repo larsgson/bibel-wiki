@@ -4,7 +4,6 @@ import Box from '@mui/material/Box'
 import Grid from '@mui/material/Grid'
 import IconButton from '@mui/material/IconButton'
 import PlayArrow from '@mui/icons-material/PlayArrow'
-import PlayCircleOutlinedIcon from '@mui/icons-material/PlayCircleOutlined'
 import ItemImage from './item-image'
 import BiblePlanView from './bible-view'
 import DateSelectButton from './date-select-button'
@@ -91,7 +90,7 @@ const PlanEpisode = (props) => {
     onNewNavigationDate && onNewNavigationDate(date)
   }
   const handleClickPlay = (epNum,ser,ep) => {
-    if (!isDatePickerOpen) {
+    if (!isDatePickerOpen && !isPlaying) {
       if (onClickPlay) onClickPlay(epNum,ser,ep)
     } else {
       setIsDatePickerOpen(false)
@@ -126,39 +125,27 @@ const PlanEpisode = (props) => {
               />
             )}
             onClickPlay={() => handleClickPlay(episodeNumber,curSerie,curEp)}
-          // <ItemImage
-          //   item={curSerie}
-          //   curEp={curEp}
-          //   onClick={() => handleClickPlay(episodeNumber,curSerie,curEp)}
-          //   width={"100%"}
-          //   float={"left"}
-          //   mTop={0}
           />)}
+          {curEp && curEp.descr 
+            && <Typography 
+                sx={{
+                  width: '100%',
+                  position: 'relative',
+                  top: -15,
+                  pl: 1, 
+                  pt: 0.5, 
+                  fontWeight: 100,
+                  fontSize: '85%',
+                  width: '100%'
+                }}>
+              <NewlineText text={t(curEp.descr,{lng})}/>
+           </Typography>}
         </Grid>
-        {!isPlaying && !isDatePickerOpen && (
-          <IconButton
-            onClick={() => handleClickPlay(episodeNumber,curSerie,curEp)}
-            sx={{
-              margin: 0,
-              left: 'auto',
-              position: 'absolute',
-              right: '45%',
-              zIndex: 1000,
-            }}
-          >
-            <PlayCircleOutlinedIcon 
-              sx={{
-                height: 60,
-                width: 60,
-              }}
-            />
-          </IconButton>
-        )}
         <div 
           style={{
             width: '100%',
             position: 'relative',
-            top: -20
+            top: -15
           }}
         >
           <Box sx={{
@@ -186,20 +173,6 @@ const PlanEpisode = (props) => {
           </Box>
         </div>
       </Grid>
-      {curEp && curEp.descr 
-        && <Typography 
-            sx={{
-              width: '100%',
-              position: 'relative',
-              top: -20,    
-              pl: 0.5, 
-              pt: 0.5, 
-              fontWeight: 100,
-              fontSize: '85%',
-              width: '100%'
-            }}>
-              <NewlineText text={t(curEp.descr,{lng})}/>
-           </Typography>}
       <Grid container alignItems="center" spacing={2}>
         <Grid item>
           <IconButton
