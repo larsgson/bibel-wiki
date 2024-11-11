@@ -2,6 +2,8 @@ import React from "react"
 import LazyLoad from 'react-lazyload'
 import { getImgOfObj } from '../utils/obj-functions'
 import { useTranslation } from 'react-i18next'
+import PlayCircleOutlinedIcon from '@mui/icons-material/PlayCircleOutlined'
+import IconButton from '@mui/material/IconButton'
 
 const ItemImage = (props) => {
   const {item,curEp,onClick,mTop} = props
@@ -25,6 +27,26 @@ const ItemImage = (props) => {
           }}
         />
         <div/>
+        <IconButton
+            onClick={(ev) => onClick(ev)}
+            sx={{
+              margin: 0,
+              left: 'auto',
+              position: 'absolute',
+              right: '45%',
+              top: '35%',
+              bottom: 'auto',
+              zIndex: 1000,
+            }}
+          >
+            <PlayCircleOutlinedIcon 
+              sx={{
+                height: 60,
+                width: 60,
+              }}
+            />
+          </IconButton>
+
       </div>
     </LazyLoad>
   )

@@ -14,10 +14,8 @@ import { getOsisChTitle, getChoiceTitle } from '../constants/osisChTitles'
 import useBrowserData from '../hooks/useBrowserData'
 import useMediaPlayer from "../hooks/useMediaPlayer"
 import BibleviewerApp from './bible-viewer-app'
-import HistoryView from './history-view'
 import GospelJohnNavi from './gospel-john-video-navi'
 import OBSPictureNavigationApp from './obs-viewer-app'
-import { bibleDataEN, bibleDataDE_ML_1912 } from '../constants/bibleData'
 import { naviSortOrder, chInBook,
           naviBooksLevel1, naviBooksLevel2, naviChapters } from '../constants/naviChapters'
 import { gospelOfJohnObj } from '../constants/naviChaptersJohn'
@@ -98,7 +96,7 @@ const SerieGridBar = (props) => {
   )
 }
 
-const BibleNavigation = (props) => {
+const LibraryView = (props) => {
   // eslint-disable-next-line no-unused-vars
   const { size, width } = useBrowserData()
   const { navHist, startPlay, curPlay, syncImgSrc } = useMediaPlayer()
@@ -117,16 +115,6 @@ const BibleNavigation = (props) => {
   const preNav = "/navIcons/"
   const getSort = (val) => naviSortOrder.indexOf(parseInt(val))
   const addSkipLevel = (level) => setSkipLevelList([...skipLevelList,level])
-
-  // eslint-disable-next-line no-unused-vars
-  const getOsisIcon = (osisId) => {
-    const exceptionBook = ["1Sam","2Sam","1Kgs","2Kgs","1Chr","2Chr"]
-    let bookNameEng = t(osisId, { lng: 'en' })
-    if (exceptionBook.indexOf(osisId)>=0){
-      bookNameEng = bookNameEng.slice(2,2+bookNameEng.length)
-    }
-    return bookNameEng.replace(/ /g,"-").toLowerCase()
-  }
 
   const getChIcon = (key,lev1,lev2,bookObj,ch) => {
     let checkIcon = "000-" + pad(lev1)
@@ -227,26 +215,6 @@ const BibleNavigation = (props) => {
   const navigateHome = () => {
     setCurLevel(0)
     setLevel0("audioBible")
-  }
-
-  const handleHistoryClick = (obj) => {
-    const useLevel0 = obj?.ep?.topIdStr
-    setLevel0(useLevel0)
-    const curSerie = {...useSerie[useLevel0], language: serieLang[useLevel0] }
-    if (serieNaviType[useLevel0] === "audioBible") {
-      setLevel1(obj?.ep?.bookObj?.level1)
-      setLevel2(obj?.ep?.bookObj?.level2)
-      setLevel3(obj?.ep?.bookObj?.level3)
-      setCurLevel(4)
-      const bObj = obj?.ep?.bookObj
-      onStartPlay(useLevel0,curSerie,bObj,obj?.ep?.id)
-    } else if (serieNaviType[useLevel0] === "audioStories") {
-      setCurLevel(1)
-      startPlay(useLevel0,obj?.ep?.id,curSerie,obj?.ep)
-    } else if (serieNaviType[useLevel0] === "videoSerie") {
-      setCurLevel(1)
-      startPlay(useLevel0,obj?.ep?.id,curSerie,obj?.ep)
-    }
   }
 
   const handleReturn = () => {
@@ -454,4 +422,4 @@ const BibleNavigation = (props) => {
   )
 }
 
-export default BibleNavigation
+export default LibraryView

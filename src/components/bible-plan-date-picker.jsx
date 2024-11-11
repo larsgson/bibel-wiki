@@ -1,7 +1,7 @@
 import React from 'react'
 import DatePicker from "react-datepicker";
 import { rangeArray } from '../utils/obj-functions'
-import { subDays, addDays } from 'date-fns';
+import { addDays } from 'date-fns';
 import { registerLocale, setDefaultLocale } from  "react-datepicker";
 import enUsLocale from 'date-fns/locale/en-US';
 
@@ -49,6 +49,9 @@ const BiblePlanDatePicker = (props) => {
 
   return (
     <DatePicker
+      popperProps={{
+        strategy: "fixed" // use this to make the popper position: fixed
+      }}
       locale="en"
       selected={date}
       onChange={(date) => handleOnChange(date)}

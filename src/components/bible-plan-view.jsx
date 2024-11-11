@@ -2,7 +2,7 @@ import React from 'react'
 import { BookPreview } from "@oce-editor-tools/base"
 import { usfmText as usfmTextEn } from '../constants/John.usfm.en.js'
 import { usfmText as usfmTextDe } from '../constants/John.usfm.de.js'
-import { rangeArray, arrayToObject } from '../utils/obj-functions.js'
+import { rangeArray, arrayToObject } from '../utils/obj-functions'
 import { bRefLastVerseInChapter } from '@oce-editor-tools/verse-mapper'
 
 const BiblePlanView = ({curEp,lng}) => {
