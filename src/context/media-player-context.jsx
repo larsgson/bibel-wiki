@@ -124,7 +124,6 @@ console.log("onFinishedPlaying")
           const prefixIdStr = osisIconId[bk]
           const firstId = pad(parseInt(useCh))
           const firstEntry = checkObj[useCh][0].slice(0,2) // only accept first two numbers - ignore any trailing letter
-          // checkIcon = osisIconId[bk] + "_" + firstId + "_" + firstEntry
           checkIcon = `${prefixIdStr.slice(0,2)}/610px/${osisIconId[bk]}_${firstId}_${firstEntry}_RG`
           useDefaultImage = false
         }
@@ -164,7 +163,9 @@ console.log("onFinishedPlaying")
       const imgObj = getChFreePic(bk,ep?.id)
       nextImgSrc = imgObj?.imgSrc
     }
-    if (nextImgSrc!==curImgSrc) setStateKeyVal( "syncImgSrc", nextImgSrc )
+    if (nextImgSrc!==curImgSrc) {
+      setStateKeyVal( "syncImgSrc", nextImgSrc )
+    }
     setStateKeyVal( "curPos", curPos )
   }
 
