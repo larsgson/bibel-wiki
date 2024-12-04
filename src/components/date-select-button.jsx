@@ -19,7 +19,7 @@ const DateSelectButton = (props) => {
       <Button 
         variant="outlined" 
         onClick={onDatePickerClick}
-        sx={{color:'white', borderColor:'white'}}
+        sx={{minWidth:120, color:'white', borderColor:'white', p: 0}}
 
         endIcon={(
           <Badge 

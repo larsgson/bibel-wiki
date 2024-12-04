@@ -1,6 +1,8 @@
-import i18n from "i18next";
-import { initReactI18next } from "react-i18next";
-import locale2 from "locale2";
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+import LanguageDetector from 'i18next-browser-languagedetector';
+import Backend from 'i18next-http-backend';
+import { DateTime } from 'luxon';
 
 export const enChTitles = {
   "Gen.1": "Creation & Recreation",
@@ -3095,20 +3097,29 @@ Was bedeutet die Aufforderung von Jesus: "Folge du mir nach." (21,22) für dich?
 }
 
 i18n
-  //  .use(XHR)
-  // and check https://github.com/i18next/i18next-browser-languageDetector for client side !!!
-  // and this https://github.com/i18next/i18next-browser-languageDetector/issues/150
-  .use(initReactI18next) // if not using I18nextProvider
+  // i18next-http-backend
+  // loads translations from your server
+  // https://github.com/i18next/i18next-http-backend
+  .use(Backend)
+  // detect user language
+  // learn more: https://github.com/i18next/i18next-browser-languageDetector
+  .use(LanguageDetector)
+  // pass the i18n instance to react-i18next.
+  .use(initReactI18next)
+  // init i18next
+  // for all options read: https://www.i18next.com/overview/configuration-options
   .init({
-    // lng: locale2.slice(0,2),
-    // lng: "en",
-    // fallbackLng: "en",
-    lng: "de",
-    fallbackLng: "de",
     debug: true,
-
+    fallbackLng: 'en',
+    supportedLngs: ['de', 'en', 'es', 'fr', "pt_BR", "hu", "lu"],
     interpolation: {
-      escapeValue: false, // not needed for react!!
+      escapeValue: false, // not needed for react as it escapes by default
+      format: (value, format, lng) => {
+        if (value instanceof Date) {
+          return DateTime.fromJSDate(value).setLocale(lng).toLocaleString(DateTime[format])
+        }
+        return value;
+      }
     },
 
     react: {
@@ -3125,7 +3136,23 @@ i18n
       de: {
         translation:  {...deLocList, ...deChTitles},
       },
-    },
+    }
   });
+
+// i18n
+//   //  .use(XHR)
+//   // and check https://github.com/i18next/i18next-browser-languageDetector for client side !!!
+//   // and this https://github.com/i18next/i18next-browser-languageDetector/issues/150
+//   .use(initReactI18next) // if not using I18nextProvider
+//   .init({
+//     // lng: locale2.slice(0,2),
+//     // lng: "en",
+//     // fallbackLng: "en",
+//     lng: "de",
+//     fallbackLng: "de",
+//     debug: true,
+
+//     },
+//   });
 
 export default i18n;

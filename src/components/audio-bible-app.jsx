@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { styled, useTheme, createTheme, ThemeProvider } from '@mui/material/styles'
 import LibraryView from './library-view'
+import SettingsView from './settings-view'
 import BibleView from './bible-view'
 import HomeView from './home-view'
 import Box from '@mui/material/Box';
@@ -201,12 +202,16 @@ export default function MiniDrawer() {
         {!isPlaying && isMobileSize && (
           <Box sx={{ pb: 7 }} ref={ref}>
             <CssBaseline />
+            {(menuValue===3) && (<SettingsView
+                onExitNavigation={() => console.log("onExitNavigation - SettingsView")}
+                onStartPlay={handleStartBiblePlay}
+            />)}
             {(menuValue===2) && (<BibleView
-                onExitNavigation={() => console.log("onExitNavigation - AddContent")}
+                onExitNavigation={() => console.log("onExitNavigation - BibleView")}
                 onStartPlay={handleStartBiblePlay}
             />)}
             {(menuValue===1) && (<LibraryView
-              onExitNavigation={() => console.log("onExitNavigation - AddContent")}
+              onExitNavigation={() => console.log("onExitNavigation - LibraryView")}
               onStartPlay={handleStartBiblePlay}
             />)}
             {(menuValue===0) && (<HomeView
@@ -281,12 +286,15 @@ export default function MiniDrawer() {
             </Drawer>
             <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
               <DrawerHeader />
+              {(menuValue===3) && (<SettingsView
+                onExitNavigation={() => console.log("onExitNavigation - SettingsView")}
+              />)}
               {(menuValue===2) && (<BibleView
-                onExitNavigation={() => console.log("onExitNavigation - AddContent")}
+                onExitNavigation={() => console.log("onExitNavigation - BibleView")}
                 onStartPlay={handleStartBiblePlay}
               />)}
               {(menuValue===1) && (<LibraryView
-                onExitNavigation={() => console.log("onExitNavigation - AddContent")}
+                onExitNavigation={() => console.log("onExitNavigation - LibraryView")}
                 onStartPlay={handleStartBiblePlay}
               />)}
               {(menuValue===0) && (<HomeView
@@ -297,12 +305,15 @@ export default function MiniDrawer() {
             </Box>
           </Box>
         )}
+        {isPlaying && (menuValue===3) && (<SettingsView
+            onExitNavigation={() => console.log("onExitNavigation - SettingsView")}
+        />)}
         {isPlaying && (menuValue===2) && (<BibleView
-            onExitNavigation={() => console.log("onExitNavigation - AddContent")}
+            onExitNavigation={() => console.log("onExitNavigation - BibleView")}
             onStartPlay={handleStartBiblePlay}
         />)}
         {isPlaying && (menuValue===1) && (<LibraryView
-          onExitNavigation={() => console.log("onExitNavigation - AddContent")}
+          onExitNavigation={() => console.log("onExitNavigation - LibraryView")}
           onStartPlay={handleStartBiblePlay}
         />)}
         {isPlaying && (menuValue===0) && (<HomeView

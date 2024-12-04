@@ -346,6 +346,12 @@ console.log("handleFinishedPlaying")
             idStr = "0" +pad(id)
           }
           curFName = `${curSerie.curPath}${getIndexOfBibleBook(bk)}${idStr}-${bBookId}_Kapitel-${idStr}.mp3`
+        } else if (curSerie.wordProjectType) {
+          let bkIndex = undefined
+          Object.keys(osisIdAudiobibleTitle ).forEach((key, index) => {
+            if (key===bk) bkIndex = index +1
+          })
+          curFName = `${curSerie.curPath}${bkIndex}/${id}.mp3`
         // } else if (curSerie.audioBible_de_TJ_HJ) {
         //   let bBookId = fnameList_DE_TJ_HJ[bk]
           // chExceptionList_DE_TJ_HJ 
