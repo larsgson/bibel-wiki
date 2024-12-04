@@ -422,7 +422,7 @@ const HomeView = (props) => {
           <Grid item>
             {(myList.length>0) && (<Typography
               type="title"
-            >My List</Typography>)}
+            >Continue</Typography>)}
             {rootLevel && (myList.length>0) && (
               <HistoryView
                 onClick={(item) => handleHistoryClick(item)} 
@@ -451,10 +451,10 @@ const HomeView = (props) => {
           <ChevronLeft />
         </Fab>
       )}
-      {rootLevel && (naviType==="audioBible") && (<Typography
+      {rootLevel && (!isPlaying) && (naviType==="audioBible") && (<Typography
         type="title"
       >Today</Typography>)}
-      {rootLevel && (naviType==="audioBible") && (
+      {rootLevel && (!isPlaying) && (naviType==="audioBible") && (
         <BibleviewerApp onClose={handleClose} topIdStr={level0} lng={"en"}/>
       )}
       {/* {!rootLevel && (naviType==="videoPlan") && } */}
@@ -489,7 +489,7 @@ const HomeView = (props) => {
           type="title"
         >{obsTitles[level2-1]}</Typography>
         <ImageList
-          rowHeight={width / 1.77}
+          rowHeight={"auto"}
           cols={1}
         >
           <ImageListItem

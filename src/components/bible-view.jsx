@@ -8,32 +8,22 @@ import ImageList from '@mui/material/ImageList'
 import ImageListItem from '@mui/material/ImageListItem'
 import ImageListItemBar from '@mui/material/ImageListItemBar'
 import { rangeArray, pad, isEmptyObj } from '../utils/obj-functions'
-import { obsTitles, obsStoryList } from '../constants/obsHierarchy'
 import { osisIconId, osisIconList } from '../constants/osisIconList'
 import { getOsisChTitle, getChoiceTitle } from '../constants/osisChTitles'
 import useBrowserData from '../hooks/useBrowserData'
 import useMediaPlayer from "../hooks/useMediaPlayer"
-import BibleviewerApp from './bible-viewer-app'
-import GospelJohnNavi from './gospel-john-video-navi'
-import OBSPictureNavigationApp from './obs-viewer-app'
-import { bibleDataEN, bibleDataDE_ML_1912 } from '../constants/bibleData'
+import { 
+  bibleDataEN, 
+  bibleDataDE_ML_1912,
+  bibleDataES_WP,
+  bibleDataFR_WP,
+  bibleDataHU_WP,
+  bibleDataLU_WP,
+  bibleDataRO_WP,
+  bibleDataPT_BR_WP
+} from '../constants/bibleData'
 import { naviSortOrder, chInBook,
           naviBooksLevel1, naviBooksLevel2, naviChapters } from '../constants/naviChapters'
-
-const bibleDataEnOBSStory = {
-  freeType: false,
-  curPath: "",
-  title: "Open Bible Stories",
-  description: "",
-  image: {
-      origin: "Local",
-      filename: ""
-  },
-  language: "eng",
-  mediaType: "audio",
-  episodeList: obsStoryList,
-  uniqueID: "uW.OBS.en"
-}
 
 const topObjList = {
   "de-audio-bible-ML": {
@@ -46,21 +36,65 @@ const topObjList = {
     imgSrc: "/navIcons/40_Mt_08_12.png",
     subtitle: "with easy navigation"
   },
+  "es-audio-bible-WordProject": {
+    title: "Audio Biblia",
+    imgSrc: "/navIcons/40_Mt_03_08.png",
+    subtitle: "con fácil navegación"
+  },
+  "fr-audio-bible-WordProject": {
+    title: "Audio Bible",
+    imgSrc: "/navIcons/40_Mt_03_08.png",
+  },
+  "pt-br-audio-bible-WordProject": {
+    title: "Audio Biblia",
+    imgSrc: "/navIcons/40_Mt_03_08.png",
+    subtitle: "com navegação fácil"
+  },
+  "hu-audio-bible-WordProject": {
+    title: "Audio Biblia",
+    imgSrc: "/navIcons/40_Mt_03_08.png",
+  },
+  "lu-audio-bible-WordProject": {
+    title: "Audio Biblia",
+    imgSrc: "/navIcons/40_Mt_03_08.png",
+  },
+  "ro-audio-bible-WordProject": {
+    title: "Audio Biblia",
+    imgSrc: "/navIcons/40_Mt_03_08.png",
+  },
 }
           
 const useSerie = {
   "de-audio-bible-ML": bibleDataDE_ML_1912,
   "en-audio-bible-WEB": bibleDataEN,
+  "es-audio-bible-WordProject": bibleDataES_WP,
+  "pt-br-audio-bible-WordProject": bibleDataPT_BR_WP,
+  "fr-audio-bible-WordProject": bibleDataFR_WP,
+  "hu-audio-bible-WordProject": bibleDataHU_WP,
+  "lu-audio-bible-WordProject": bibleDataLU_WP,
+  "ro-audio-bible-WordProject": bibleDataRO_WP,
 }
 
 const serieLang = {
   "de-audio-bible-ML": "de",
   "en-audio-bible-WEB": "en",
+  "es-audio-bible-WordProject": "es",
+  "pt-br-audio-bible-WordProject": "pt-br",
+  "fr-audio-bible-WordProject": "fr",
+  "hu-audio-bible-WordProject": "hu",
+  "lu-audio-bible-WordProject": "lu",
+  "ro-audio-bible-WordProject": "ro",
 }
 
 const serieNaviType = {
   "de-audio-bible-ML": "audioBible",
   "en-audio-bible-WEB": "audioBible",
+  "es-audio-bible-WordProject": "audioBible",
+  "pt-br-audio-bible-WordProject": "audioBible",
+  "fr-audio-bible-WordProject": "audioBible",
+  "hu-audio-bible-WordProject": "audioBible",
+  "lu-audio-bible-WordProject": "audioBible",
+  "ro-audio-bible-WordProject": "audioBible",
 }
 
 const SerieGridBar = (props) => {
@@ -79,11 +113,28 @@ const BibleView = (props) => {
   const { size, width } = useBrowserData()
   const { navHist, startPlay, curPlay, syncImgSrc } = useMediaPlayer()
   const isPlaying = !isEmptyObj(curPlay)
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { onExitNavigation, onStartPlay } = props
-
-  const [curLevel, setCurLevel] = useState(0)
-  const [level0, setLevel0] = useState()
+  const useSerieId = 
+    i18n.language === "en" 
+      ? "en-audio-bible-WEB" 
+      : i18n.language === "es" 
+      ? "es-audio-bible-WordProject" 
+      : i18n.language === "fr" 
+      ? "fr-audio-bible-WordProject" 
+      : i18n.language === "hu" 
+      ? "hu-audio-bible-WordProject" 
+      : i18n.language === "lu" 
+      ? "lu-audio-bible-WordProject" 
+      : i18n.language === "ro" 
+      ? "ro-audio-bible-WordProject" 
+      : i18n.language === "es" 
+      ? "es-audio-bible-WordProject" 
+      : i18n.language === "de" 
+      ? "de-audio-bible-ML"
+      : "pt-br-audio-bible-WordProject"
+  const [curLevel, setCurLevel] = useState(1)
+  const [level0, setLevel0] = useState(useSerieId)
   const [level1, setLevel1] = useState(1)
   const [level2, setLevel2] = useState("")
   const [level3, setLevel3] = useState("")
@@ -169,6 +220,7 @@ const BibleView = (props) => {
   // eslint-disable-next-line no-unused-vars
   const handleClick = (ev,id,_isBookIcon) => {
     if (curLevel===0) {
+      console.log(id)
       setLevel0(id)
       setCurLevel(1)
     } else if (curLevel===1) {
@@ -203,26 +255,6 @@ const BibleView = (props) => {
   const navigateHome = () => {
     setCurLevel(0)
     setLevel0("audioBible")
-  }
-
-  const handleHistoryClick = (obj) => {
-    const useLevel0 = obj?.ep?.topIdStr
-    setLevel0(useLevel0)
-    const curSerie = {...useSerie[useLevel0], language: serieLang[useLevel0] }
-    if (serieNaviType[useLevel0] === "audioBible") {
-      setLevel1(obj?.ep?.bookObj?.level1)
-      setLevel2(obj?.ep?.bookObj?.level2)
-      setLevel3(obj?.ep?.bookObj?.level3)
-      setCurLevel(4)
-      const bObj = obj?.ep?.bookObj
-      onStartPlay(useLevel0,curSerie,bObj,obj?.ep?.id)
-    } else if (serieNaviType[useLevel0] === "audioStories") {
-      setCurLevel(1)
-      startPlay(useLevel0,obj?.ep?.id,curSerie,obj?.ep)
-    } else if (serieNaviType[useLevel0] === "videoSerie") {
-      setCurLevel(1)
-      startPlay(useLevel0,obj?.ep?.id,curSerie,obj?.ep)
-    }
   }
 
   const handleReturn = () => {
@@ -380,9 +412,6 @@ const BibleView = (props) => {
           <ChevronLeft />
         </Fab>
       )}
-      {(naviType==="videoPlan") && <BibleviewerApp onClose={handleClose} topIdStr={level0} lng={lng}/>}
-      {(naviType==="videoSerie") && <GospelJohnNavi onClose={handleClose} topIdStr={level0} lng={lng}/>}
-      {(naviType==="audioStories") && (!isPlaying) && <OBSPictureNavigationApp topIdStr={level0} onClose={handleClose}/>}
       {(naviType==="audioBible") && (!isPlaying) && (<ImageList
         rowHeight="auto"
         cols={useCols}
@@ -408,11 +437,8 @@ const BibleView = (props) => {
       )}
       {((naviType==="audioStories") || (naviType==="audioBible")) && (isPlaying) && (
       <>
-        <Typography
-          type="title"
-        >{obsTitles[level2-1]}</Typography>
         <ImageList
-          rowHeight={width / 1.77}
+          rowHeight={"auto"}
           cols={1}
         >
           <ImageListItem
