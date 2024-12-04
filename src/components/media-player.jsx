@@ -461,13 +461,11 @@ export const MediaPlayer = (props) => {
     }
     const {curSerie} = props
     if ((curSerie!=null)&&(curSerie.nextLevelPos!=null)){
-console.log(cur)
       if (cur.position-(curSerie.nextLevelPos*1000)>=cur.duration){
         if (props.onEndOfLevel!=null) props.onEndOfLevel()
       }
     }
     if (props.onPlaying) props.onPlaying({position: cur.position, duration: cur.duration})
-console.log(cur)
     setCurPos(cur)
   }
 

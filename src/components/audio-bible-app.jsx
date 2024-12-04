@@ -196,13 +196,14 @@ export default function MiniDrawer() {
   const handleDrawerClose = () => setOpen(false);
   const handleClickMenu = (inx) => setMenuValue(inx)
 
+  const settingsMenuIndex = topLevelNavItems.length
   return (
     <div style={defaultBackgroundStyle}>
       <ThemeProvider theme={theme}>
         {!isPlaying && isMobileSize && (
           <Box sx={{ pb: 7 }} ref={ref}>
             <CssBaseline />
-            {(menuValue===3) && (<SettingsView
+            {(menuValue===settingsMenuIndex) && (<SettingsView
                 onExitNavigation={() => console.log("onExitNavigation - SettingsView")}
                 onStartPlay={handleStartBiblePlay}
             />)}
@@ -279,6 +280,14 @@ export default function MiniDrawer() {
                   item.icon,
                   handleClickMenu
                 ))}
+                {ToggleMiniListItem( 
+                  settingsMenuIndex,
+                  (menuValue===settingsMenuIndex),
+                  open,
+                  "Settings",
+                  <MenuIcon/>,
+                  handleClickMenu
+                )}
               </List>
               <Divider />
               <List>
@@ -286,7 +295,7 @@ export default function MiniDrawer() {
             </Drawer>
             <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
               <DrawerHeader />
-              {(menuValue===3) && (<SettingsView
+              {(menuValue===settingsMenuIndex) && (<SettingsView
                 onExitNavigation={() => console.log("onExitNavigation - SettingsView")}
               />)}
               {(menuValue===2) && (<BibleView
