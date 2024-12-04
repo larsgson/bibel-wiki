@@ -253,8 +253,8 @@ const BibleView = (props) => {
   }
 
   const navigateHome = () => {
-    setCurLevel(0)
-    setLevel0("audioBible")
+    setCurLevel(1)
+    setLevel1(1)
   }
 
   const handleReturn = () => {
@@ -394,7 +394,7 @@ const BibleView = (props) => {
   }) || []
   return (
     <div>
-      {(naviType==="audioBible") && (!isPlaying) && (curLevel>1) && (
+      {(naviType==="audioBible") && (!isPlaying) && (curLevel>2) && (
         <Fab
           onClick={navigateHome}
           // className={largeScreen ? classes.exitButtonLS : classes.exitButton}
@@ -403,7 +403,7 @@ const BibleView = (props) => {
           <Home/>
         </Fab>
       )}
-      {!rootLevel && (!isPlaying) && (naviType==="audioBible") && (
+      {(curLevel>1) && (!isPlaying) && (naviType==="audioBible") && (
         <Fab
           onClick={handleReturn}
           // className={largeScreen ? classes.exitButtonLS : classes.exitButton}
