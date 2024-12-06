@@ -268,53 +268,6 @@ const LibraryView = (props) => {
   const rootLevel = (curLevel===0)
   const naviType = serieNaviType[level0] || "audioBible"
   const lng = serieLang[level0]
-  const myList = navHist && Object.keys(navHist).filter(key => {
-    const navObj = navHist[key]
-    const useLevel0 = navObj?.topIdStr
-    return (
-      (serieNaviType[useLevel0] === "audioBible") 
-      || (serieNaviType[useLevel0] === "audioStories")
-      || (serieNaviType[useLevel0] === "videoSerie")
-    )
-  }).map(key => {
-    const navObj = navHist[key]
-    const useLevel0 = navObj?.topIdStr
-    // if ((useLevel0 === "en-audio-bible-WEB") || (useLevel0 === "de-audio-bible-ML")) {
-    if (serieNaviType[useLevel0] === "audioBible") {
-      const useLevel1 = navObj?.bookObj?.level1
-      const useLevel2 = navObj?.bookObj?.level2
-      const useBObj = navObj?.bookObj
-      const useCh = navObj?.id
-      const epObj = getChIcon(useCh,useLevel1,useLevel2,useBObj,useCh)
-      return {
-        key,
-        id: key,
-        imageSrc: epObj.imgSrc,
-        title: epObj.title,
-        descr: epObj.subtitle,
-        ep: navHist[key]
-      }
-    } else if (serieNaviType[useLevel0] === "audioStories") {
-      return {
-        key,
-        id: key,
-        imageSrc: navObj?.image?.filename,
-        title: navObj.title,
-        descr: navObj.subtitle,
-        ep: navHist[key]
-      }  
-    } else if (serieNaviType[useLevel0] === "videoSerie") {
-      const useLng = serieLang[useLevel0]
-      return {
-        key,
-        id: key,
-        image: navObj.image,
-        title: t(navObj.title, { lng: useLng }),
-        descr: t(navObj.descr, { lng: useLng }),
-        ep: navHist[key]
-      }
-    }
-  }) || []
   return (
     <div>
       {(naviType==="audioBible") && (!isPlaying) && (curLevel>1) && (

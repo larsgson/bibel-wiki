@@ -3109,9 +3109,9 @@ i18n
   // init i18next
   // for all options read: https://www.i18next.com/overview/configuration-options
   .init({
-    debug: true,
+    debug: false,
     fallbackLng: 'en',
-    supportedLngs: ['de', 'en', 'es', 'fr', "pt_BR", "hu", "lu"],
+    supportedLngs: ['de', 'en', 'es', 'fr', 'ro', 'pt_BR', 'hu', 'lu'],
     interpolation: {
       escapeValue: false, // not needed for react as it escapes by default
       format: (value, format, lng) => {

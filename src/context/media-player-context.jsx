@@ -161,7 +161,6 @@ console.log("onFinishedPlaying")
       const ep = state?.curPlay?.curEp
       const bk = ep?.bookObj
       const imgObj = getChFreePic(bk,ep?.id)
-      console.log(imgObj?.imgSrc)
       nextImgSrc = imgObj?.imgSrc
     }
     if (nextImgSrc!==curImgSrc) {

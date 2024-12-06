@@ -52,52 +52,32 @@ const topObjList = {
 }
 
 const HomeView = (props) => {
+  const { onStartPlay } = props
   // eslint-disable-next-line no-unused-vars
   const { navHist, startPlay, curPlay, syncImgSrc } = useMediaPlayer()
   const isPlaying = !isEmptyObj(curPlay)
   const { t } = useTranslation()
-  const { onStartPlay } = props
 
-  const [level0, setLevel0] = useState()
-  const [level2, setLevel2] = useState("")
-  const [skipLevelList,setSkipLevelList] = useState([])
   const preNav = "/navIcons/"
-
-  const navigateUp = (level) => {
-    if (skipLevelList.includes(level)) {
-      navigateUp(level-1)
-    } else {
-      setCurLevel(level)
-      if (level===0) setLevel0("audioBible")
-    }
-  }
 
   const handleHistoryClick = (obj) => {
     const useLevel0 = obj?.ep?.topIdStr
-    setLevel0(useLevel0)
     const curSerie = {...useSerie[useLevel0], language: serieLang[useLevel0] }
     if (serieNaviType[useLevel0] === "audioBible") {
-      setLevel1(obj?.ep?.bookObj?.level1)
-      setLevel2(obj?.ep?.bookObj?.level2)
-      setLevel3(obj?.ep?.bookObj?.level3)
-      setCurLevel(4)
       const bObj = obj?.ep?.bookObj
       onStartPlay(useLevel0,curSerie,bObj,obj?.ep?.id)
     } else if (serieNaviType[useLevel0] === "audioStories") {
-      setCurLevel(1)
       startPlay(useLevel0,obj?.ep?.id,curSerie,obj?.ep)
     } else if (serieNaviType[useLevel0] === "videoSerie") {
-      setCurLevel(1)
       startPlay(useLevel0,obj?.ep?.id,curSerie,obj?.ep)
     }
   }
 
-  const getChIcon = (key,lev1,lev2,bookObj,ch) => {
+  const getChIcon = (key,lev1,lev2,bookObj,ch,lng) => {
     let checkIcon = "000-" + pad(lev1)
     if (lev2!=null) checkIcon = "00-" + pad(lev1) + lev2
     let imgSrc
     let checkTitle
-    const lng = serieLang[level0]
     const bk = (bookObj!=null)?bookObj.bk:null
     if (bk!=null){ // level 3
       const checkObj = osisIconList[bk]
@@ -154,8 +134,6 @@ const HomeView = (props) => {
     }
   }
   
-  const naviType = serieNaviType[level0] || "audioBible"
-  const lng = serieLang[level0]
   const myList = navHist && Object.keys(navHist).filter(key => {
     const navObj = navHist[key]
     const useLevel0 = navObj?.topIdStr
@@ -173,7 +151,8 @@ const HomeView = (props) => {
       const useLevel2 = navObj?.bookObj?.level2
       const useBObj = navObj?.bookObj
       const useCh = navObj?.id
-      const epObj = getChIcon(useCh,useLevel1,useLevel2,useBObj,useCh)
+      const lng = serieLang[useLevel0]
+      const epObj = getChIcon(useCh,useLevel1,useLevel2,useBObj,useCh,lng)
       return {
         key,
         id: key,
@@ -203,6 +182,13 @@ const HomeView = (props) => {
       }
     }
   }) || []
+  let showSyncImage = false
+  if (isPlaying) {
+    const curMediaType = curPlay?.curSerie?.mediaType
+    showSyncImage = (curMediaType==="audio") || (curMediaType==="bible")
+  }
+  const lng = "en" // Fallback language
+
   return (
     <div>
       {(!isPlaying) && (
@@ -221,17 +207,14 @@ const HomeView = (props) => {
           </Grid>
         </Grid>
       )}
-      {(!isPlaying) && (naviType==="audioBible") && (<Typography
+      {(!isPlaying) && (<Typography
         type="title"
       >Today</Typography>)}
-      {(!isPlaying) && (naviType==="audioBible") && (
-        <BibleviewerApp topIdStr={level0} lng={"en"}/>
+      {(!isPlaying) && (
+        <BibleviewerApp topIdStr={"en-audio-bible-WEB"} lng={"en"}/>
       )}
-      {((naviType==="audioStories") || (naviType==="audioBible")) && (isPlaying) && (
+      {(showSyncImage) && (
       <>
-        <Typography
-          type="title"
-        >{obsTitles[level2-1]}</Typography>
         <ImageList
           rowHeight={"auto"}
           cols={1}
