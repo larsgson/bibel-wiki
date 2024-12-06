@@ -18,22 +18,7 @@ import GospelJohnNavi from './gospel-john-video-navi'
 import OBSPictureNavigationApp from './obs-viewer-app'
 import { naviSortOrder, chInBook,
           naviBooksLevel1, naviBooksLevel2, naviChapters } from '../constants/naviChapters'
-import { gospelOfJohnObj } from '../constants/naviChaptersJohn'
-
-const bibleDataEnOBSStory = {
-  freeType: false,
-  curPath: "",
-  title: "Open Bible Stories",
-  description: "",
-  image: {
-      origin: "Local",
-      filename: ""
-  },
-  language: "eng",
-  mediaType: "audio",
-  episodeList: obsStoryList,
-  uniqueID: "uW.OBS.en"
-}
+import { useSerie, serieLang, serieNaviType } from '../utils/dynamic-lang'
 
 const topObjList = {
   "de-jhn-serie": {
@@ -61,28 +46,6 @@ const topObjList = {
     imgSrc: "/navIcons/Bible_NT.png",
     subtitle: "with easy navigation"
   }
-}
-          
-const useSerie = {
-  "de-jhn-serie": gospelOfJohnObj,
-  "en-jhn-serie": gospelOfJohnObj,
-  "en-audio-OBS": bibleDataEnOBSStory,
-}
-
-const serieLang = {
-  "de-jhn-serie": "de",
-  "en-jhn-serie": "en",
-  "de-jhn-plan": "de",
-  "en-jhn-plan": "en",
-  "en-audio-OBS": "en",
-}
-
-const serieNaviType = {
-  "de-jhn-serie": "videoSerie",
-  "en-jhn-serie": "videoSerie",
-  "de-jhn-plan": "videoPlan",
-  "en-jhn-plan": "videoPlan",
-  "en-audio-OBS": "audioStories",
 }
 
 const SerieGridBar = (props) => {
@@ -305,53 +268,6 @@ const LibraryView = (props) => {
   const rootLevel = (curLevel===0)
   const naviType = serieNaviType[level0] || "audioBible"
   const lng = serieLang[level0]
-  const myList = navHist && Object.keys(navHist).filter(key => {
-    const navObj = navHist[key]
-    const useLevel0 = navObj?.topIdStr
-    return (
-      (serieNaviType[useLevel0] === "audioBible") 
-      || (serieNaviType[useLevel0] === "audioStories")
-      || (serieNaviType[useLevel0] === "videoSerie")
-    )
-  }).map(key => {
-    const navObj = navHist[key]
-    const useLevel0 = navObj?.topIdStr
-    // if ((useLevel0 === "en-audio-bible-WEB") || (useLevel0 === "de-audio-bible-ML")) {
-    if (serieNaviType[useLevel0] === "audioBible") {
-      const useLevel1 = navObj?.bookObj?.level1
-      const useLevel2 = navObj?.bookObj?.level2
-      const useBObj = navObj?.bookObj
-      const useCh = navObj?.id
-      const epObj = getChIcon(useCh,useLevel1,useLevel2,useBObj,useCh)
-      return {
-        key,
-        id: key,
-        imageSrc: epObj.imgSrc,
-        title: epObj.title,
-        descr: epObj.subtitle,
-        ep: navHist[key]
-      }
-    } else if (serieNaviType[useLevel0] === "audioStories") {
-      return {
-        key,
-        id: key,
-        imageSrc: navObj?.image?.filename,
-        title: navObj.title,
-        descr: navObj.subtitle,
-        ep: navHist[key]
-      }  
-    } else if (serieNaviType[useLevel0] === "videoSerie") {
-      const useLng = serieLang[useLevel0]
-      return {
-        key,
-        id: key,
-        image: navObj.image,
-        title: t(navObj.title, { lng: useLng }),
-        descr: t(navObj.descr, { lng: useLng }),
-        ep: navHist[key]
-      }
-    }
-  }) || []
   return (
     <div>
       {(naviType==="audioBible") && (!isPlaying) && (curLevel>1) && (

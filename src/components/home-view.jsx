@@ -1,48 +1,17 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Typography from '@mui/material/Typography'
-import Fab from '@mui/material/Fab'
-import Home from '@mui/icons-material/Home'
-import Add from '@mui/icons-material/Add'
-import ChevronLeft from '@mui/icons-material/ChevronLeft'
 import Grid from '@mui/material/Grid'
 import ImageList from '@mui/material/ImageList'
 import ImageListItem from '@mui/material/ImageListItem'
-import ImageListItemBar from '@mui/material/ImageListItemBar'
-import ListItem from '@mui/material/ListItem';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
-import VideoLibraryIcon from '@mui/icons-material/VideoLibrary';
-import { rangeArray, pad, isEmptyObj } from '../utils/obj-functions'
-import { obsTitles, obsStoryList } from '../constants/obsHierarchy'
+import { pad, isEmptyObj } from '../utils/obj-functions'
+import { obsTitles } from '../constants/obsHierarchy'
 import { osisIconId, osisIconList } from '../constants/osisIconList'
 import { getOsisChTitle, getChoiceTitle } from '../constants/osisChTitles'
-import useBrowserData from '../hooks/useBrowserData'
 import useMediaPlayer from "../hooks/useMediaPlayer"
 import BibleviewerApp from './bible-viewer-app'
 import HistoryView from './history-view'
-import GospelJohnNavi from './gospel-john-video-navi'
-import OBSPictureNavigationApp from './obs-viewer-app'
-import { bibleDataEN, bibleDataDE_ML_1912 } from '../constants/bibleData'
-import { naviSortOrder, chInBook,
-          naviBooksLevel1, naviBooksLevel2, naviChapters } from '../constants/naviChapters'
-import { gospelOfJohnObj } from '../constants/naviChaptersJohn'
-
-const bibleDataEnOBSStory = {
-  freeType: false,
-  curPath: "",
-  title: "Open Bible Stories",
-  description: "",
-  image: {
-      origin: "Local",
-      filename: ""
-  },
-  language: "eng",
-  mediaType: "audio",
-  episodeList: obsStoryList,
-  uniqueID: "uW.OBS.en"
-}
+import { useSerie, serieLang, serieNaviType } from '../utils/dynamic-lang'
 
 const topObjList = {
   "de-jhn-serie": {
@@ -81,82 +50,34 @@ const topObjList = {
     subtitle: "with easy navigation"
   }
 }
-          
-const useSerie = {
-  "de-audio-bible-ML": bibleDataDE_ML_1912,
-  "en-audio-bible-WEB": bibleDataEN,
-  "de-jhn-serie": gospelOfJohnObj,
-  "en-jhn-serie": gospelOfJohnObj,
-  "en-audio-OBS": bibleDataEnOBSStory,
-}
-
-const serieLang = {
-  "de-audio-bible-ML": "de",
-  "en-audio-bible-WEB": "en",
-  "de-jhn-serie": "de",
-  "en-jhn-serie": "en",
-  "de-jhn-plan": "de",
-  "en-jhn-plan": "en",
-  "en-audio-OBS": "en",
-}
-
-const serieNaviType = {
-  "de-audio-bible-ML": "audioBible",
-  "en-audio-bible-WEB": "audioBible",
-  "de-jhn-serie": "videoSerie",
-  "en-jhn-serie": "videoSerie",
-  "de-jhn-plan": "videoPlan",
-  "en-jhn-plan": "videoPlan",
-  "en-audio-OBS": "audioStories",
-}
-
-const SerieGridBar = (props) => {
-  // eslint-disable-next-line no-unused-vars
-  const { classes, title, subtitle } = props
-  return (
-      <ImageListItemBar
-        title={title}
-        subtitle={subtitle}
-      />
-  )
-}
 
 const HomeView = (props) => {
+  const { onStartPlay } = props
   // eslint-disable-next-line no-unused-vars
-  const { size, width } = useBrowserData()
   const { navHist, startPlay, curPlay, syncImgSrc } = useMediaPlayer()
   const isPlaying = !isEmptyObj(curPlay)
   const { t } = useTranslation()
-  const { onExitNavigation, onAddNavigation, onStartPlay } = props
 
-  const [curLevel, setCurLevel] = useState(0)
-  const [level0, setLevel0] = useState()
-  const [level1, setLevel1] = useState(1)
-  const [level2, setLevel2] = useState("")
-  const [level3, setLevel3] = useState("")
-  const [skipLevelList,setSkipLevelList] = useState([])
-  // ToDo !!! find a bibleBookList and use this here
-  // eslint-disable-next-line no-unused-vars
   const preNav = "/navIcons/"
-  const getSort = (val) => naviSortOrder.indexOf(parseInt(val))
-  const addSkipLevel = (level) => setSkipLevelList([...skipLevelList,level])
 
-  // eslint-disable-next-line no-unused-vars
-  const getOsisIcon = (osisId) => {
-    const exceptionBook = ["1Sam","2Sam","1Kgs","2Kgs","1Chr","2Chr"]
-    let bookNameEng = t(osisId, { lng: 'en' })
-    if (exceptionBook.indexOf(osisId)>=0){
-      bookNameEng = bookNameEng.slice(2,2+bookNameEng.length)
+  const handleHistoryClick = (obj) => {
+    const useLevel0 = obj?.ep?.topIdStr
+    const curSerie = {...useSerie[useLevel0], language: serieLang[useLevel0] }
+    if (serieNaviType[useLevel0] === "audioBible") {
+      const bObj = obj?.ep?.bookObj
+      onStartPlay(useLevel0,curSerie,bObj,obj?.ep?.id)
+    } else if (serieNaviType[useLevel0] === "audioStories") {
+      startPlay(useLevel0,obj?.ep?.id,curSerie,obj?.ep)
+    } else if (serieNaviType[useLevel0] === "videoSerie") {
+      startPlay(useLevel0,obj?.ep?.id,curSerie,obj?.ep)
     }
-    return bookNameEng.replace(/ /g,"-").toLowerCase()
   }
 
-  const getChIcon = (key,lev1,lev2,bookObj,ch) => {
+  const getChIcon = (key,lev1,lev2,bookObj,ch,lng) => {
     let checkIcon = "000-" + pad(lev1)
     if (lev2!=null) checkIcon = "00-" + pad(lev1) + lev2
     let imgSrc
     let checkTitle
-    const lng = serieLang[level0]
     const bk = (bookObj!=null)?bookObj.bk:null
     if (bk!=null){ // level 3
       const checkObj = osisIconList[bk]
@@ -212,162 +133,7 @@ const HomeView = (props) => {
       isBookIcon: false
     }
   }
-
-  // eslint-disable-next-line no-unused-vars
-  const handleClick = (ev,id,_isBookIcon) => {
-    if (curLevel===0) {
-      setLevel0(id)
-      setCurLevel(1)
-    } else if (curLevel===1) {
-      setLevel1(id)
-      setCurLevel(2)
-    } else if (curLevel===2) {
-      setLevel2(id)
-      if (naviChapters[level1][id].length===1){
-        setLevel3(0)
-        setCurLevel(4)
-      } else setCurLevel(3)  
-    } else if (curLevel===3) {
-      setLevel3(id)
-      setCurLevel(4)
-    } else {
-      const bookObj = {...naviChapters[level1][level2][level3], level1, level2, level3}
-      const curSerie = useSerie[level0]
-      // const {curSerie} = curPlay  
-      onStartPlay(level0,curSerie,bookObj,id)
-    }
-  }
-
-  const navigateUp = (level) => {
-    if (skipLevelList.includes(level)) {
-      navigateUp(level-1)
-    } else {
-      setCurLevel(level)
-      if (level===0) setLevel0("audioBible")
-    }
-  }
-
-  const navigateHome = () => {
-    setCurLevel(0)
-    setLevel0("audioBible")
-  }
-
-  const navigateAdd = () => {
-    console.log("add")
-    onAddNavigation && onAddNavigation()
-  }
-
-  const handleDrawerClick = () => {
-    setWide(prev => (!prev))
-  }
-  const handleHistoryClick = (obj) => {
-    const useLevel0 = obj?.ep?.topIdStr
-    setLevel0(useLevel0)
-    const curSerie = {...useSerie[useLevel0], language: serieLang[useLevel0] }
-    if (serieNaviType[useLevel0] === "audioBible") {
-      setLevel1(obj?.ep?.bookObj?.level1)
-      setLevel2(obj?.ep?.bookObj?.level2)
-      setLevel3(obj?.ep?.bookObj?.level3)
-      setCurLevel(4)
-      const bObj = obj?.ep?.bookObj
-      onStartPlay(useLevel0,curSerie,bObj,obj?.ep?.id)
-    } else if (serieNaviType[useLevel0] === "audioStories") {
-      setCurLevel(1)
-      startPlay(useLevel0,obj?.ep?.id,curSerie,obj?.ep)
-    } else if (serieNaviType[useLevel0] === "videoSerie") {
-      setCurLevel(1)
-      startPlay(useLevel0,obj?.ep?.id,curSerie,obj?.ep)
-    }
-  }
-
-  const handleReturn = () => {
-    if ((curLevel===4)&&(naviChapters[level1][level2].length===1)){
-      navigateUp(2)
-    } else
-    if (curLevel>0){
-      navigateUp(curLevel-1)
-    } else {
-      onExitNavigation()
-    }
-  }
-  const handleClose = () => {
-    navigateUp(0)
-  }
-    
-  let validIconList = []
-  let validBookList = []
-  if (curLevel===0){
-    validIconList = Object.keys(topObjList).filter(key => (key!=="en-jhn-plan")).map((key) => {
-      return {
-        ...topObjList[key],
-        key
-      }
-    })
-  } else if (curLevel===1){
-    let lastInx
-    const curSerie = useSerie[level0]
-    const curList = (curSerie!=null && curSerie.bibleBookList) ? curSerie.bibleBookList : []
-    Object.keys(naviBooksLevel1).sort((a,b)=>getSort(a)-getSort(b)
-    ).forEach(iconInx => {
-      const foundList = naviBooksLevel1[iconInx].filter(x => curList.includes(x))
-      validBookList.push(...foundList)
-      if (foundList.length>0){
-        lastInx = iconInx
-        validIconList.push(getChIcon(iconInx,iconInx))
-      }
-    })
-    if (validIconList.length===1) {
-      setLevel1(lastInx)
-      setCurLevel(2)
-      addSkipLevel(1)
-      validIconList = []
-      validBookList = []
-    }
-  }
-  if (curLevel===2){
-    let lastLetter
-    const curSerie = useSerie[level0]
-    const curList = (curSerie!=null) ? curSerie.bibleBookList : []
-    Object.keys(naviChapters[level1]).forEach(iconLetter => {
-      const foundList = naviBooksLevel2[level1][iconLetter].filter(x => curList.includes(x))
-      validBookList.push(...foundList)
-      if (foundList.length>0) {
-        lastLetter = iconLetter
-        validIconList.push(getChIcon(iconLetter,level1,iconLetter))
-      }
-    })
-    if (validIconList.length===1) {
-      setLevel2(lastLetter)
-      setCurLevel(3)
-      addSkipLevel(2)
-      validIconList = []
-      validBookList = []
-    }
-  }
-  if (curLevel===3){
-    naviChapters[level1][level2].forEach((bookObj,i) => {
-      validIconList.push(getChIcon(i,level1,level2,bookObj))
-    })
-  } else if (curLevel===4){
-    const bookObj = naviChapters[level1][level2][level3]
-    const {bk} = bookObj
-    if (bk!=null){
-      if (bookObj.beg==null) bookObj.beg = 1
-      if (bookObj.end==null) bookObj.end = chInBook[bk]
-      const {beg,end} = bookObj
-      rangeArray(beg,end).forEach(ch => {
-        validIconList.push(getChIcon(ch,level1,level2,bookObj,ch))
-//          validIconList.push(getChIcon(index here,level1,bookObj,ch,ch))
-      })
-    }
-  }
-  let useCols = 3
-  if (size==="xs") useCols = 2
-  else if (size==="lg") useCols = 4
-  else if (size==="xl") useCols = 5
-  const rootLevel = (curLevel===0)
-  const naviType = serieNaviType[level0] || "audioBible"
-  const lng = serieLang[level0]
+  
   const myList = navHist && Object.keys(navHist).filter(key => {
     const navObj = navHist[key]
     const useLevel0 = navObj?.topIdStr
@@ -385,7 +151,8 @@ const HomeView = (props) => {
       const useLevel2 = navObj?.bookObj?.level2
       const useBObj = navObj?.bookObj
       const useCh = navObj?.id
-      const epObj = getChIcon(useCh,useLevel1,useLevel2,useBObj,useCh)
+      const lng = serieLang[useLevel0]
+      const epObj = getChIcon(useCh,useLevel1,useLevel2,useBObj,useCh,lng)
       return {
         key,
         id: key,
@@ -415,15 +182,22 @@ const HomeView = (props) => {
       }
     }
   }) || []
+  let showSyncImage = false
+  if (isPlaying) {
+    const curMediaType = curPlay?.curSerie?.mediaType
+    showSyncImage = (curMediaType==="audio") || (curMediaType==="bible")
+  }
+  const lng = "en" // Fallback language
+
   return (
     <div>
-      {rootLevel && (
+      {(!isPlaying) && (
         <Grid container alignItems="center" spacing={2}>
           <Grid item>
             {(myList.length>0) && (<Typography
               type="title"
             >Continue</Typography>)}
-            {rootLevel && (myList.length>0) && (
+            {(myList.length>0) && (
               <HistoryView
                 onClick={(item) => handleHistoryClick(item)} 
                 epList={myList}
@@ -431,71 +205,21 @@ const HomeView = (props) => {
               />      
             )}
           </Grid>
-      </Grid>
-    )}
-    {(naviType==="audioBible") && (!isPlaying) && (curLevel>1) && (
-        <Fab
-          onClick={navigateHome}
-          // className={largeScreen ? classes.exitButtonLS : classes.exitButton}
-          color="primary"
-        >
-          <Home/>
-        </Fab>
+        </Grid>
       )}
-      {!rootLevel && (!isPlaying) && (naviType==="audioBible") && (
-        <Fab
-          onClick={handleReturn}
-          // className={largeScreen ? classes.exitButtonLS : classes.exitButton}
-          color="primary"
-        >
-          <ChevronLeft />
-        </Fab>
-      )}
-      {rootLevel && (!isPlaying) && (naviType==="audioBible") && (<Typography
+      {(!isPlaying) && (<Typography
         type="title"
       >Today</Typography>)}
-      {rootLevel && (!isPlaying) && (naviType==="audioBible") && (
-        <BibleviewerApp onClose={handleClose} topIdStr={level0} lng={"en"}/>
+      {(!isPlaying) && (
+        <BibleviewerApp topIdStr={"en-audio-bible-WEB"} lng={"en"}/>
       )}
-      {/* {!rootLevel && (naviType==="videoPlan") && } */}
-      {!rootLevel && (naviType==="videoSerie") && <GospelJohnNavi onClose={handleClose} topIdStr={level0} lng={lng}/>}
-      {!rootLevel && (naviType==="audioStories") && (!isPlaying) && <OBSPictureNavigationApp topIdStr={level0} onClose={handleClose}/>}
-      {!rootLevel && (naviType==="audioBible") && (!isPlaying) && (<ImageList
-        rowHeight="auto"
-        cols={useCols}
-      >
-        {validIconList.map(iconObj => {
-          const {key,imgSrc,title,subtitle,isBookIcon} = iconObj
-          return (
-            <ImageListItem
-              onClick={(ev) => handleClick(ev,key,isBookIcon)}
-              key={key}
-            >
-              <img
-                src={imgSrc}
-                alt={title}/>
-              <SerieGridBar
-                title={title}
-                subtitle={subtitle}
-              />
-            </ImageListItem>
-          )
-        })}
-        </ImageList>
-      )}
-      {((naviType==="audioStories") || (naviType==="audioBible")) && (isPlaying) && (
+      {(showSyncImage) && (
       <>
-        <Typography
-          type="title"
-        >{obsTitles[level2-1]}</Typography>
         <ImageList
           rowHeight={"auto"}
           cols={1}
         >
-          <ImageListItem
-            onClick={(ev) => handleClick(ev,"1",false)}
-            key="1"
-          >
+          <ImageListItem key="1">
             <img src={syncImgSrc} />
           </ImageListItem>
         </ImageList>
