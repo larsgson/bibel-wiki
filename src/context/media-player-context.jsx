@@ -161,6 +161,7 @@ console.log("onFinishedPlaying")
       const ep = state?.curPlay?.curEp
       const bk = ep?.bookObj
       const imgObj = getChFreePic(bk,ep?.id)
+      console.log(imgObj?.imgSrc)
       nextImgSrc = imgObj?.imgSrc
     }
     if (nextImgSrc!==curImgSrc) {
@@ -210,7 +211,7 @@ console.log("onFinishedPlaying")
       await updateStorage("navHist",navHist)
       await updateStorage("curSerId",curSerId)
       const curInx = tmpEp?.id
-      const syncImgSrc = updateImgBasedOnPos( curInx, 0 )
+      const syncImgSrc = (curSerId === "uW.OBS.en") ? updateImgBasedOnPos( curInx, 0 ) : ""
       setState(state => ({...state, navHist, syncImgSrc, curSerId, curSerie, curEp: tmpEp}))
       // setState(state => ({...state, syncImgSrc, curSerId, curSerie, curEp: tmpEp}))
     }

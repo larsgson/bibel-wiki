@@ -18,22 +18,7 @@ import GospelJohnNavi from './gospel-john-video-navi'
 import OBSPictureNavigationApp from './obs-viewer-app'
 import { naviSortOrder, chInBook,
           naviBooksLevel1, naviBooksLevel2, naviChapters } from '../constants/naviChapters'
-import { gospelOfJohnObj } from '../constants/naviChaptersJohn'
-
-const bibleDataEnOBSStory = {
-  freeType: false,
-  curPath: "",
-  title: "Open Bible Stories",
-  description: "",
-  image: {
-      origin: "Local",
-      filename: ""
-  },
-  language: "eng",
-  mediaType: "audio",
-  episodeList: obsStoryList,
-  uniqueID: "uW.OBS.en"
-}
+import { useSerie, serieLang, serieNaviType } from '../utils/dynamic-lang'
 
 const topObjList = {
   "de-jhn-serie": {
@@ -61,28 +46,6 @@ const topObjList = {
     imgSrc: "/navIcons/Bible_NT.png",
     subtitle: "with easy navigation"
   }
-}
-          
-const useSerie = {
-  "de-jhn-serie": gospelOfJohnObj,
-  "en-jhn-serie": gospelOfJohnObj,
-  "en-audio-OBS": bibleDataEnOBSStory,
-}
-
-const serieLang = {
-  "de-jhn-serie": "de",
-  "en-jhn-serie": "en",
-  "de-jhn-plan": "de",
-  "en-jhn-plan": "en",
-  "en-audio-OBS": "en",
-}
-
-const serieNaviType = {
-  "de-jhn-serie": "videoSerie",
-  "en-jhn-serie": "videoSerie",
-  "de-jhn-plan": "videoPlan",
-  "en-jhn-plan": "videoPlan",
-  "en-audio-OBS": "audioStories",
 }
 
 const SerieGridBar = (props) => {

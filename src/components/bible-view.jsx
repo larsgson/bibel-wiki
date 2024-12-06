@@ -8,20 +8,16 @@ import ImageList from '@mui/material/ImageList'
 import ImageListItem from '@mui/material/ImageListItem'
 import ImageListItemBar from '@mui/material/ImageListItemBar'
 import { rangeArray, pad, isEmptyObj } from '../utils/obj-functions'
+import { 
+  selectAudioBible,
+  useSerie,
+  serieLang,
+  serieNaviType  
+} from '../utils/dynamic-lang'
 import { osisIconId, osisIconList } from '../constants/osisIconList'
 import { getOsisChTitle, getChoiceTitle } from '../constants/osisChTitles'
 import useBrowserData from '../hooks/useBrowserData'
 import useMediaPlayer from "../hooks/useMediaPlayer"
-import { 
-  bibleDataEN, 
-  bibleDataDE_ML_1912,
-  bibleDataES_WP,
-  bibleDataFR_WP,
-  bibleDataHU_WP,
-  bibleDataLU_WP,
-  bibleDataRO_WP,
-  bibleDataPT_BR_WP
-} from '../constants/bibleData'
 import { naviSortOrder, chInBook,
           naviBooksLevel1, naviBooksLevel2, naviChapters } from '../constants/naviChapters'
 
@@ -63,39 +59,6 @@ const topObjList = {
     imgSrc: "/navIcons/40_Mt_03_08.png",
   },
 }
-          
-const useSerie = {
-  "de-audio-bible-ML": bibleDataDE_ML_1912,
-  "en-audio-bible-WEB": bibleDataEN,
-  "es-audio-bible-WordProject": bibleDataES_WP,
-  "pt-br-audio-bible-WordProject": bibleDataPT_BR_WP,
-  "fr-audio-bible-WordProject": bibleDataFR_WP,
-  "hu-audio-bible-WordProject": bibleDataHU_WP,
-  "lu-audio-bible-WordProject": bibleDataLU_WP,
-  "ro-audio-bible-WordProject": bibleDataRO_WP,
-}
-
-const serieLang = {
-  "de-audio-bible-ML": "de",
-  "en-audio-bible-WEB": "en",
-  "es-audio-bible-WordProject": "es",
-  "pt-br-audio-bible-WordProject": "pt-br",
-  "fr-audio-bible-WordProject": "fr",
-  "hu-audio-bible-WordProject": "hu",
-  "lu-audio-bible-WordProject": "lu",
-  "ro-audio-bible-WordProject": "ro",
-}
-
-const serieNaviType = {
-  "de-audio-bible-ML": "audioBible",
-  "en-audio-bible-WEB": "audioBible",
-  "es-audio-bible-WordProject": "audioBible",
-  "pt-br-audio-bible-WordProject": "audioBible",
-  "fr-audio-bible-WordProject": "audioBible",
-  "hu-audio-bible-WordProject": "audioBible",
-  "lu-audio-bible-WordProject": "audioBible",
-  "ro-audio-bible-WordProject": "audioBible",
-}
 
 const SerieGridBar = (props) => {
   // eslint-disable-next-line no-unused-vars
@@ -110,29 +73,12 @@ const SerieGridBar = (props) => {
 
 const BibleView = (props) => {
   // eslint-disable-next-line no-unused-vars
-  const { size, width } = useBrowserData()
-  const { navHist, startPlay, curPlay, syncImgSrc } = useMediaPlayer()
+  const { size } = useBrowserData()
+  const { curPlay, syncImgSrc } = useMediaPlayer()
   const isPlaying = !isEmptyObj(curPlay)
   const { t, i18n } = useTranslation()
   const { onExitNavigation, onStartPlay } = props
-  const useSerieId = 
-    i18n.language === "en" 
-      ? "en-audio-bible-WEB" 
-      : i18n.language === "es" 
-      ? "es-audio-bible-WordProject" 
-      : i18n.language === "fr" 
-      ? "fr-audio-bible-WordProject" 
-      : i18n.language === "hu" 
-      ? "hu-audio-bible-WordProject" 
-      : i18n.language === "lu" 
-      ? "lu-audio-bible-WordProject" 
-      : i18n.language === "ro" 
-      ? "ro-audio-bible-WordProject" 
-      : i18n.language === "es" 
-      ? "es-audio-bible-WordProject" 
-      : i18n.language === "de" 
-      ? "de-audio-bible-ML"
-      : "pt-br-audio-bible-WordProject"
+  const useSerieId = selectAudioBible(i18n.language)
   const [curLevel, setCurLevel] = useState(1)
   const [level0, setLevel0] = useState(useSerieId)
   const [level1, setLevel1] = useState(1)
@@ -220,7 +166,6 @@ const BibleView = (props) => {
   // eslint-disable-next-line no-unused-vars
   const handleClick = (ev,id,_isBookIcon) => {
     if (curLevel===0) {
-      console.log(id)
       setLevel0(id)
       setCurLevel(1)
     } else if (curLevel===1) {
@@ -342,56 +287,7 @@ const BibleView = (props) => {
   if (size==="xs") useCols = 2
   else if (size==="lg") useCols = 4
   else if (size==="xl") useCols = 5
-  const rootLevel = (curLevel===0)
   const naviType = serieNaviType[level0] || "audioBible"
-  const lng = serieLang[level0]
-  const myList = navHist && Object.keys(navHist).filter(key => {
-    const navObj = navHist[key]
-    const useLevel0 = navObj?.topIdStr
-    return (
-      (serieNaviType[useLevel0] === "audioBible") 
-      || (serieNaviType[useLevel0] === "audioStories")
-      || (serieNaviType[useLevel0] === "videoSerie")
-    )
-  }).map(key => {
-    const navObj = navHist[key]
-    const useLevel0 = navObj?.topIdStr
-    // if ((useLevel0 === "en-audio-bible-WEB") || (useLevel0 === "de-audio-bible-ML")) {
-    if (serieNaviType[useLevel0] === "audioBible") {
-      const useLevel1 = navObj?.bookObj?.level1
-      const useLevel2 = navObj?.bookObj?.level2
-      const useBObj = navObj?.bookObj
-      const useCh = navObj?.id
-      const epObj = getChIcon(useCh,useLevel1,useLevel2,useBObj,useCh)
-      return {
-        key,
-        id: key,
-        imageSrc: epObj.imgSrc,
-        title: epObj.title,
-        descr: epObj.subtitle,
-        ep: navHist[key]
-      }
-    } else if (serieNaviType[useLevel0] === "audioStories") {
-      return {
-        key,
-        id: key,
-        imageSrc: navObj?.image?.filename,
-        title: navObj.title,
-        descr: navObj.subtitle,
-        ep: navHist[key]
-      }  
-    } else if (serieNaviType[useLevel0] === "videoSerie") {
-      const useLng = serieLang[useLevel0]
-      return {
-        key,
-        id: key,
-        image: navObj.image,
-        title: t(navObj.title, { lng: useLng }),
-        descr: t(navObj.descr, { lng: useLng }),
-        ep: navHist[key]
-      }
-    }
-  }) || []
   return (
     <div>
       {(naviType==="audioBible") && (!isPlaying) && (curLevel>2) && (
