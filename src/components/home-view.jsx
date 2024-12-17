@@ -191,22 +191,6 @@ const HomeView = (props) => {
 
   return (
     <div>
-      {(!isPlaying) && (
-        <Grid container alignItems="center" spacing={2}>
-          <Grid item>
-            {(myList.length>0) && (<Typography
-              type="title"
-            >Continue</Typography>)}
-            {(myList.length>0) && (
-              <HistoryView
-                onClick={(item) => handleHistoryClick(item)} 
-                epList={myList}
-                lng={lng}
-              />      
-            )}
-          </Grid>
-        </Grid>
-      )}
       {(!isPlaying) && (<Typography
         type="title"
       >Today</Typography>)}
@@ -227,6 +211,23 @@ const HomeView = (props) => {
           type="title"
         ><br/><br/></Typography>
       </>)}
+      {(!isPlaying) && (
+        <Grid container alignItems="center" spacing={2}>
+          <Grid item>
+            {(myList.length>0) && (<Typography
+              type="title"
+              style={{paddingTop: 25}}    
+            >Continue</Typography>)}
+            {(myList.length>0) && (
+              <HistoryView
+                onClick={(item) => handleHistoryClick(item)} 
+                epList={myList}
+                lng={lng}
+              />      
+            )}
+          </Grid>
+        </Grid>
+      )}
     </div>
   )
 }
