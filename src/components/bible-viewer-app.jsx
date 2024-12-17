@@ -74,6 +74,7 @@ const BibleviewerApp = ({topIdStr,lng}) => {
   }
 
   const handleShowBiblePassage = (val) => {
+    console.log(val)
     setShowBiblePassage(val)
     localSetCompletedList(differenceInCalendarDays(navigationDate,firstDateOfPlan))
   }

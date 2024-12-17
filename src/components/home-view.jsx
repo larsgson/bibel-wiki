@@ -5,7 +5,6 @@ import Grid from '@mui/material/Grid'
 import ImageList from '@mui/material/ImageList'
 import ImageListItem from '@mui/material/ImageListItem'
 import { pad, isEmptyObj } from '../utils/obj-functions'
-import { obsTitles } from '../constants/obsHierarchy'
 import { osisIconId, osisIconList } from '../constants/osisIconList'
 import { getOsisChTitle, getChoiceTitle } from '../constants/osisChTitles'
 import useMediaPlayer from "../hooks/useMediaPlayer"
@@ -112,7 +111,7 @@ const HomeView = (props) => {
     let subtitle
     if (bk==null){ // level 1 and 2
       const checkStr = checkIcon + "-descr"
-      subtitle = t(checkStr, { lng: serieLang[level0] })
+      subtitle = t(checkStr, { lng })
       if (subtitle===checkStr) subtitle = ""
     } else if (ch==null){ // level 3
       const {beg,end} = bookObj
