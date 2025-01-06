@@ -60,7 +60,7 @@ const SerieGridBar = (props) => {
 const LibraryView = (props) => {
   // eslint-disable-next-line no-unused-vars
   const { size, width } = useBrowserData()
-  const { navHist, startPlay, curPlay, syncImgSrc } = useMediaPlayer()
+  const { curPlay, syncImgSrc } = useMediaPlayer()
   const isPlaying = !isEmptyObj(curPlay)
   const { t } = useTranslation()
   const { onExitNavigation, onStartPlay } = props
@@ -265,6 +265,8 @@ const LibraryView = (props) => {
   const rootLevel = (curLevel===0)
   const naviType = serieNaviType[level0] || "audioBible"
   const lng = serieLang[level0]
+  const serID = curPlay?.curSerie?.uniqueID
+  const isVideoSrc = (serID === "uW.OBS.en")
   return (
     <div>
       {(naviType==="audioBible") && (!isPlaying) && (curLevel>1) && (
@@ -324,7 +326,12 @@ const LibraryView = (props) => {
             onClick={(ev) => handleClick(ev,"1",false)}
             key="1"
           >
-            <img src={syncImgSrc} />
+            {(!isVideoSrc) && <img src={syncImgSrc} />}
+            {(isVideoSrc) && (<video autoPlay loop muted playsInline
+              aria-labelledby="video-label"
+              width={width}
+              src={syncImgSrc}
+            />)}
           </ImageListItem>
         </ImageList>
         <Typography

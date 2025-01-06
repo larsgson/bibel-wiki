@@ -262,7 +262,7 @@ console.log("handleSetPaused")
   const handlePlaying = (cur) => {
 // BUG FIX !!!
     const soundPlayerBugFix = hasFinishedPlay
-    if (!soundPlayerBugFix) {
+    if ((!soundPlayerBugFix) && (!isPaused)) {
       updatePos(cur)
       if (onPlaying) onPlaying(cur)
     }
