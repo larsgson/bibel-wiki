@@ -87,7 +87,7 @@ const OBSNavigation = (props) => {
     obsHierarchy.map((obj,iconInx) => {
       const curIconObj = {
         key: iconInx,
-        imgSrc: `/navIcons/${obj.img}`,
+        imgSrc: `https://img.bibel.wiki/navIcons/${obj.img}`,
         title: obj.title,
         // subtitle: "test",
         isBookIcon: false
@@ -102,7 +102,7 @@ const OBSNavigation = (props) => {
     rangeArray(beg,end).forEach(inx => {
       const curIconObj = {
         key: inx,
-        imgSrc: `/obsIcons/obs-en-${pad(inx)}-01.jpg`,
+        imgSrc: `https://img.bibel.wiki/obsIcons/obs-en-${pad(inx)}-01.jpg`,
         title: obsTitles[inx-1],
         isBookIcon: false
       }
@@ -115,7 +115,7 @@ const OBSNavigation = (props) => {
     rangeArray(beg,end).forEach(inx => {
       const curIconObj = {
         key: inx,
-        imgSrc: `/obsIcons/obs-en-${pad(level2)}-${pad(inx)}.jpg`,
+        imgSrc: `https://img.bibel.wiki/obsIcons/obs-en-${pad(level2)}-${pad(inx)}.jpg`,
         isBookIcon: false
       }
       validIconList.push(curIconObj)

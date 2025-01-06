@@ -177,7 +177,7 @@ export const obsStoryList = obsTitles.map((obj,inx) => {
     // descr: "",
     image: {
       "origin": "Local",
-      "filename": `/obsIcons/obs-en-${pad(inx+1)}-01.jpg`
+      "filename": `https://img.bibel.wiki/obsIcons/obs-en-${pad(inx+1)}-01.jpg`
     },
     filename: `/audio/en_obs_${pad(inx+1)}_32kbps.mp3`
   }

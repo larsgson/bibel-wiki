@@ -87,7 +87,7 @@ const Footer = () => {
   const [curPos, setCurPos] = useState()
   const [curDur, setCurDur] = useState()
   const storePos = (msPos) => apiObjSetStorage(curPlay,"mSec",msPos)
-  const ytbURL = "https://www.youtube.com/watch?v=xEK-0n88zSI" // English
+  // const ytbURL = "https://www.youtube.com/watch?v=xEK-0n88zSI" // English
   // const ytbURL = "https://www.youtube.com/watch?v=MpGiPo8UuVk" // Deutsch / German
   // const restorePos = async (obj) => {
   //   await apiObjGetStorage(obj,"mSec").then((value) => {
@@ -189,6 +189,7 @@ const Footer = () => {
   const closeFooter = () => {
 console.log(curMsPos)
     storePos(curMsPos)
+    setIsPaused(false)
     if (onStopPlaying) onStopPlaying()
   }
 
@@ -241,25 +242,27 @@ console.log("handleSetPaused")
   }
 
   const updatePos = (cur) => {
-    const newPos = Math.floor(cur.position / 1000)
-    if (curPos !== newPos) {
-      storePos(cur.position)
-    }
-    if (curDur !== cur.duration){
-      apiObjSetStorage(curPlay,"mSecDur",cur.duration)
-      setCurMsPos(cur.position)
-      setCurPos(newPos)
-      setCurDur(cur.duration)
-    } else {
-      setCurMsPos(cur.position)
-      setCurPos(newPos)
+    if (!isPaused) {
+      const newPos = Math.floor(cur.position / 1000)
+      if (curPos !== newPos) {
+        storePos(cur.position)
+      }
+      if (curDur !== cur.duration){
+        apiObjSetStorage(curPlay,"mSecDur",cur.duration)
+        setCurMsPos(cur.position)
+        setCurPos(newPos)
+        setCurDur(cur.duration)
+      } else {
+        setCurMsPos(cur.position)
+        setCurPos(newPos)
+      }
     }
   }
 
   const handlePlaying = (cur) => {
 // BUG FIX !!!
     const soundPlayerBugFix = hasFinishedPlay
-    if (!soundPlayerBugFix){
+    if (!soundPlayerBugFix) {
       updatePos(cur)
       if (onPlaying) onPlaying(cur)
     }
@@ -450,23 +453,25 @@ export const MediaPlayer = (props) => {
   const {curSerie, curEp} = player
 
   const handlePlaying = (cur) => {
-    if ((cur!=null) && (cur.position!=null)
-      && isWaitingForPlayInfo){
-      if (cur.position!==curCheckPos){
-        setCurCheckPos(cur.position)
-        setIsWaitingForPlayInfo(false)
-      } else {
-        setCurCheckPos(cur.position)
+    if (!isPaused) {
+      if ((cur!=null) && (cur.position!=null)
+        && isWaitingForPlayInfo){
+        if (cur.position!==curCheckPos){
+          setCurCheckPos(cur.position)
+          setIsWaitingForPlayInfo(false)
+        } else {
+          setCurCheckPos(cur.position)
+        }
       }
-    }
-    const {curSerie} = props
-    if ((curSerie!=null)&&(curSerie.nextLevelPos!=null)){
-      if (cur.position-(curSerie.nextLevelPos*1000)>=cur.duration){
-        if (props.onEndOfLevel!=null) props.onEndOfLevel()
+      const {curSerie} = props
+      if ((curSerie!=null)&&(curSerie.nextLevelPos!=null)){
+        if (cur.position-(curSerie.nextLevelPos*1000)>=cur.duration){
+          if (props.onEndOfLevel!=null) props.onEndOfLevel()
+        }
       }
+      if (props.onPlaying) props.onPlaying({position: cur.position, duration: cur.duration})
+      setCurPos(cur)
     }
-    if (props.onPlaying) props.onPlaying({position: cur.position, duration: cur.duration})
-    setCurPos(cur)
   }
 
   const handleStopPlaying = () => {

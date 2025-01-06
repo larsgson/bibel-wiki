@@ -8,44 +8,47 @@ import { pad, isEmptyObj } from '../utils/obj-functions'
 import { osisIconId, osisIconList } from '../constants/osisIconList'
 import { getOsisChTitle, getChoiceTitle } from '../constants/osisChTitles'
 import useMediaPlayer from "../hooks/useMediaPlayer"
+import useBrowserData from "../hooks/useBrowserData"
 import BibleviewerApp from './bible-viewer-app'
 import HistoryView from './history-view'
 import { useSerie, serieLang, serieNaviType } from '../utils/dynamic-lang'
 
+const preNav = "https://img.bibel.wiki/navIcons/"
+
 const topObjList = {
   "de-jhn-serie": {
     title: "Das Johannesevangelium",
-    imgSrc: "/navIcons/VB-John1v1.png",
+    imgSrc: preNav + "VB-John1v1.png",
     subtitle: "Videoserie"
   },
   "en-jhn-serie": {
     title: "Gospel of John",
-    imgSrc: "/navIcons/VB-John1v1.png",
+    imgSrc: preNav + "VB-John1v1.png",
     subtitle: "Video serie"
   },
   "de-jhn-plan": {
     title: "Das Johannesevangelium",
-    imgSrc: "/navIcons/VB-John1v3.png",
+    imgSrc: preNav + "VB-John1v3.png",
     subtitle: "täglich - in 90 Tagen"
   },
   "en-jhn-plan": {
     title: "Gospel of John",
-    imgSrc: "/navIcons/VB-John1v3.png",
+    imgSrc: preNav + "VB-John1v3.png",
     subtitle: "daily - in 90 days"
   },
   "de-audio-bible-ML": {
     title: "Hörbibel",
-    imgSrc: "/navIcons/40_Mt_03_08.png",
+    imgSrc: preNav + "40_Mt_03_08.png",
     subtitle: "einfach zum Navigieren"
   },
   "en-audio-bible-WEB": {
     title: "Audio Bible",
-    imgSrc: "/navIcons/40_Mt_08_12.png",
+    imgSrc: preNav + "40_Mt_08_12.png",
     subtitle: "with easy navigation"
   },
   "en-audio-OBS": {
     title: "Audio Bible Stories",
-    imgSrc: "/navIcons/Bible_NT.png",
+    imgSrc: preNav + "Bible_NT.png",
     subtitle: "with easy navigation"
   }
 }
@@ -54,10 +57,9 @@ const HomeView = (props) => {
   const { onStartPlay } = props
   // eslint-disable-next-line no-unused-vars
   const { navHist, startPlay, curPlay, syncImgSrc } = useMediaPlayer()
+  const { width } = useBrowserData()
   const isPlaying = !isEmptyObj(curPlay)
   const { t } = useTranslation()
-
-  const preNav = "/navIcons/"
 
   const handleHistoryClick = (obj) => {
     const useLevel0 = obj?.ep?.topIdStr
@@ -133,6 +135,14 @@ const HomeView = (props) => {
     }
   }
   
+  const dailyList = navHist && Object.keys(navHist).filter(key => {
+    const navObj = navHist[key]
+    const useLevel0 = navObj?.topIdStr
+    return (
+      (serieNaviType[useLevel0] === "videoPlan") 
+    )
+  })
+
   const myList = navHist && Object.keys(navHist).filter(key => {
     const navObj = navHist[key]
     const useLevel0 = navObj?.topIdStr
@@ -187,13 +197,14 @@ const HomeView = (props) => {
     showSyncImage = (curMediaType==="audio") || (curMediaType==="bible")
   }
   const lng = "en" // Fallback language
-
+  const getExtFilename = (fname) => fname?.slice((fname?.lastIndexOf(".") - 1 >>> 0) + 2);
+  const isVideoSrc = (getExtFilename(syncImgSrc)?.toLowerCase() === 'mp4')
   return (
     <div>
       {(!isPlaying) && (<Typography
         type="title"
       >Today</Typography>)}
-      {(!isPlaying) && (
+      {(!isPlaying) && dailyList && (dailyList.length>0) && (
         <BibleviewerApp topIdStr={"en-audio-bible-WEB"} lng={"en"}/>
       )}
       {(showSyncImage) && (
@@ -203,7 +214,15 @@ const HomeView = (props) => {
           cols={1}
         >
           <ImageListItem key="1">
-            <img src={syncImgSrc} />
+            {!isVideoSrc && <img src={syncImgSrc} />}
+            {isVideoSrc && (<video autoPlay loop muted playsInline
+              aria-labelledby="video-label"
+              width={width}
+              src={syncImgSrc}
+            />)}
+            {/* <div id="video-label" aria-hidden="true">
+              (alternative text)
+            </div>             */}
           </ImageListItem>
         </ImageList>
         <Typography
