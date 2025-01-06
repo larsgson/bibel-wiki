@@ -34,11 +34,6 @@ const topObjList = {
     imgSrc: preNav + "VB-John1v1.png",
     subtitle: "Video serie"
   },
-  "de-jhn-plan": {
-    title: "Das Johannesevangelium",
-    imgSrc: preNav + "VB-John1v3.png",
-    subtitle: "täglich - in 90 Tagen"
-  },
   "en-jhn-plan": {
     title: "Gospel of John",
     imgSrc: preNav + "VB-John1v3.png",
@@ -199,7 +194,7 @@ const LibraryView = (props) => {
   let validIconList = []
   let validBookList = []
   if (curLevel===0){
-    validIconList = Object.keys(topObjList).filter(key => (key!=="en-jhn-plan")).map((key) => {
+    validIconList = Object.keys(topObjList).map((key) => {
       return {
         ...topObjList[key],
         key

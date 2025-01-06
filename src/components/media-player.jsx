@@ -341,6 +341,8 @@ console.log("handleFinishedPlaying")
             if (id<100) {
               idStr = "0" +pad(id)
             }
+          } else if (bk==="Song") {
+            bBookId = "Song_of_Solomon"
           }
           curFName = `${curSerie.curPath}${getIndexOfBibleBook(bk)}_${bBookId}_${idStr}.mp3`
         } else if (curSerie.audioBible_de_ML) {

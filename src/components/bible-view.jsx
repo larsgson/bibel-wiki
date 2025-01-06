@@ -220,7 +220,7 @@ const BibleView = (props) => {
   let validIconList = []
   let validBookList = []
   if (curLevel===0){
-    validIconList = Object.keys(topObjList).filter(key => (key!=="en-jhn-plan")).map((key) => {
+    validIconList = Object.keys(topObjList).map((key) => {
       return {
         ...topObjList[key],
         key
