@@ -34,11 +34,6 @@ const topObjList = {
     imgSrc: preNav + "VB-John1v1.png",
     subtitle: "Video serie"
   },
-  "de-jhn-plan": {
-    title: "Das Johannesevangelium",
-    imgSrc: preNav + "VB-John1v3.png",
-    subtitle: "täglich - in 90 Tagen"
-  },
   "en-jhn-plan": {
     title: "Gospel of John",
     imgSrc: preNav + "VB-John1v3.png",
@@ -65,7 +60,7 @@ const SerieGridBar = (props) => {
 const LibraryView = (props) => {
   // eslint-disable-next-line no-unused-vars
   const { size, width } = useBrowserData()
-  const { navHist, startPlay, curPlay, syncImgSrc } = useMediaPlayer()
+  const { curPlay, syncImgSrc } = useMediaPlayer()
   const isPlaying = !isEmptyObj(curPlay)
   const { t } = useTranslation()
   const { onExitNavigation, onStartPlay } = props
@@ -199,7 +194,7 @@ const LibraryView = (props) => {
   let validIconList = []
   let validBookList = []
   if (curLevel===0){
-    validIconList = Object.keys(topObjList).filter(key => (key!=="en-jhn-plan")).map((key) => {
+    validIconList = Object.keys(topObjList).map((key) => {
       return {
         ...topObjList[key],
         key
@@ -270,6 +265,8 @@ const LibraryView = (props) => {
   const rootLevel = (curLevel===0)
   const naviType = serieNaviType[level0] || "audioBible"
   const lng = serieLang[level0]
+  const serID = curPlay?.curSerie?.uniqueID
+  const isVideoSrc = (serID === "uW.OBS.en")
   return (
     <div>
       {(naviType==="audioBible") && (!isPlaying) && (curLevel>1) && (
@@ -329,7 +326,12 @@ const LibraryView = (props) => {
             onClick={(ev) => handleClick(ev,"1",false)}
             key="1"
           >
-            <img src={syncImgSrc} />
+            {(!isVideoSrc) && <img src={syncImgSrc} />}
+            {(isVideoSrc) && (<video autoPlay loop muted playsInline
+              aria-labelledby="video-label"
+              width={width}
+              src={syncImgSrc}
+            />)}
           </ImageListItem>
         </ImageList>
         <Typography
