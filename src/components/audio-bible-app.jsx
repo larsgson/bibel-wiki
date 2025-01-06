@@ -169,19 +169,28 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
   }),
 );
 
-export default function MiniDrawer() {
+export default function AudioBibleNavigationApp() {
   const theme = useTheme();
-  const { curPlay, startPlay } = useMediaPlayer()
+  const { navHist, startPlay, curPlay } = useMediaPlayer()
   const isPlaying = !isEmptyObj(curPlay)
   const { size, width } = useBrowserData()
   const isMobileSize = (size === "sm" || size === "xs")
-  const [menuValue, setMenuValue] = React.useState(0);
+  const [menuValue, setMenuValue] = React.useState(2);
+  const [emptyList, setEmptyList] = React.useState(true);
   const [open, setOpen] = React.useState(false);
 
   const ref = React.useRef(null);
 
   React.useEffect(() => {
-    if (isMobileSize) {
+    if ((emptyList) && (navHist)) {
+      setEmptyList(false)
+      console.log("no longer empty list")
+      setMenuValue(0)
+    }
+  },[navHist,emptyList,setEmptyList,setMenuValue])
+
+  React.useEffect(() => {
+    if ((isMobileSize) && (ref.current)) {
       (ref.current).ownerDocument.body.scrollTop = 0;
     // setMessages(refreshMessages());
     }

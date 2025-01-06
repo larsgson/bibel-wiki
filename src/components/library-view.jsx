@@ -19,31 +19,34 @@ import OBSPictureNavigationApp from './obs-viewer-app'
 import { naviSortOrder, chInBook,
           naviBooksLevel1, naviBooksLevel2, naviChapters } from '../constants/naviChapters'
 import { useSerie, serieLang, serieNaviType } from '../utils/dynamic-lang'
+//import KenBurnsImg from './ken-burns-img'
+
+const preNav = "https://img.bibel.wiki/navIcons/"
 
 const topObjList = {
   "de-jhn-serie": {
     title: "Das Johannesevangelium",
-    imgSrc: "/navIcons/VB-John1v1.png",
+    imgSrc: preNav + "VB-John1v1.png",
     subtitle: "Videoserie"
   },
   "en-jhn-serie": {
     title: "Gospel of John",
-    imgSrc: "/navIcons/VB-John1v1.png",
+    imgSrc: preNav + "VB-John1v1.png",
     subtitle: "Video serie"
   },
   "de-jhn-plan": {
     title: "Das Johannesevangelium",
-    imgSrc: "/navIcons/VB-John1v3.png",
+    imgSrc: preNav + "VB-John1v3.png",
     subtitle: "täglich - in 90 Tagen"
   },
   "en-jhn-plan": {
     title: "Gospel of John",
-    imgSrc: "/navIcons/VB-John1v3.png",
+    imgSrc: preNav + "VB-John1v3.png",
     subtitle: "daily - in 90 days"
   },
   "en-audio-OBS": {
     title: "Audio Bible Stories",
-    imgSrc: "/navIcons/Bible_NT.png",
+    imgSrc: preNav + "Bible_NT.png",
     subtitle: "with easy navigation"
   }
 }
@@ -75,7 +78,6 @@ const LibraryView = (props) => {
   const [skipLevelList,setSkipLevelList] = useState([])
   // ToDo !!! find a bibleBookList and use this here
   // eslint-disable-next-line no-unused-vars
-  const preNav = "/navIcons/"
   const getSort = (val) => naviSortOrder.indexOf(parseInt(val))
   const addSkipLevel = (level) => setSkipLevelList([...skipLevelList,level])
 

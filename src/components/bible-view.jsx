@@ -21,42 +21,44 @@ import useMediaPlayer from "../hooks/useMediaPlayer"
 import { naviSortOrder, chInBook,
           naviBooksLevel1, naviBooksLevel2, naviChapters } from '../constants/naviChapters'
 
+const preNav = "https://img.bibel.wiki/navIcons/"
+
 const topObjList = {
   "de-audio-bible-ML": {
     title: "Hörbibel",
-    imgSrc: "/navIcons/40_Mt_03_08.png",
+    imgSrc: preNav + "40_Mt_03_08.png",
     subtitle: "einfach zum Navigieren"
   },
   "en-audio-bible-WEB": {
     title: "Audio Bible",
-    imgSrc: "/navIcons/40_Mt_08_12.png",
+    imgSrc: preNav + "40_Mt_08_12.png",
     subtitle: "with easy navigation"
   },
   "es-audio-bible-WordProject": {
     title: "Audio Biblia",
-    imgSrc: "/navIcons/40_Mt_03_08.png",
+    imgSrc: preNav + "40_Mt_03_08.png",
     subtitle: "con fácil navegación"
   },
   "fr-audio-bible-WordProject": {
     title: "Audio Bible",
-    imgSrc: "/navIcons/40_Mt_03_08.png",
+    imgSrc: preNav + "40_Mt_03_08.png",
   },
   "pt-br-audio-bible-WordProject": {
     title: "Audio Biblia",
-    imgSrc: "/navIcons/40_Mt_03_08.png",
+    imgSrc: preNav + "40_Mt_03_08.png",
     subtitle: "com navegação fácil"
   },
   "hu-audio-bible-WordProject": {
     title: "Audio Biblia",
-    imgSrc: "/navIcons/40_Mt_03_08.png",
+    imgSrc: preNav + "40_Mt_03_08.png",
   },
   "lu-audio-bible-WordProject": {
     title: "Audio Biblia",
-    imgSrc: "/navIcons/40_Mt_03_08.png",
+    imgSrc: preNav + "40_Mt_03_08.png",
   },
   "ro-audio-bible-WordProject": {
     title: "Audio Biblia",
-    imgSrc: "/navIcons/40_Mt_03_08.png",
+    imgSrc: preNav + "40_Mt_03_08.png",
   },
 }
 
@@ -87,7 +89,6 @@ const BibleView = (props) => {
   const [skipLevelList,setSkipLevelList] = useState([])
   // ToDo !!! find a bibleBookList and use this here
   // eslint-disable-next-line no-unused-vars
-  const preNav = "/navIcons/"
   const getSort = (val) => naviSortOrder.indexOf(parseInt(val))
   const addSkipLevel = (level) => setSkipLevelList([...skipLevelList,level])
 
