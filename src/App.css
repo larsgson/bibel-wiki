@@ -1,5 +1,8 @@
+html {
+  background-color: #000000;
+}
 body {
-  background-color: #222;
+  background-color: #000000;
 }
 body > #root > div {
   height: 100vh;
