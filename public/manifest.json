@@ -1,6 +1,6 @@
 {
-  "short_name": "BPlus Video",
-  "name": "BPlus Video Player",
+  "short_name": "Bibel Wiki",
+  "name": "Bibel Wiki",
   "icons": [
     {
       "src": "favicon.ico",
@@ -10,6 +10,5 @@
   ],
   "start_url": "./index.html",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#000000"
 }

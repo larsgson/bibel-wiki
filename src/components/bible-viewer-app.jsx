@@ -20,7 +20,6 @@ const theme = createTheme({
 
 const defaultBackgroundStyle = {
   height: 'auto',
-  // minHeight: '100vh',
   background: '#181818',
   padding: 0,
   color: 'whitesmoke',
