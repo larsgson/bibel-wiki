@@ -1,3 +1,5 @@
+import { osisIconId, osisIconList } from '../constants/osisIconList'
+
 export const isEmpty = obj => ((obj==null) || (Object.getOwnPropertyNames(obj).length === 0))
 export const isEmptyObj = obj => ((isEmpty(obj)) || (Object.keys(obj).length === 0))
 export const rangeArray = (beg, end) => Array.from(Array(end+1-beg),(val,index)=>index+beg)
@@ -87,6 +89,51 @@ export const getImgOfObj = (ser,t) => {
     }
   }
   return retStr
+}
+
+export const getChFreePic = (bookObj,ch) => {
+  const preNav = "https://img.bibel.wiki/navIcons/"
+  const picsPreNav = "https://img.bibel.wiki/img/free-pics/"
+  const {level1,level2} = bookObj
+  let checkIcon = "000-" + pad(level1)
+  if (level2!=null) checkIcon = "00-" + pad(level1) + level2
+  let imgSrc
+  let useDefaultImage = true
+  // Book Icon - To Do - to be added in the future
+  // imgSrc = preBook +getOsisIcon(bk) +".png"
+  // Replace this above with book icons !
+  const lng = "en"
+  const bk = (bookObj!=null)?bookObj.bk:null
+  if (bk!=null){ // level 3
+    const checkObj = osisIconList[bk]
+    if (checkObj!=null){
+      let useCh
+      if (ch==null){
+        const entry = Object.entries(checkObj)[0]
+        useCh = entry[0]
+        if (bk!=null){ // level 3
+          const {beg,end} = bookObj
+          if ((beg!=null)&&(end!=null)){
+            useCh = Object.keys(checkObj).find(key => key>=beg)
+          }
+        }
+      } else {
+        if (checkObj[ch]!=null) useCh = ch
+      }
+      if (useCh!=null){
+        const prefixIdStr = osisIconId[bk]
+        const firstId = pad(parseInt(useCh))
+        const firstEntry = checkObj[useCh][0].slice(0,2) // only accept first two numbers - ignore any trailing letter
+        checkIcon = `${prefixIdStr.slice(0,2)}/610px/${osisIconId[bk]}_${firstId}_${firstEntry}_RG`
+        useDefaultImage = false
+      }
+    }
+  }
+  imgSrc = useDefaultImage ? preNav +checkIcon +".png" : picsPreNav +checkIcon +".jpg"
+  return {
+    imgSrc,
+    ch,
+  }
 }
 
 export const getLocalMediaFName = (url) => encodeURI("/" + url)

@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback  } from 'react'
 import { apiSetStorage, apiGetStorage, apiObjGetStorage, apiObjSetStorage } from '../utils/api'
-import { osisIconId, osisIconList } from '../constants/osisIconList'
 import { unique } from 'shorthash'
-import { pad } from '../utils/obj-functions'
+import { pad, getChFreePic } from '../utils/obj-functions'
 import { useTranslation } from 'react-i18next'
 
 const MediaPlayerContext = React.createContext([{}, () => {}])
@@ -15,9 +14,6 @@ const MediaPlayerProvider = (props) => {
 
   const [isPaused, setIsPaused] = useState(false)
   const [imgPos, setImgPos] = useState({});
-
-  const preNav = "https://img.bibel.wiki/navIcons/"
-  const picsPreNav = "https://img.bibel.wiki/img/free-pics/"
 
   const fetchJSONDataFrom = useCallback(async (inx) => {
     const response = await fetch(`data/img_pos${pad(inx +1)}.json`, {
@@ -92,51 +88,7 @@ console.log("onFinishedPlaying")
     setStateKeyVal( "curEp", undefined )
   }
 
-  // eslint-disable-next-line no-unused-vars
-  const getChFreePic = (bookObj,ch) => {
-    const {level1,level2} = bookObj
-    let checkIcon = "000-" + pad(level1)
-    if (level2!=null) checkIcon = "00-" + pad(level1) + level2
-    let imgSrc
-    let useDefaultImage = true
-    // Book Icon - To Do - to be added in the future
-    // imgSrc = preBook +getOsisIcon(bk) +".png"
-    // Replace this above with book icons !
-    const lng = "en"
-    const bk = (bookObj!=null)?bookObj.bk:null
-    if (bk!=null){ // level 3
-      const checkObj = osisIconList[bk]
-      if (checkObj!=null){
-        let useCh
-        if (ch==null){
-          const entry = Object.entries(checkObj)[0]
-          useCh = entry[0]
-          if (bk!=null){ // level 3
-            const {beg,end} = bookObj
-            if ((beg!=null)&&(end!=null)){
-              useCh = Object.keys(checkObj).find(key => key>=beg)
-            }
-          }
-        } else {
-          if (checkObj[ch]!=null) useCh = ch
-        }
-        if (useCh!=null){
-          const prefixIdStr = osisIconId[bk]
-          const firstId = pad(parseInt(useCh))
-          const firstEntry = checkObj[useCh][0].slice(0,2) // only accept first two numbers - ignore any trailing letter
-          checkIcon = `${prefixIdStr.slice(0,2)}/610px/${osisIconId[bk]}_${firstId}_${firstEntry}_RG`
-          useDefaultImage = false
-        }
-      }
-    }
-    imgSrc = useDefaultImage ? preNav +checkIcon +".png" : picsPreNav +checkIcon +".jpg"
-    return {
-      imgSrc,
-      ch,
-    }
-  }
-  
-   const updateImgBasedOnPos = ( curInx, msPos ) => {
+  const updateImgBasedOnPos = ( curInx, msPos ) => {
     let checkMsPosArray = []
     if (imgPos) {
       checkMsPosArray = imgPos[ curInx ]

@@ -3,26 +3,15 @@ import CardContent from '@mui/material/CardContent'
 import ImageList from '@mui/material/ImageList'
 import ImageListItem from '@mui/material/ImageListItem'
 import Typography from '@mui/material/Typography'
-import { getImgOfObj } from '../utils/obj-functions'
+import { getChFreePic } from '../utils/obj-functions'
 import ItemBarEpisode from './item-bar-episode'
 import useBrowserData from '../hooks/useBrowserData'
 import { useTranslation } from 'react-i18next'
 
 const HistoryView = (props) => {
   const { epList, lng, onClick } = props
-  const {size, width, height} = useBrowserData()
+  const { width } = useBrowserData()
   const { t } = useTranslation()
-  const sizeToCol = {"xl": 5, "lg": 4, "md": 3}
-  let colSize = sizeToCol[size] || 2
-  let curHeight = height-150
-  if (width<=380){
-    colSize = 1
-    if (curHeight>300){
-      curHeight = 300
-    }
-  }
-  const nbrOfEntries = epList && epList.length
-  const useColSize = colSize // + (showNavButton ? 0.15 : 0.1)
   const handleClickItemIndex = (ev,item) => {
     ev.stopPropagation()
     onClick && onClick(item)
@@ -31,34 +20,40 @@ const HistoryView = (props) => {
     <CardContent sx={{padding: 0}}>
       <ImageList
         cellheight={40}
-        cols={useColSize}
+        cols={1}
       >
-        {epList?.map((ep) => {
-          const useImg = ep.image ? getImgOfObj(ep,t) : ep.imageSrc
-
+        {epList?.map((item) => {
+          const bk = item?.ep?.bookObj
+          // const useImg = ep.image ? getImgOfObj(ep,t) : ep.imageSrc
+          let useImg = item?.imageSrc
+          if (bk) {
+            const imgObj = getChFreePic(bk,item?.ep?.id)
+            useImg = imgObj?.imgSrc
+          } 
           return (
             <ImageListItem
-              key={ep.id}
+              key={item.id}
               cols={1}
               rows={1}
-              sx={{maxWidth: 180}}
-              onClick={(e) => handleClickItemIndex(e,ep)}
+              onClick={(e) => handleClickItemIndex(e,item)}
             >
               <img
                 src={useImg}
-                alt={ep.title}
-                onClick={(e) => handleClickItemIndex(e,ep)}
-                />
+                alt={item.title}
+                onClick={(e) => handleClickItemIndex(e,item)}
+                width={"100%"}
+                float={"left"}
+              />
               <ItemBarEpisode
                 // serie={serie}
-                episode={ep}
-                descr={ep.descr}
+                episode={item}
+                descr={item.descr}
                 // useIcon={useIcon}
-                title={t(ep.title,{lng})}
-                onClick={(e) => handleClickItemIndex(e,ep)}
+                title={t(item.title,{lng: "en"})}
+                onClick={(e) => handleClickItemIndex(e,item)}
               />
               {(width<480) && false && (
-                <Typography>{t(ep.descr,{lng})}</Typography>)}
+                <Typography>{t(item.descr,{lng})}</Typography>)}
             </ImageListItem>
           )}
         )}
