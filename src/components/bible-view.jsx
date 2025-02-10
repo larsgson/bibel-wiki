@@ -154,6 +154,17 @@ const BibleView = (props) => {
         title += " " + subtitle
         subtitle = choiceTitle
       }
+    } else { // level 4
+      // const bookTitle = t(bk, { lng })
+      const checkRegEx = /^(\d+)|(\D+)/g // separate numbers and letters
+      let bookTitle = bk
+      const matchesList = [...bk.matchAll(checkRegEx)]
+      if ((matchesList!=null)&&(matchesList.length>1)) {
+        bookTitle = `${matchesList[0][0]} ${matchesList[1][0]}`
+      }
+      if (title !== `${bk}.${ch}`) {
+        subtitle = `${bookTitle} ${ch}`
+      }
     }
     return {
       imgSrc,
@@ -182,8 +193,17 @@ const BibleView = (props) => {
       setLevel3(id)
       setCurLevel(4)
     } else {
-      const bookObj = {...naviChapters[level1][level2][level3], level1, level2, level3}
-      const curSerie = useSerie[level0]
+      const bookObj = {
+        ...naviChapters[level1][level2][level3], 
+        level1, 
+        level2, 
+        level3,
+        title: "test"
+      }
+      const curSerie = {
+        ...useSerie[level0],
+        title: "TEST"
+      }
       // const {curSerie} = curPlay  
       onStartPlay(level0,curSerie,bookObj,id)
     }
