@@ -85,9 +85,9 @@ const styles = {
     textOverflow: 'ellipsisfooter'
   },
   time: {
-    float: 'right',
-    position: 'relative',
-    lineHeight: 4,
+    position: 'absolute',
+    bottom: 10,
+    right: 0,
     color: '#04244d',
     zIndex: 2,
     paddingRight: 10,
@@ -244,7 +244,9 @@ console.log(ev)
   progressStyle.width = `${percent }%`
   let curEpTitle=""
   if (serie!=null){
-    if ((serie.episodeList!=null) && (episode!=null) && (serie.episodeList[0]!=null)) {
+    if (episode?.bibleType) {
+      curEpTitle = episode.title
+    } else if ((serie.episodeList!=null) && (episode!=null) && (serie.episodeList[0]!=null)) {
       if (episode.title!=null){
         curEpTitle = episode.title
       } else {

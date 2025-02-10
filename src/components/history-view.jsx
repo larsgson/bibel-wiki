@@ -5,6 +5,7 @@ import ImageListItem from '@mui/material/ImageListItem'
 import Typography from '@mui/material/Typography'
 import { getChFreePic } from '../utils/obj-functions'
 import ItemBarEpisode from './item-bar-episode'
+import { getImgOfObj } from '../utils/obj-functions'
 import useBrowserData from '../hooks/useBrowserData'
 import { useTranslation } from 'react-i18next'
 
@@ -24,10 +25,10 @@ const HistoryView = (props) => {
       >
         {epList?.map((item) => {
           const bk = item?.ep?.bookObj
-          // const useImg = ep.image ? getImgOfObj(ep,t) : ep.imageSrc
-          let useImg = item?.imageSrc
+          const useEp = item?.ep
+          let useImg = useEp.image ? getImgOfObj(useEp,t) : useEp.imageSrc
           if (bk) {
-            const imgObj = getChFreePic(bk,item?.ep?.id)
+            const imgObj = getChFreePic(bk,useEp?.id)
             useImg = imgObj?.imgSrc
           } 
           return (

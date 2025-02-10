@@ -63,14 +63,23 @@ const HomeView = (props) => {
 
   const handleHistoryClick = (obj) => {
     const useLevel0 = obj?.ep?.topIdStr
-    const curSerie = {...useSerie[useLevel0], language: serieLang[useLevel0] }
+    const useCh = obj?.ep?.id
+    const useBk = obj?.ep?.bk
+    const curSerie = {
+      ...useSerie[useLevel0], 
+      language: serieLang[useLevel0],
+    }
     if (serieNaviType[useLevel0] === "audioBible") {
-      const bObj = obj?.ep?.bookObj
-      onStartPlay(useLevel0,curSerie,bObj,obj?.ep?.id)
+      curSerie.title = (useCh!=null) ? getOsisChTitle(useBk,useCh,lng) : undefined
+      const epObj = {
+        ...obj?.ep,
+        title: `${t(useBk,{lng})} ${useCh}`
+      }
+      startPlay(useLevel0,useCh,curSerie,epObj)
     } else if (serieNaviType[useLevel0] === "audioStories") {
-      startPlay(useLevel0,obj?.ep?.id,curSerie,obj?.ep)
+      startPlay(useLevel0,useCh,curSerie,obj?.ep)
     } else if (serieNaviType[useLevel0] === "videoSerie") {
-      startPlay(useLevel0,obj?.ep?.id,curSerie,obj?.ep)
+      startPlay(useLevel0,useCh,curSerie,obj?.ep)
     }
   }
 
@@ -167,7 +176,7 @@ const HomeView = (props) => {
         id: key,
         imageSrc: epObj.imgSrc,
         title: epObj.title,
-        descr: epObj.subtitle,
+        descr: `${navObj.bk} ${navObj.id}`, // epObj.subtitle,
         ep: navHist[key]
       }
     } else if (serieNaviType[useLevel0] === "audioStories") {
