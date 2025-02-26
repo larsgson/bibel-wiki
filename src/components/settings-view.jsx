@@ -31,6 +31,11 @@ export default function SettingsView() {
           })}
         </div>
       </header>
+      <div>
+      <button onClick={() => window.open("https://github.com/larsgson/bibel-wiki/blob/main/roadmap.md", "_blank")}>
+        Road map
+      </button>
+      </div>
     </div>
   );
 }
