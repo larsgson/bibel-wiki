@@ -3,6 +3,7 @@ import { apiSetStorage, apiGetStorage, apiObjGetStorage, apiObjSetStorage } from
 import { unique } from 'shorthash'
 import { pad, getChFreePic } from '../utils/obj-functions'
 import { useTranslation } from 'react-i18next'
+import { serieLang } from '../utils/dynamic-lang'
 
 const MediaPlayerContext = React.createContext([{}, () => {}])
 const MediaPlayerProvider = (props) => {
@@ -157,7 +158,8 @@ console.log("onFinishedPlaying")
         })
       }
       const curSerId = curSerie.uniqueID || unique(curSerie.title)
-      const navHistEp = {...tmpEp,topIdStr}
+      const lang = serieLang[topIdStr]
+      const navHistEp = {...tmpEp,topIdStr,lang}
       const navHist = {...state.navHist, [curSerId]: navHistEp}
       await updateStorage("navHist",navHist)
       await updateStorage("curSerId",curSerId)

@@ -82,7 +82,7 @@ export const getImgOfObj = (ser,t) => {
         retStr = ser.image.filename
       } else if((ser.image.origin==="ImgId")
         &&(ser.image.filename!=null)){
-        retStr = t(ser.image.filename)
+        retStr = ser.image.filename
       }
     } else if (ser.index!=null){
       retStr = "img/ser" + pad((ser.index) % 41) + ".jpg"

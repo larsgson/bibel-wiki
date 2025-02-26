@@ -447,7 +447,7 @@ export const gospelOfJohnObjBPlus = {
   },  
   image: {
     origin: "ImgId",
-    filename: "John.ImgId"
+    filename: "img/john-pics/VB-John1v3.jpg"
   },
   language: "en",
   mediaType: "vid",

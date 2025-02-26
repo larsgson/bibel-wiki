@@ -70,10 +70,11 @@ const HomeView = (props) => {
       language: serieLang[useLevel0],
     }
     if (serieNaviType[useLevel0] === "audioBible") {
-      curSerie.title = (useCh!=null) ? getOsisChTitle(useBk,useCh,lng) : undefined
+      const useLang = serieLang[useLevel0]
+      curSerie.title = (useCh!=null) ? getOsisChTitle(useBk,useCh,useLang) : undefined
       const epObj = {
         ...obj?.ep,
-        title: `${t(useBk,{lng})} ${useCh}`
+        title: `${t(useBk,{useLang})} ${useCh}`
       }
       startPlay(useLevel0,useCh,curSerie,epObj)
     } else if (serieNaviType[useLevel0] === "audioStories") {
