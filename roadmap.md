@@ -27,11 +27,11 @@ Navigate to newly published verses or chapters and experience all of it; text, a
 
 #### *Navigation data*
 
-WYSIWYG style on-line editing - for titles in new languages
+On-line tools for editing - for titles in new languages
 
 #### *Local projects*
 
-Connect a working local "work in progress" repository to the full global published context - i.e. joint navigation with both such local *(un-published)* and published content
+Connect a working local *"work in progress"* repository to the full global published context - i.e. joint navigation with both such local *(still un-published)* and published content
 
 ### 2.2 Introduce multi media publishing templates
 
@@ -51,4 +51,10 @@ For this to work nicely across various tools, there is a need to implement the s
 
 ### 3.1 Extend library section for each langague and each country
 
-Make use of already existing published Christian content, for example, on YouTube and other such big library services. Just add standard multi media metadata according to what is defined under Phase 2 here above, in order to then enable navigation both on the navigation timeline *(for instance, for series and episode)* and for Bible book, chapter and verse navigation.
+#### Connect templates with existing libraries 
+
+By making use of the templates *(Phase #2 above)* and connecting these to all the content from the existing libraries *(Phase #1 above)*, then it should be fairly easy and quick, without much effort, to make a lot of content much more easy to navigate
+
+#### Use existing external service
+
+Make use of already existing published Christian content, for example, on YouTube and other such big library services. Just add standard multi media metadata *(using templates)* according to what is defined under Phase 2 here above, in order to then enable navigation both on the navigation timeline *(for instance, for series and episode)* and for Bible book, chapter and verse navigation.
