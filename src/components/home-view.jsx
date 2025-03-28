@@ -13,45 +13,7 @@ import BibleviewerApp from './bible-viewer-app'
 import HistoryView from './history-view'
 import { useSerie, serieLang, serieNaviType } from '../utils/dynamic-lang'
 
-const preNav = "https://img.bibel.wiki/navIcons/"
-
-const topObjList = {
-  "de-jhn-serie": {
-    title: "Das Johannesevangelium",
-    imgSrc: preNav + "VB-John1v1.png",
-    subtitle: "Videoserie"
-  },
-  "en-jhn-serie": {
-    title: "Gospel of John",
-    imgSrc: preNav + "VB-John1v1.png",
-    subtitle: "Video serie"
-  },
-  "de-jhn-plan": {
-    title: "Das Johannesevangelium",
-    imgSrc: preNav + "VB-John1v3.png",
-    subtitle: "täglich - in 90 Tagen"
-  },
-  "en-jhn-plan": {
-    title: "Gospel of John",
-    imgSrc: preNav + "VB-John1v3.png",
-    subtitle: "daily - in 90 days"
-  },
-  "de-audio-bible-ML": {
-    title: "Hörbibel",
-    imgSrc: preNav + "40_Mt_03_08.png",
-    subtitle: "einfach zum Navigieren"
-  },
-  "en-audio-bible-WEB": {
-    title: "Audio Bible",
-    imgSrc: preNav + "40_Mt_08_12.png",
-    subtitle: "with easy navigation"
-  },
-  "en-audio-OBS": {
-    title: "Audio Bible Stories",
-    imgSrc: preNav + "Bible_NT.png",
-    subtitle: "with easy navigation"
-  }
-}
+const preNav = "https://storage.googleapis.com/img.bibel.wiki/navIcons/"
 
 const HomeView = (props) => {
   const { onStartPlay } = props
@@ -59,27 +21,28 @@ const HomeView = (props) => {
   const { navHist, startPlay, curPlay, syncImgSrc } = useMediaPlayer()
   const { width } = useBrowserData()
   const isPlaying = !isEmptyObj(curPlay)
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const lng = i18n.language
 
   const handleHistoryClick = (obj) => {
     const useLevel0 = obj?.ep?.topIdStr
     const useCh = obj?.ep?.id
     const useBk = obj?.ep?.bk
     const curSerie = {
-      ...useSerie[useLevel0], 
-      language: serieLang[useLevel0],
+      ...useSerie(lng,useLevel0),
+      language: serieLang(useLevel0),
     }
-    if (serieNaviType[useLevel0] === "audioBible") {
-      const useLang = serieLang[useLevel0]
+    if (serieNaviType(useLevel0) === "audioBible") {
+      const useLang = serieLang(useLevel0)
       curSerie.title = (useCh!=null) ? getOsisChTitle(useBk,useCh,useLang) : undefined
       const epObj = {
         ...obj?.ep,
         title: `${t(useBk,{useLang})} ${useCh}`
       }
       startPlay(useLevel0,useCh,curSerie,epObj)
-    } else if (serieNaviType[useLevel0] === "audioStories") {
+    } else if (serieNaviType(useLevel0) === "audioStories") {
       startPlay(useLevel0,useCh,curSerie,obj?.ep)
-    } else if (serieNaviType[useLevel0] === "videoSerie") {
+    } else if (serieNaviType(useLevel0) === "videoSerie") {
       startPlay(useLevel0,useCh,curSerie,obj?.ep)
     }
   }
@@ -149,7 +112,7 @@ const HomeView = (props) => {
     const navObj = navHist[key]
     const useLevel0 = navObj?.topIdStr
     return (
-      (serieNaviType[useLevel0] === "videoPlan") 
+      (serieNaviType(useLevel0) === "videoPlan") 
     )
   })
 
@@ -157,21 +120,21 @@ const HomeView = (props) => {
     const navObj = navHist[key]
     const useLevel0 = navObj?.topIdStr
     return (
-      (serieNaviType[useLevel0] === "audioBible") 
-      || (serieNaviType[useLevel0] === "audioStories")
-      || (serieNaviType[useLevel0] === "videoSerie")
+      (serieNaviType(useLevel0) === "audioBible") 
+      || (serieNaviType(useLevel0) === "audioStories")
+      || (serieNaviType(useLevel0) === "videoSerie")
     )
   }).map(key => {
     const navObj = navHist[key]
     const useLevel0 = navObj?.topIdStr
     // if ((useLevel0 === "en-audio-bible-WEB") || (useLevel0 === "de-audio-bible-ML")) {
-    if (serieNaviType[useLevel0] === "audioBible") {
+    if (serieNaviType(useLevel0) === "audioBible") {
       const useLevel1 = navObj?.bookObj?.level1
       const useLevel2 = navObj?.bookObj?.level2
       const useBObj = navObj?.bookObj
       const useCh = navObj?.id
-      const lng = serieLang[useLevel0]
-      const epObj = getChIcon(useCh,useLevel1,useLevel2,useBObj,useCh,lng)
+      const useLng = i18n.language
+      const epObj = getChIcon(useCh,useLevel1,useLevel2,useBObj,useCh,useLng)
       return {
         key,
         id: key,
@@ -180,7 +143,7 @@ const HomeView = (props) => {
         descr: `${navObj.bk} ${navObj.id}`, // epObj.subtitle,
         ep: navHist[key]
       }
-    } else if (serieNaviType[useLevel0] === "audioStories") {
+    } else if (serieNaviType(useLevel0) === "audioStories") {
       return {
         key,
         id: key,
@@ -189,8 +152,8 @@ const HomeView = (props) => {
         descr: navObj.subtitle,
         ep: navHist[key]
       }  
-    } else if (serieNaviType[useLevel0] === "videoSerie") {
-      const useLng = serieLang[useLevel0]
+    } else if (serieNaviType(useLevel0) === "videoSerie") {
+      const useLng = serieLang(useLevel0)
       return {
         key,
         id: key,
@@ -206,7 +169,6 @@ const HomeView = (props) => {
     const curMediaType = curPlay?.curSerie?.mediaType
     showSyncImage = (curMediaType==="audio") || (curMediaType==="bible")
   }
-  const lng = "en" // Fallback language
   const getExtFilename = (fname) => fname?.slice((fname?.lastIndexOf(".") - 1 >>> 0) + 2);
   const isVideoSrc = (getExtFilename(syncImgSrc)?.toLowerCase() === 'mp4')
   return (

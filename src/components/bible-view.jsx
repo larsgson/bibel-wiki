@@ -21,46 +21,7 @@ import useMediaPlayer from "../hooks/useMediaPlayer"
 import { naviSortOrder, chInBook,
           naviBooksLevel1, naviBooksLevel2, naviChapters } from '../constants/naviChapters'
 
-const preNav = "https://img.bibel.wiki/navIcons/"
-
-const topObjList = {
-  "de-audio-bible-ML": {
-    title: "Hörbibel",
-    imgSrc: preNav + "40_Mt_03_08.png",
-    subtitle: "einfach zum Navigieren"
-  },
-  "en-audio-bible-WEB": {
-    title: "Audio Bible",
-    imgSrc: preNav + "40_Mt_08_12.png",
-    subtitle: "with easy navigation"
-  },
-  "es-audio-bible-WordProject": {
-    title: "Audio Biblia",
-    imgSrc: preNav + "40_Mt_03_08.png",
-    subtitle: "con fácil navegación"
-  },
-  "fr-audio-bible-WordProject": {
-    title: "Audio Bible",
-    imgSrc: preNav + "40_Mt_03_08.png",
-  },
-  "pt-br-audio-bible-WordProject": {
-    title: "Audio Biblia",
-    imgSrc: preNav + "40_Mt_03_08.png",
-    subtitle: "com navegação fácil"
-  },
-  "hu-audio-bible-WordProject": {
-    title: "Audio Biblia",
-    imgSrc: preNav + "40_Mt_03_08.png",
-  },
-  "lu-audio-bible-WordProject": {
-    title: "Audio Biblia",
-    imgSrc: preNav + "40_Mt_03_08.png",
-  },
-  "ro-audio-bible-WordProject": {
-    title: "Audio Biblia",
-    imgSrc: preNav + "40_Mt_03_08.png",
-  },
-}
+const preNav = "https://storage.googleapis.com/img.bibel.wiki/navIcons/"
 
 const SerieGridBar = (props) => {
   // eslint-disable-next-line no-unused-vars
@@ -87,6 +48,7 @@ const BibleView = (props) => {
   const [level2, setLevel2] = useState("")
   const [level3, setLevel3] = useState("")
   const [skipLevelList,setSkipLevelList] = useState([])
+  const lng = i18n.language
   // ToDo !!! find a bibleBookList and use this here
   // eslint-disable-next-line no-unused-vars
   const getSort = (val) => naviSortOrder.indexOf(parseInt(val))
@@ -107,7 +69,6 @@ const BibleView = (props) => {
     if (lev2!=null) checkIcon = "00-" + pad(lev1) + lev2
     let imgSrc
     let checkTitle
-    const lng = serieLang[level0]
     const bk = (bookObj!=null)?bookObj.bk:null
     if (bk!=null){ // level 3
       const checkObj = osisIconList[bk]
@@ -201,10 +162,9 @@ const BibleView = (props) => {
         title: "test"
       }
       const curSerie = {
-        ...useSerie[level0],
-        title: "TEST"
+        ...useSerie(lng,level0),
+        title: `${bookObj.bk} ${id}`
       }
-      // const {curSerie} = curPlay  
       onStartPlay(level0,curSerie,bookObj,id)
     }
   }
@@ -239,76 +199,71 @@ const BibleView = (props) => {
     
   let validIconList = []
   let validBookList = []
-  if (curLevel===0){
-    validIconList = Object.keys(topObjList).map((key) => {
-      return {
-        ...topObjList[key],
-        key
-      }
-    })
-  } else if (curLevel===1){
-    let lastInx
-    const curSerie = useSerie[level0]
-    const curList = (curSerie!=null && curSerie.bibleBookList) ? curSerie.bibleBookList : []
-    Object.keys(naviBooksLevel1).sort((a,b)=>getSort(a)-getSort(b)
-    ).forEach(iconInx => {
-      const foundList = naviBooksLevel1[iconInx].filter(x => curList.includes(x))
-      validBookList.push(...foundList)
-      if (foundList.length>0){
-        lastInx = iconInx
-        validIconList.push(getChIcon(iconInx,iconInx))
-      }
-    })
-    if (validIconList.length===1) {
-      setLevel1(lastInx)
-      setCurLevel(2)
-      addSkipLevel(1)
-      validIconList = []
-      validBookList = []
-    }
-  }
-  if (curLevel===2){
-    let lastLetter
-    const curSerie = useSerie[level0]
-    const curList = (curSerie!=null) ? curSerie.bibleBookList : []
-    Object.keys(naviChapters[level1]).forEach(iconLetter => {
-      const foundList = naviBooksLevel2[level1][iconLetter].filter(x => curList.includes(x))
-      validBookList.push(...foundList)
-      if (foundList.length>0) {
-        lastLetter = iconLetter
-        validIconList.push(getChIcon(iconLetter,level1,iconLetter))
-      }
-    })
-    if (validIconList.length===1) {
-      setLevel2(lastLetter)
-      setCurLevel(3)
-      addSkipLevel(2)
-      validIconList = []
-      validBookList = []
-    }
-  }
-  if (curLevel===3){
-    naviChapters[level1][level2].forEach((bookObj,i) => {
-      validIconList.push(getChIcon(i,level1,level2,bookObj))
-    })
-  } else if (curLevel===4){
-    const bookObj = naviChapters[level1][level2][level3]
-    const {bk} = bookObj
-    if (bk!=null){
-      if (bookObj.beg==null) bookObj.beg = 1
-      if (bookObj.end==null) bookObj.end = chInBook[bk]
-      const {beg,end} = bookObj
-      rangeArray(beg,end).forEach(ch => {
-        validIconList.push(getChIcon(ch,level1,level2,bookObj,ch))
-//          validIconList.push(getChIcon(index here,level1,bookObj,ch,ch))
+  if (curLevel>0){
+    if (curLevel===1){
+      let lastInx
+      const curSerie = useSerie(lng,level0)
+      const curList = (curSerie!=null && curSerie.bibleBookList) ? curSerie.bibleBookList : []
+      Object.keys(naviBooksLevel1).sort((a,b)=>getSort(a)-getSort(b)
+      ).forEach(iconInx => {
+        const foundList = naviBooksLevel1[iconInx].filter(x => curList.includes(x))
+        validBookList.push(...foundList)
+        if (foundList.length>0){
+          lastInx = iconInx
+          validIconList.push(getChIcon(iconInx,iconInx))
+        }
       })
+      if (validIconList.length===1) {
+        setLevel1(lastInx)
+        setCurLevel(2)
+        addSkipLevel(1)
+        validIconList = []
+        validBookList = []
+      }
+    }
+    if (curLevel===2){
+      let lastLetter
+      const curSerie = useSerie(lng,level0)
+      const curList = (curSerie!=null) ? curSerie.bibleBookList : []
+      Object.keys(naviChapters[level1]).forEach(iconLetter => {
+        const foundList = naviBooksLevel2[level1][iconLetter].filter(x => curList.includes(x))
+        validBookList.push(...foundList)
+        if (foundList.length>0) {
+          lastLetter = iconLetter
+          validIconList.push(getChIcon(iconLetter,level1,iconLetter))
+        }
+      })
+      if (validIconList.length===1) {
+        setLevel2(lastLetter)
+        setCurLevel(3)
+        addSkipLevel(2)
+        validIconList = []
+        validBookList = []
+      }
+    }
+    if (curLevel===3){
+      naviChapters[level1][level2].forEach((bookObj,i) => {
+        validIconList.push(getChIcon(i,level1,level2,bookObj))
+      })
+    } else if (curLevel===4){
+      const bookObj = naviChapters[level1][level2][level3]
+      const {bk} = bookObj
+      if (bk!=null){
+        if (bookObj.beg==null) bookObj.beg = 1
+        if (bookObj.end==null) bookObj.end = chInBook[bk]
+        const {beg,end} = bookObj
+        rangeArray(beg,end).forEach(ch => {
+          validIconList.push(getChIcon(ch,level1,level2,bookObj,ch))
+  //          validIconList.push(getChIcon(index here,level1,bookObj,ch,ch))
+        })
+      }
     }
   }
   let useCols = 3
   if (size==="xs") useCols = 2
   else if (size==="lg") useCols = 4
   else if (size==="xl") useCols = 5
-  const naviType = serieNaviType[level0] || "audioBible"
+  const naviType = serieNaviType(level0) || "audioBible"
   return (
     <div>
       {(naviType==="audioBible") && (!isPlaying) && (curLevel>2) && (

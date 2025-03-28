@@ -3,7 +3,8 @@ import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import Backend from 'i18next-http-backend';
 import { DateTime } from 'luxon';
-import { enText, deText, esText, ptBRText } from '@bibel-wiki/i18n';
+import { enText, deText, esText, ptBRText } from '@bibel-wiki/i18n'
+import { countryData } from './countries'
 
 i18n
   // i18next-http-backend
