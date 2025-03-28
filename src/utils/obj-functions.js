@@ -92,8 +92,8 @@ export const getImgOfObj = (ser,t) => {
 }
 
 export const getChFreePic = (bookObj,ch) => {
-  const preNav = "https://img.bibel.wiki/navIcons/"
-  const picsPreNav = "https://img.bibel.wiki/img/free-pics/"
+  const preNav = "https://storage.googleapis.com/img.bibel.wiki/navIcons/"
+  const picsPreNav = "https://storage.googleapis.com/img.bibel.wiki/img/free-pics/"
   const {level1,level2} = bookObj
   let checkIcon = "000-" + pad(level1)
   if (level2!=null) checkIcon = "00-" + pad(level1) + level2
@@ -102,7 +102,6 @@ export const getChFreePic = (bookObj,ch) => {
   // Book Icon - To Do - to be added in the future
   // imgSrc = preBook +getOsisIcon(bk) +".png"
   // Replace this above with book icons !
-  const lng = "en"
   const bk = (bookObj!=null)?bookObj.bk:null
   if (bk!=null){ // level 3
     const checkObj = osisIconList[bk]

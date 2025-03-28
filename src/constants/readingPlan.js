@@ -393,7 +393,7 @@ export const getImgSrcString = (ch,v) => {
   } else if ((imgAltVerse[ch]) && (imgAltVerse[ch][v])) {
     imgVStr = imgAltVerse[ch][v]
   }
-  return `img/john-pics/VB-John${ch}v${imgVStr}.jpg`
+  return `https://storage.googleapis.com/img.bibel.wiki/img/john-pics/VB-John${ch}v${imgVStr}.jpg`
 }
 
 export const gospelOfJohnObjBPlus = {
@@ -438,7 +438,7 @@ export const gospelOfJohnObjBPlus = {
   title: "John",
   description: "John.Descr",
   uniqueID: "BPlus.Thun.Johannes",
-  beginDate: "2025-01-01",
+  beginDate: "2025-03-01",
   listYtbURL: {
     en: "https://www.youtube.com/watch?v=xEK-0n88zSI",
     de: "https://www.youtube.com/watch?v=MpGiPo8UuVk",
@@ -447,7 +447,7 @@ export const gospelOfJohnObjBPlus = {
   },  
   image: {
     origin: "ImgId",
-    filename: "img/john-pics/VB-John1v3.jpg"
+    filename: "https://storage.googleapis.com/img.bibel.wiki/img/john-pics/VB-John1v3.jpg"
   },
   language: "en",
   mediaType: "vid",

@@ -99,7 +99,7 @@ console.log("onFinishedPlaying")
       const checkMs = parseInt(checkObj.pos) * 1000
       if (msPos>=checkMs) retImgSrc = checkObj.img
     })
-    return `https://img.bibel.wiki/obsIcons/obs-en-${retImgSrc}.mp4`
+    return `https://storage.googleapis.com/img.bibel.wiki/obsIcons/obs-en-${retImgSrc}.mp4`
   }
 
   const onPlaying = (curPos) => {
@@ -158,7 +158,7 @@ console.log("onFinishedPlaying")
         })
       }
       const curSerId = curSerie.uniqueID || unique(curSerie.title)
-      const lang = serieLang[topIdStr]
+      const lang = serieLang(topIdStr)
       const navHistEp = {...tmpEp,topIdStr,lang}
       const navHist = {...state.navHist, [curSerId]: navHistEp}
       await updateStorage("navHist",navHist)

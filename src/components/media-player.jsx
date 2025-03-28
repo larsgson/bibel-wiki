@@ -7,9 +7,8 @@ import Sound from './sound'
 import useMediaPlayer from "../hooks/useMediaPlayer"
 import useBrowserData from '../hooks/useBrowserData'
 import { useTranslation } from 'react-i18next'
-import { freeAudioIdOsisMap } from '../constants/osisFreeAudiobible'
 import { audiobibleOsisId, osisIdAudiobibleTitle } from '../constants/osisAudiobibleId'
-// import { chExceptionList_DE_TJ_HJ, underscoreExceptionList_DE_TJ_HJ, fnameList_DE_TJ_HJ } from '../constants/fnameList'
+import { freeAudioIdOsisMap } from '../constants/osisFreeAudiobible'
 import { fnameList_DE_ML } from '../constants/fnameList'
 import { isEmptyObj, pad } from '../utils/obj-functions'
 import {apiObjGetStorage,apiObjSetStorage} from '../utils/api'
@@ -351,6 +350,9 @@ console.log("handleFinishedPlaying")
             idStr = "0" +pad(id)
           }
           curFName = `${curSerie.curPath}${getIndexOfBibleBook(bk)}${idStr}-${bBookId}_Kapitel-${idStr}.mp3`
+        } else if (curSerie.vachanServerType) {
+          const useBkId = freeAudioIdOsisMap[bk]
+          curFName = `${curSerie.curPath}${useBkId.toLowerCase()}/${id}.mp3`
         } else if (curSerie.wordProjectType) {
           let bkIndex = undefined
           Object.keys(osisIdAudiobibleTitle ).forEach((key, index) => {

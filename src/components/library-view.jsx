@@ -21,7 +21,7 @@ import { naviSortOrder, chInBook,
 import { useSerie, serieLang, serieNaviType } from '../utils/dynamic-lang'
 //import KenBurnsImg from './ken-burns-img'
 
-const preNav = "https://img.bibel.wiki/navIcons/"
+const preNav = "https://storage.googleapis.com/img.bibel.wiki/navIcons/"
 
 const topObjList = {
   "de-jhn-serie": {
@@ -62,7 +62,7 @@ const LibraryView = (props) => {
   const { size, width } = useBrowserData()
   const { curPlay, syncImgSrc } = useMediaPlayer()
   const isPlaying = !isEmptyObj(curPlay)
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { onExitNavigation, onStartPlay } = props
 
   const [curLevel, setCurLevel] = useState(0)
@@ -76,12 +76,13 @@ const LibraryView = (props) => {
   const getSort = (val) => naviSortOrder.indexOf(parseInt(val))
   const addSkipLevel = (level) => setSkipLevelList([...skipLevelList,level])
 
+  const lng = i18n.language
+
   const getChIcon = (key,lev1,lev2,bookObj,ch) => {
     let checkIcon = "000-" + pad(lev1)
     if (lev2!=null) checkIcon = "00-" + pad(lev1) + lev2
     let imgSrc
     let checkTitle
-    const lng = serieLang[level0]
     const bk = (bookObj!=null)?bookObj.bk:null
     if (bk!=null){ // level 3
       const checkObj = osisIconList[bk]
@@ -116,7 +117,7 @@ const LibraryView = (props) => {
     let subtitle
     if (bk==null){ // level 1 and 2
       const checkStr = checkIcon + "-descr"
-      subtitle = t(checkStr, { lng: serieLang[level0] })
+      subtitle = t(checkStr, { lng: serieLang(level0) })
       if (subtitle===checkStr) subtitle = ""
     } else if (ch==null){ // level 3
       const {beg,end} = bookObj
@@ -157,7 +158,7 @@ const LibraryView = (props) => {
       setCurLevel(4)
     } else {
       const bookObj = {...naviChapters[level1][level2][level3], level1, level2, level3}
-      const curSerie = useSerie[level0]
+      const curSerie = useSerie(lng,level0)
       // const {curSerie} = curPlay  
       onStartPlay(level0,curSerie,bookObj,id)
     }
@@ -202,7 +203,7 @@ const LibraryView = (props) => {
     })
   } else if (curLevel===1){
     let lastInx
-    const curSerie = useSerie[level0]
+    const curSerie = useSerie(lng,level0)
     const curList = (curSerie!=null && curSerie.bibleBookList) ? curSerie.bibleBookList : []
     Object.keys(naviBooksLevel1).sort((a,b)=>getSort(a)-getSort(b)
     ).forEach(iconInx => {
@@ -223,7 +224,7 @@ const LibraryView = (props) => {
   }
   if (curLevel===2){
     let lastLetter
-    const curSerie = useSerie[level0]
+    const curSerie = useSerie(lng,level0)
     const curList = (curSerie!=null) ? curSerie.bibleBookList : []
     Object.keys(naviChapters[level1]).forEach(iconLetter => {
       const foundList = naviBooksLevel2[level1][iconLetter].filter(x => curList.includes(x))
@@ -263,8 +264,7 @@ const LibraryView = (props) => {
   else if (size==="lg") useCols = 4
   else if (size==="xl") useCols = 5
   const rootLevel = (curLevel===0)
-  const naviType = serieNaviType[level0] || "audioBible"
-  const lng = serieLang[level0]
+  const naviType = serieNaviType(level0) || "audioBible"
   const serID = curPlay?.curSerie?.uniqueID
   const isVideoSrc = (serID === "uW.OBS.en")
   return (

@@ -76,9 +76,11 @@ export const chSelectedImgList = [
   "17v14","18v24","19v10","20v17b","21v15b"
 ]
 
+export const johnPicsLocationUrl = "https://storage.googleapis.com/img.bibel.wiki/img/john-pics/"
+
 export const getChNode = (inx,title) => {
   return (inx < chInBook)
-   ? {title, image: getLocalMediaFName("../john-pics/VB-John" + chSelectedImgList[inx] + ".jpg")}
+   ? {title, image: getLocalMediaFName(johnPicsLocationUrl+"VB-John" + chSelectedImgList[inx] + ".jpg")}
     : undefined
 }
 
@@ -231,27 +233,27 @@ export const getOutlineOptions = (t) => {
 }
 
 export const johnImageID = {
-  1: "img/john-pics/VB-John1v14.jpg",
-  2: "img/john-pics/VB-John2v3.jpg",
-  3: "img/john-pics/VB-John3v2.jpg",
-  4: "img/john-pics/VB-John4v37.jpg",
-  5: "img/john-pics/VB-John5v2.jpg",
-  6: "img/john-pics/VB-John6v36.jpg",
-  7: "img/john-pics/VB-John7v28.jpg",
-  8: "img/john-pics/VB-John8v2b.jpg",
-  9: "img/john-pics/VB-John9v11b.jpg",
-  10: "img/john-pics/VB-John10v2.jpg",
-  11: "img/john-pics/VB-John11v38b-39a.jpg",
-  12: "img/john-pics/VB-John12v2b.jpg",
-  13: "img/john-pics/VB-John13v18.jpg",
-  14: "img/john-pics/VB-John14v20.jpg",
-  15: "img/john-pics/VB-John15v15a.jpg",
-  16: "img/john-pics/VB-John16v25.jpg",
-  17: "img/john-pics/VB-John17v14.jpg",
-  18: "img/john-pics/VB-John18v24.jpg",
-  19: "img/john-pics/VB-John19v10.jpg",
-  20: "img/john-pics/VB-John20v17b.jpg",
-  21: "img/john-pics/VB-John21v15b.jpg"
+  1: johnPicsLocationUrl+"/VB-John1v14.jpg",
+  2: johnPicsLocationUrl+"/VB-John2v3.jpg",
+  3: johnPicsLocationUrl+"/VB-John3v2.jpg",
+  4: johnPicsLocationUrl+"/VB-John4v37.jpg",
+  5: johnPicsLocationUrl+"/VB-John5v2.jpg",
+  6: johnPicsLocationUrl+"/VB-John6v36.jpg",
+  7: johnPicsLocationUrl+"/VB-John7v28.jpg",
+  8: johnPicsLocationUrl+"/VB-John8v2b.jpg",
+  9: johnPicsLocationUrl+"/VB-John9v11b.jpg",
+  10: johnPicsLocationUrl+"/VB-John10v2.jpg",
+  11: johnPicsLocationUrl+"/VB-John11v38b-39a.jpg",
+  12: johnPicsLocationUrl+"/VB-John12v2b.jpg",
+  13: johnPicsLocationUrl+"/VB-John13v18.jpg",
+  14: johnPicsLocationUrl+"/VB-John14v20.jpg",
+  15: johnPicsLocationUrl+"/VB-John15v15a.jpg",
+  16: johnPicsLocationUrl+"/VB-John16v25.jpg",
+  17: johnPicsLocationUrl+"/VB-John17v14.jpg",
+  18: johnPicsLocationUrl+"/VB-John18v24.jpg",
+  19: johnPicsLocationUrl+"/VB-John19v10.jpg",
+  20: johnPicsLocationUrl+"/VB-John20v17b.jpg",
+  21: johnPicsLocationUrl+"/VB-John21v15b.jpg"
 }
 
 export const outlinesOfJohnObj = (entry) => {
@@ -269,7 +271,7 @@ export const outlinesOfJohnObj = (entry) => {
     description: "",
     image: {
       origin: "ImgId",
-      filename: "img/john-pics/VB-John1v3.jpg"
+      filename: johnPicsLocationUrl+"/VB-John1v3.jpg"
     },
     language: "en",
     mediaType: "vid"
@@ -291,7 +293,7 @@ export const gospelOfJohnObj = {
   uniqueID: "Jesus.net.John.serie",
   image: {
     origin: "ImgId",
-    filename: "img/john-pics/VB-John1v3.jpg"
+    filename: johnPicsLocationUrl+"/VB-John1v3.jpg"
   },
   listYtbURL: {
     en: "https://www.youtube.com/watch?v=xEK-0n88zSI",
