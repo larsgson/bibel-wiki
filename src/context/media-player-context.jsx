@@ -99,6 +99,7 @@ const MediaPlayerProvider = (props) => {
           query: ["a","t"]
         })
       }).then(response => response.json())
+      console.log(response?.data)
       setStateKeyVal("langDataJsonStr",JSON.stringify(response?.data))
     }
     if ((state?.selectedLang) && (state.selectedLang.length>0)) getLangData()
@@ -183,40 +184,68 @@ const MediaPlayerProvider = (props) => {
     getTextData()
   }, [textParamStr])
 
-  const getAudioFilesetId = () => {
-    let filesetID = "" 
-    let curPriority = 0
-    let hasTs = false
-    if (state.langDataJsonStr && state.langDataJsonStr.length>0) {
-      const langData = JSON.parse(state.langDataJsonStr)
-      const idList = Object.keys(langData.a)
-      if (idList && idList.length>0) {
-        idList.forEach(idStr => {
-          if (!hasTs) { // Stop searching after first audio with timestampa
-            const idData = langData.a[idStr]
-            hasTs = idData.ts
-            const fsIdList = Object.keys(idData?.fs)
-            if (fsIdList && fsIdList.length>0) {
-              fsIdList.forEach(key => {
-                // const fsObj = idData.fs[key]
-                const typeStr = key.substring(6,8)
-                const dramaType = (typeStr.length>1) && (typeStr[1] === "2")
-                let chkP = dramaType ? 2 : 1
-                const fullStr = key
-                // Always prioritise higher for audio with timestamps - add 10
-                if (idData.ts) chkP += 10
-                if (chkP>curPriority) {
-                  curPriority = chkP 
-                  filesetID = fullStr
-                }
-              })
-            }
-          }
-        })
-      }
+const audioTypePriority = {ad: 4, a: 3, ads: 2, as: 1}
+
+const getAudioFilesetId = (langID) => {
+  let filesetID = "" 
+  let curPriority = 0
+  const audioIdList = contentByLang[langID]?.a
+  audioIdList && audioIdList.forEach(audioID => {
+    console.log(audioID)
+    console.log(audioByID[audioID])
+    const fIdList = audioByID[audioID]
+    if (fIdList) {
+      fIdList.forEach(aType => {
+        const chkType = aType.substring(1)
+        let chkP = parseInt(chkType)
+        // Always prioritise higher for audio with timestamps - add 10
+        console.log(`${audioID}${aType}DA`)
+        const useIdStr = `${audioID}${aType}DA`
+        if (audioWithTimestampsSet.has(useIdStr)) chkP += 10
+        if (chkP>curPriority) {
+          curPriority = chkP 
+          filesetID = useIdStr
+        }
+      })
     }
-    return filesetID
-  }
+  })
+  return filesetID
+}
+
+  // const getAudioFilesetId = () => {
+  //   let filesetID = "" 
+  //   let curPriority = 0
+  //   let hasTs = false
+  //   if (state.langDataJsonStr && state.langDataJsonStr.length>0) {
+  //     const langData = JSON.parse(state.langDataJsonStr)
+  //     const idList = Object.keys(langData.a)
+  //     if (idList && idList.length>0) {
+  //       idList.forEach(idStr => {
+  //         if (!hasTs) { // Stop searching after first audio with timestampa
+  //           const idData = langData.a[idStr]
+  //           hasTs = idData.ts
+  //           const fsIdList = Object.keys(idData?.fs)
+  //           if (fsIdList && fsIdList.length>0) {
+  //             fsIdList.forEach(key => {
+  //               // const fsObj = idData.fs[key]
+  //               const typeStr = key.substring(6,8)
+  //               const dramaType = (typeStr.length>1) && (typeStr[1] === "2")
+  //               let chkP = dramaType ? 2 : 1
+  //               const fullStr = key
+  //               // Always prioritise higher for audio with timestamps - add 10
+  //               if (idData.ts) chkP += 10
+  //               if (chkP>curPriority) {
+  //                 curPriority = chkP 
+  //                 filesetID = fullStr
+  //               }
+  //             })
+  //           }
+  //         }
+  //       })
+  //     }
+  //   }
+  //   return filesetID
+  // }
   
   const getTextFilesetId = (langID,audioID) => { 
     let retFilesetID = "" 
@@ -380,7 +409,8 @@ const MediaPlayerProvider = (props) => {
     if (curSerie.bbProjectType) {
       const fetchPath = `${apiBasePath}/get-audio-url`
       const audioFilesetID = getAudioFilesetId(curSerie.langID)
-      const response = await fetch(fetchPath, {
+      console.log(audioFilesetID)
+       const response = await fetch(fetchPath, {
         method: 'POST',
         body: JSON.stringify({
           filesetID: audioFilesetID,
