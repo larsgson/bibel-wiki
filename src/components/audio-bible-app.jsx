@@ -173,7 +173,7 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
 
 export default function AudioBibleNavigationApp() {
   const theme = useTheme();
-  const { navHist, startPlay, curPlay, selectedCountry, selectedLang } = useMediaPlayer()
+  const { navHist, startPlay, curPlay, selectedCountry} = useMediaPlayer()
   const isPlaying = !isEmptyObj(curPlay)
   const { size, width } = useBrowserData()
   const isMobileSize = (size === "sm" || size === "xs")
@@ -211,7 +211,7 @@ export default function AudioBibleNavigationApp() {
   return (
     <div style={defaultBackgroundStyle}>
       <ThemeProvider theme={theme}>
-        {!isPlaying && isMobileSize && selectedCountry && (
+        {!isPlaying && isMobileSize && (
           <Box sx={{ pb: 7 }} ref={ref}>
             <CssBaseline />
             {(menuValue===settingsMenuIndex) && (<SettingsView
@@ -248,7 +248,7 @@ export default function AudioBibleNavigationApp() {
             </Paper>
           </Box>
         )}
-        {!isPlaying && !isMobileSize && !selectedLang && (
+        {/* {!isPlaying && !isMobileSize && !selectedCountry && (
           <Box sx={{ display: 'flex' }}>
           <CssBaseline />
           <AppBar position="fixed" open={open}>
@@ -276,8 +276,8 @@ export default function AudioBibleNavigationApp() {
               />
             </Box>
           </Box>
-        )}
-        {!isPlaying && !isMobileSize && selectedLang && (
+        )} */}
+        {!isPlaying && !isMobileSize && (
           <Box sx={{ display: 'flex' }}>
             <CssBaseline />
             <AppBar position="fixed" open={open}>

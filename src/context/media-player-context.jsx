@@ -70,6 +70,7 @@ const MediaPlayerProvider = (props) => {
         console.log(`Country: ${curCountry}`)
         setStateKeyVal("detectedCountry",detectedCountry)
         setStateKeyVal("selectedCountry",curCountry)
+      }
     }
     const getCurLangs = async () => {
       let curLangs = await apiGetStorage("selectedLang")
