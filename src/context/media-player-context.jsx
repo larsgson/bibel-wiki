@@ -58,18 +58,18 @@ const MediaPlayerProvider = (props) => {
       const usePath = `${apiURLPath}/geolocation`
       const response = await fetch(usePath)
       const data = await response.json()
+      console.log(data?.country?.code)
       return data?.country?.code
     }
     const getCurCountry = async () => {
       let curCountry = await apiGetStorage("selectedCountry")
-      console.log(`Country: ${curCountry}`)
       if (!curCountry) {
         console.log(`Check location`)
         const detectedCountry = await getLocationData()
         curCountry = detectedCountry
+        console.log(`Country: ${curCountry}`)
         setStateKeyVal("detectedCountry",detectedCountry)
-      }
-      setStateKeyVal("selectedCountry",curCountry)
+        setStateKeyVal("selectedCountry",curCountry)
     }
     const getCurLangs = async () => {
       let curLangs = await apiGetStorage("selectedLang")
