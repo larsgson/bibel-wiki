@@ -185,80 +185,129 @@ const MediaPlayerProvider = (props) => {
     getTextData()
   }, [textParamStr])
 
-const audioTypePriority = {ad: 4, a: 3, ads: 2, as: 1}
+  const audioTypePriority = {ad: 4, a: 3, ads: 2, as: 1}
 
-const getAudioFilesetId = (langID) => {
-  let filesetID = "" 
-  let curPriority = 0
-  const audioIdList = contentByLang[langID]?.a
-  audioIdList && audioIdList.forEach(audioID => {
-    console.log(audioID)
-    console.log(audioByID[audioID])
-    const fIdList = audioByID[audioID]
-    if (fIdList) {
-      fIdList.forEach(aType => {
-        const chkType = aType.substring(1)
-        let chkP = parseInt(chkType)
-        // Always prioritise higher for audio with timestamps - add 10
-        console.log(`${audioID}${aType}DA`)
-        const useIdStr = `${audioID}${aType}DA`
-        if (audioWithTimestampsSet.has(useIdStr)) chkP += 10
-        if (chkP>curPriority) {
-          curPriority = chkP 
-          filesetID = useIdStr
-        }
-      })
+  const getAudioFilesetId = (langID) => {
+    let hasTs = false
+    let filesetID = undefined
+    let curPriority = 0
+    let idList
+    let langData
+    if (state.langDataJsonStr && state.langDataJsonStr.length>0) {
+      langData = JSON.parse(state.langDataJsonStr)
+      idList = Object.keys(langData.a)
+      console.log(idList)
     }
-  })
-  return filesetID
-}
-
-  // const getAudioFilesetId = () => {
-  //   let filesetID = "" 
-  //   let curPriority = 0
-  //   let hasTs = false
-  //   if (state.langDataJsonStr && state.langDataJsonStr.length>0) {
-  //     const langData = JSON.parse(state.langDataJsonStr)
-  //     const idList = Object.keys(langData.a)
-  //     if (idList && idList.length>0) {
-  //       idList.forEach(idStr => {
-  //         if (!hasTs) { // Stop searching after first audio with timestampa
-  //           const idData = langData.a[idStr]
-  //           hasTs = idData.ts
-  //           const fsIdList = Object.keys(idData?.fs)
-  //           if (fsIdList && fsIdList.length>0) {
-  //             fsIdList.forEach(key => {
-  //               // const fsObj = idData.fs[key]
-  //               const typeStr = key.substring(6,8)
-  //               const dramaType = (typeStr.length>1) && (typeStr[1] === "2")
-  //               let chkP = dramaType ? 2 : 1
-  //               const fullStr = key
-  //               // Always prioritise higher for audio with timestamps - add 10
-  //               if (idData.ts) chkP += 10
-  //               if (chkP>curPriority) {
-  //                 curPriority = chkP 
-  //                 filesetID = fullStr
-  //               }
-  //             })
-  //           }
-  //         }
-  //       })
-  //     }
-  //   }
-  //   return filesetID
-  // }
+    const audioIdList = contentByLang[langID]?.a
+    audioIdList && audioIdList.forEach(audioID => {
+      console.log(audioID)
+      if (idList && idList.includes(audioID)) {
+        const idData = langData.a[audioID]
+        console.log(idData)
+        hasTs = idData.ts
+        const fsIdList = Object.keys(idData?.fs)
+        if (fsIdList && fsIdList.length>0) {
+          fsIdList.filter(key => (key.indexOf("opus")<0)).forEach(key => {
+            // const fsObj = idData.fs[key]
+            const typeStr = key.substring(6,8)
+            console.log(typeStr)
+            const dramaType = (typeStr.length>1) && (typeStr[1] === "2")
+            let chkP = dramaType ? 2 : 1
+            const fullStr = key
+            // Always prioritise higher for audio with timestamps - add 10
+            if (idData.ts) chkP += 10
+            if (chkP>curPriority) {
+              if (idData.ts) console.log("hasTS")
+              curPriority = chkP 
+              filesetID = fullStr
+            }
+          })
+        }
+      } else {
+        console.log(audioByID[audioID])
+        const fIdList = audioByID[audioID]
+        if (fIdList) {
+          fIdList.forEach(aType => {
+            const chkType = aType.substring(1)
+            let chkP = parseInt(chkType)
+            // Always prioritise higher for audio with timestamps - add 10
+            console.log(`${audioID}${aType}DA`)
+            const useIdStr = `${audioID}${aType}DA`
+            if (audioWithTimestampsSet.has(useIdStr)) chkP += 10
+            if (chkP>curPriority) {
+              curPriority = chkP 
+              filesetID = useIdStr
+            }
+          })
+        }
+      }
+    })
+    console.log(filesetID)
+    if (!filesetID) {
+      // Check other options from all idList entries
+      if (idList && idList.length>0) {
+        idList.forEach(idStr => {
+          if (!hasTs) { // Stop searching after first audio with timestampa
+            const idData = langData.a[idStr]
+            hasTs = idData.ts
+            const fsIdList = Object.keys(idData?.fs)
+            if (fsIdList && fsIdList.length>0) {
+              fsIdList.forEach(key => {
+                // const fsObj = idData.fs[key]
+                const typeStr = key.substring(6,8)
+                console.log(typeStr)
+                const dramaType = (typeStr.length>1) && (typeStr[1] === "2")
+                let chkP = dramaType ? 2 : 1
+                const fullStr = key
+                // Always prioritise higher for audio with timestamps - add 10
+                if (idData.ts) chkP += 10
+                if (chkP>curPriority) {
+                  curPriority = chkP 
+                  filesetID = fullStr
+                }
+              })
+            }
+          }
+        })
+      }
+    }
+    return filesetID
+  }
   
   const getTextFilesetId = (langID,audioID) => { 
     let retFilesetID = "" 
-    const textIDList = contentByLang[langID]?.t
-    if (textIDList.length>0) {
-      retFilesetID = textIDList[0] // select first entry by default
-      if (textIDList.length>1) // go through list, if more than one
-      textIDList.forEach(textID => {
-        // Prioritise equal to audioID, if exists
-        if (textID === audioID) retFilesetID = audioID
-      })
+    let idList
+    let langData
+    if (state.langDataJsonStr && state.langDataJsonStr.length>0) {
+      langData = JSON.parse(state.langDataJsonStr)
+      idList = Object.keys(langData.a)
+      console.log(idList)
     }
+    const textIDList = contentByLang[langID]?.t
+    textIDList && textIDList.forEach(tID => {
+      console.log(tID)
+      if (idList && idList.includes(tID)) {
+        const idData = langData.t[tID]
+        console.log(idData)
+        const fsIdList = Object.keys(idData?.fs)
+        if (fsIdList && fsIdList.length>0) {
+          fsIdList.filter(key => (key.indexOf("json")<0)).forEach(key => {
+            const fsObj = idData.fs[key]
+            if (fsObj?.size==="NT") {
+              console.log(key)
+              retFilesetID = key
+            }
+          })
+        }
+      } else if (textIDList.length>0) {
+        retFilesetID = textIDList[0] // select first entry by default
+        if (textIDList.length>1) // go through list, if more than one
+        textIDList.forEach(checkID => {
+          // Prioritise equal to audioID, if exists
+          if (checkID===audioID) retFilesetID = checkID
+        })
+      }
+    })
     return retFilesetID
   }
   
