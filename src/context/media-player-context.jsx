@@ -62,18 +62,22 @@ const MediaPlayerProvider = (props) => {
       return data?.country?.code
     }
     const getCurCountry = async () => {
-      let curCountry = await apiGetStorage("selectedCountry")
-      if (!curCountry) {
+      const curCountry = await apiGetStorage("selectedCountry")
+      setStateKeyVal("selectedCountry",curCountry)
+    }
+    const getConfirmedCountry = async () => {
+      const curConfirmedCountry = await apiGetStorage("confirmedCountry")
+      if (curConfirmedCountry) {
+        setStateKeyVal("confirmedCountry",true)
+      } else {
         console.log(`Check location`)
         const detectedCountry = await getLocationData()
-        curCountry = detectedCountry
-        console.log(`Country: ${curCountry}`)
+        console.log(`Country: ${detectedCountry}`)
         setStateKeyVal("detectedCountry",detectedCountry)
-        setStateKeyVal("selectedCountry",curCountry)
       }
     }
     const getCurLangs = async () => {
-      let curLangs = await apiGetStorage("selectedLang")
+      const curLangs = await apiGetStorage("selectedLang")
       if (curLangs) {
         setStateKeyVal("selectedLang",curLangs)
       }
@@ -83,14 +87,14 @@ const MediaPlayerProvider = (props) => {
       setState(prev => ({...prev, navHist}))
     }
     getCurCountry()
+    getConfirmedCountry()
     getCurLangs()
     getNavHist()
   }, [])
 
 
   useEffect(() => {
-    const getLangData = async () => {
-      const useLang = state.selectedLang
+    const getLangData = async (useLang) => {
       console.log(useLang)
       const usePath = `${apiURLPath}/.netlify/functions/get-content-by-lang`
       const response = await fetch(usePath, {
@@ -103,12 +107,11 @@ const MediaPlayerProvider = (props) => {
       console.log(response?.data)
       setStateKeyVal("langDataJsonStr",JSON.stringify(response?.data))
     }
-    if ((state?.selectedLang) && (state.selectedLang.length>0)) getLangData()
-  }, [state.selectedLang])
+    if ((state?.selectedLang) && (state.selectedLang.length>0)) getLangData(state.selectedLang)
+  }, [state.selectedLang,state.detectedLang])
 
   useEffect(() => {
-    const getCurCountryData = async () => {
-      const useCountry = state.selectedCountry
+    const getCurCountryData = async (useCountry) => {
       const usePath = `${apiURLPath}/.netlify/functions/get-languages`
       const response = await fetch(usePath, {
         method: 'POST',
@@ -120,8 +123,12 @@ const MediaPlayerProvider = (props) => {
       setStateKeyVal("curCountryJsonStr",JSON.stringify(response?.data[useCountry]))
       setStateKeyVal("langListJsonStr",JSON.stringify(response?.data?.allLanguages))
     }
-    if (state?.selectedCountry) getCurCountryData()
-  }, [state.selectedCountry])
+    if ((state?.selectedCountry) && (state.selectedCountry.length>0)) {
+      getCurCountryData(state.selectedCountry)
+    } else if ((state?.detectedCountry) && (state.detectedCountry.length>0)) {
+      getCurCountryData(state.detectedCountry)
+    }
+  }, [state.selectedCountry,state.detectedCountry])
 
   useEffect(() => {
     const getTimecodeData = async () => {
@@ -324,6 +331,13 @@ const MediaPlayerProvider = (props) => {
   const setSelectedCountry = async (newCountry) => {
     setStateKeyVal("selectedCountry",newCountry)
     await apiSetStorage("selectedCountry",newCountry)
+  }
+
+  const setConfirmedCountry = async (newCountry) => {
+    setStateKeyVal("selectedCountry",newCountry)
+    await apiSetStorage("selectedCountry",newCountry)
+    setStateKeyVal("confirmedCountry",true)
+    await apiSetStorage("confirmedCountry",true)
   }
 
   const setSelectedLang = async (newLang) => {
@@ -554,6 +568,7 @@ const MediaPlayerProvider = (props) => {
       onFinishedPlaying,
       setIsPaused,
       setSelectedCountry,
+      setConfirmedCountry,
       setSelectedLang,
       skipToNextTrack,
     }

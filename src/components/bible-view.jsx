@@ -312,6 +312,7 @@ const BibleView = (props) => {
       <>
         <ImageList
           rowHeight={"auto"}
+          sx={{maxWidth:'500px'}}
           cols={1}
         >
           <ImageListItem
@@ -323,6 +324,7 @@ const BibleView = (props) => {
         </ImageList>
         <Typography
           type="title"
+          sx={{maxWidth:'500px'}}
         >{syncVerseText}<br/><br/></Typography>
       </>)}
     </div>
