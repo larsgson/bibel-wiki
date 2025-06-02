@@ -35,6 +35,7 @@ const HistoryView = (props) => {
             <ImageListItem
               key={item.id}
               cols={1}
+              sx={{maxWidth:'500px'}}
               rows={1}
               onClick={(e) => handleClickItemIndex(e,item)}
             >

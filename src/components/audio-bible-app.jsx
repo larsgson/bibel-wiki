@@ -1,12 +1,13 @@
 import * as React from 'react';
-import { styled, useTheme, createTheme, ThemeProvider } from '@mui/material/styles'
+import { styled, useTheme, ThemeProvider } from '@mui/material/styles'
 import LibraryView from './library-view'
 import SettingsView from './settings-view'
+// import InitialSettingsView from './initial-settings-view'
 import BibleView from './bible-view'
 import HomeView from './home-view'
+import SimpleAppBar from './simple-app-bar'
 import Box from '@mui/material/Box';
 import MuiDrawer from '@mui/material/Drawer';
-import MuiAppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import List from '@mui/material/List';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -16,12 +17,10 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
-import Button from '@mui/material/Button';
 import HomeIcon from '@mui/icons-material/Home'
 import VideoLibraryIcon from '@mui/icons-material/VideoLibrary';
 import MenuBookIcon from '@mui/icons-material/MenuBook'
 import MenuIcon from '@mui/icons-material/Menu'
-import CheckIcon from '@mui/icons-material/Check'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ListItem from '@mui/material/ListItem';
@@ -38,12 +37,6 @@ const topLevelNavItems = [
   {text: "Library", icon: <VideoLibraryIcon/>},
   {text: "Bible", icon: <MenuBookIcon/>}
 ]
-
-const theme = createTheme({
-  palette: {
-    mode: 'dark',
-  },
-})
 
 const defaultBackgroundStyle = {
   height: 'auto',
@@ -122,30 +115,6 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   ...theme.mixins.toolbar,
 }));
 
-const AppBar = styled(MuiAppBar, {
-  shouldForwardProp: (prop) => prop !== 'open',
-})(({ theme }) => ({
-  zIndex: theme.zIndex.drawer + 1,
-  backgroundColor: '#04034f',
-  transition: theme.transitions.create(['width', 'margin'], {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen,
-  }),
-  variants: [
-    {
-      props: ({ open }) => open,
-      style: {
-        marginLeft: drawerWidth,
-        width: `calc(100% - ${drawerWidth}px)`,
-        transition: theme.transitions.create(['width', 'margin'], {
-          easing: theme.transitions.easing.sharp,
-          duration: theme.transitions.duration.enteringScreen,
-        }),
-      },
-    },
-  ],
-}));
-
 const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' })(
   ({ theme }) => ({
     width: drawerWidth,
@@ -173,13 +142,13 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
 
 export default function AudioBibleNavigationApp() {
   const theme = useTheme();
-  const { navHist, startPlay, curPlay, selectedCountry} = useMediaPlayer()
+  const { navHist, startPlay, curPlay, selectedCountry, confirmedCountry} = useMediaPlayer()
   const isPlaying = !isEmptyObj(curPlay)
   const { size, width } = useBrowserData()
   const isMobileSize = (size === "sm" || size === "xs")
-  const [menuValue, setMenuValue] = React.useState(2);
-  const [emptyList, setEmptyList] = React.useState(true);
-  const [open, setOpen] = React.useState(false);
+  const [menuValue, setMenuValue] = React.useState(2)
+  const [emptyList, setEmptyList] = React.useState(true)
+  const [open, setOpen] = React.useState(false)
 
   const ref = React.useRef(null);
 
@@ -206,18 +175,14 @@ export default function AudioBibleNavigationApp() {
   const handleDrawerOpen = () => setOpen(true);
   const handleDrawerClose = () => setOpen(false);
   const handleClickMenu = (inx) => setMenuValue(inx)
-
   const settingsMenuIndex = topLevelNavItems.length
   return (
     <div style={defaultBackgroundStyle}>
       <ThemeProvider theme={theme}>
-        {!isPlaying && isMobileSize && (
+        {!isPlaying && isMobileSize && confirmedCountry && (
           <Box sx={{ pb: 7 }} ref={ref}>
             <CssBaseline />
-            {(menuValue===settingsMenuIndex) && (<SettingsView
-                onExitNavigation={() => console.log("onExitNavigation - SettingsView")}
-                onStartPlay={handleStartBiblePlay}
-            />)}
+            {(menuValue===settingsMenuIndex) && (<SettingsView/>)}
             {(menuValue===2) && (<BibleView
                 onExitNavigation={() => console.log("onExitNavigation - BibleView")}
                 onStartPlay={handleStartBiblePlay}
@@ -248,39 +213,13 @@ export default function AudioBibleNavigationApp() {
             </Paper>
           </Box>
         )}
-        {/* {!isPlaying && !isMobileSize && !selectedCountry && (
-          <Box sx={{ display: 'flex' }}>
-          <CssBaseline />
-          <AppBar position="fixed" open={open}>
-            <Toolbar>
-              <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-                Bible Wiki
-              </Typography>
-              <Button
-                variant="contained"
-                color="success"
-                aria-label="confirm settings"
-                onClick={handleDrawerOpen}
-                sx={[
-                  open && { display: 'none' },
-                ]}
-                startIcon={<CheckIcon />}
-              >Confirm Languages
-              </Button>
-            </Toolbar>
-          </AppBar>
-            <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-              <DrawerHeader />
-              <SettingsView
-                onExitNavigation={() => console.log("onExitNavigation - SettingsView")}
-              />
-            </Box>
-          </Box>
-        )} */}
-        {!isPlaying && !isMobileSize && (
+        {!isPlaying && !confirmedCountry && (
+          <SettingsView initialSettingsMode={true}/>
+        )}
+        {!isPlaying && !isMobileSize && confirmedCountry && (
           <Box sx={{ display: 'flex' }}>
             <CssBaseline />
-            <AppBar position="fixed" open={open}>
+            <SimpleAppBar position="fixed" open={open}>
               <Toolbar>
                 <IconButton
                   color="inherit"
@@ -300,7 +239,7 @@ export default function AudioBibleNavigationApp() {
                   Bible Wiki
                 </Typography>
               </Toolbar>
-            </AppBar>
+            </SimpleAppBar>
             <Drawer variant="permanent" open={open} PaperProps={{ sx: { backgroundColor: "#282828" } }}>
               <DrawerHeader>
                 <IconButton 
@@ -335,9 +274,7 @@ export default function AudioBibleNavigationApp() {
             </Drawer>
             <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
               <DrawerHeader />
-              {(menuValue===settingsMenuIndex) && (<SettingsView
-                onExitNavigation={() => console.log("onExitNavigation - SettingsView")}
-              />)}
+              {(menuValue===settingsMenuIndex) && (<SettingsView/>)}
               {(menuValue===2) && (<BibleView
                 onExitNavigation={() => console.log("onExitNavigation - BibleView")}
                 onStartPlay={handleStartBiblePlay}
@@ -354,9 +291,7 @@ export default function AudioBibleNavigationApp() {
             </Box>
           </Box>
         )}
-        {isPlaying && (menuValue===3) && (<SettingsView
-            onExitNavigation={() => console.log("onExitNavigation - SettingsView")}
-        />)}
+        {isPlaying && (menuValue===3) && (<SettingsView/>)}
         {isPlaying && (menuValue===2) && (<BibleView
             onExitNavigation={() => console.log("onExitNavigation - BibleView")}
             onStartPlay={handleStartBiblePlay}

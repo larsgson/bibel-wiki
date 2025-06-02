@@ -24,6 +24,14 @@ body > #root > div {
   color: white;
 }
 
+.Settings-header {
+  background-color: #222;
+  height: 150px;
+  padding: 20px;
+  padding-top: 60px;
+  color: white;
+}
+
 .App-title {
   font-size: 1.5em;
 }

@@ -197,6 +197,7 @@ const HomeView = (props) => {
       <>
         <ImageList
           rowHeight={"auto"}
+          sx={{maxWidth:'500px'}}
           cols={1}
         >
           <ImageListItem key="1">
@@ -213,6 +214,7 @@ const HomeView = (props) => {
         </ImageList>
         <Typography
           type="title"
+          sx={{maxWidth:'500px'}}
         >{syncVerseText}<br/><br/></Typography>
       </>)}
       {(!isPlaying) && (
