@@ -421,7 +421,8 @@ const MediaPlayerProvider = (props) => {
       retStr = `https://storage.googleapis.com/img.bibel.wiki/obsIcons/obs-en-${curImgSrc}.mp4`
     } else if (navType === "audioBible") {
       const bookObj = ep?.bookObj
-      if ((bookObj?.bk==="John") && langWithTimestampsSet.has(ep?.lang)) {
+      const checkLang = ep?.lang || state.selectedLang
+      if ((bookObj?.bk==="John") && langWithTimestampsSet.has(checkLang)) {
         retStr = curImgSrc
       } else if (bookObj) {
         const preNav = "https://storage.googleapis.com/img.bibel.wiki/navIcons/"
