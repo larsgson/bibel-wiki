@@ -14,7 +14,6 @@ import {
   serieNaviType, 
 } from '../utils/dynamic-lang'
 import { getChIcon } from '../utils/icon-handler'
-import { osisIconId  } from '../constants/osisIconList'
 import useBrowserData from '../hooks/useBrowserData'
 import useMediaPlayer from "../hooks/useMediaPlayer"
 import { naviSortOrder, chInBook,
@@ -51,16 +50,6 @@ const BibleView = (props) => {
   // eslint-disable-next-line no-unused-vars
   const getSort = (val) => naviSortOrder.indexOf(parseInt(val))
   const addSkipLevel = (level) => setSkipLevelList([...skipLevelList,level])
-
-  // eslint-disable-next-line no-unused-vars
-  const getOsisIcon = (osisId) => {
-    const exceptionBook = ["1Sam","2Sam","1Kgs","2Kgs","1Chr","2Chr"]
-    let bookNameEng = t(osisId, { lng: 'en' })
-    if (exceptionBook.indexOf(osisId)>=0){
-      bookNameEng = bookNameEng.slice(2,2+bookNameEng.length)
-    }
-    return bookNameEng.replace(/ /g,"-").toLowerCase()
-  }
 
   // eslint-disable-next-line no-unused-vars
   const handleClick = (ev,id,_isBookIcon) => {

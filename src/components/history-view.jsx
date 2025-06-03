@@ -4,10 +4,12 @@ import ImageList from '@mui/material/ImageList'
 import ImageListItem from '@mui/material/ImageListItem'
 import Typography from '@mui/material/Typography'
 import { getChFreePicFirstEntry } from '../utils/obj-functions'
+import { getImgSrcString } from '../constants/naviChaptersJohn'
 import ItemBarEpisode from './item-bar-episode'
 import { getImgOfObj } from '../utils/obj-functions'
 import useBrowserData from '../hooks/useBrowserData'
 import { useTranslation } from 'react-i18next'
+import { langWithTimestampsSet } from '../constants/audio-by-b-id'
 
 const HistoryView = (props) => {
   const { epList, lng, onClick } = props
@@ -24,12 +26,17 @@ const HistoryView = (props) => {
         cols={1}
       >
         {epList?.map((item) => {
-          const bk = item?.ep?.bookObj
+          const bookObj = item?.ep?.bookObj
           const useEp = item?.ep
           let useImg = useEp.image ? getImgOfObj(useEp,t) : useEp.imageSrc
-          if (bk) {
-            const imgObj = getChFreePicFirstEntry(bk,useEp?.id)
-            useImg = imgObj?.imgSrc
+          if (bookObj) {
+            const checkLang = useEp?.lang 
+            if ((bookObj?.bk==="John") && langWithTimestampsSet.has(checkLang)) {
+              useImg = getImgSrcString(useEp?.id,1)
+            } else {
+              const imgObj = getChFreePicFirstEntry(bookObj,useEp?.id)
+              useImg = imgObj?.imgSrc
+            }
           } 
           return (
             <ImageListItem
