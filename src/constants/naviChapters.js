@@ -209,16 +209,10 @@ export const naviChapters = {
     g: [{bk:"Hos"},{bk:"Joel"},{bk:"Obad"},{bk:"Mic"}],
     h: [{bk:"Nah"},{bk:"Hab"},{bk:"Zeph"}],
   }, 7: {
-    a: [
-          {bk:"Matt",beg:1,end:11},
-          {bk:"Matt",beg:12,end:15},
-          {bk:"Matt",beg:16,end:20},
-          {bk:"Matt",beg:21,end:25},
-          {bk:"Matt",beg:26,end:28}
-       ],
-    b: [{bk:"Mark",beg:1,end:13},{bk:"Mark",beg:14,end:16}],
-    c: [{bk:"Luke",beg:1,end:6},{bk:"Luke",beg:7,end:19},{bk:"Luke",beg:20,end:24}],
-    d: [{bk:"John",beg:1,end:12},{bk:"John",beg:13,end:17},{bk:"John",beg:18,end:21}],
+    a: [{bk:"Matt"}],
+    b: [{bk:"Mark"}],
+    c: [{bk:"Luke"}],
+    d: [{bk:"John"}],
   }, 8: {
     a: [{bk:"Acts",beg:1,end:7}],
     b: [{bk:"Acts",beg:8,end:12}],

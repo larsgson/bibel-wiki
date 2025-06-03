@@ -7,21 +7,18 @@ import ChevronLeft from '@mui/icons-material/ChevronLeft'
 import ImageList from '@mui/material/ImageList'
 import ImageListItem from '@mui/material/ImageListItem'
 import ImageListItemBar from '@mui/material/ImageListItemBar'
-import { rangeArray, pad, isEmptyObj } from '../utils/obj-functions'
+import { rangeArray, isEmptyObj } from '../utils/obj-functions'
 import { 
   selectAudioBible,
   getSerie,
-  serieLang,
-  serieNaviType  
+  serieNaviType, 
 } from '../utils/dynamic-lang'
-import { osisIconId, osisIconList } from '../constants/osisIconList'
-import { getOsisChTitle, getChoiceTitle } from '../constants/osisChTitles'
+import { getChIcon } from '../utils/icon-handler'
+import { osisIconId  } from '../constants/osisIconList'
 import useBrowserData from '../hooks/useBrowserData'
 import useMediaPlayer from "../hooks/useMediaPlayer"
 import { naviSortOrder, chInBook,
           naviBooksLevel1, naviBooksLevel2, naviChapters } from '../constants/naviChapters'
-
-const preNav = "https://storage.googleapis.com/img.bibel.wiki/navIcons/"
 
 const SerieGridBar = (props) => {
   // eslint-disable-next-line no-unused-vars
@@ -63,78 +60,6 @@ const BibleView = (props) => {
       bookNameEng = bookNameEng.slice(2,2+bookNameEng.length)
     }
     return bookNameEng.replace(/ /g,"-").toLowerCase()
-  }
-
-  const getChIcon = (key,lev1,lev2,bookObj,ch) => {
-    let checkIcon = "000-" + pad(lev1)
-    if (lev2!=null) checkIcon = "00-" + pad(lev1) + lev2
-    let imgSrc
-    let checkTitle
-    const bk = (bookObj!=null)?bookObj.bk:null
-    if (bk!=null){ // level 3
-      const checkObj = osisIconList[bk]
-      if (checkObj!=null){
-        let useCh
-        if (ch==null){
-          const entry = Object.entries(checkObj)[0]
-          useCh = entry[0]
-          if (bk!=null){ // level 3
-            const {beg,end} = bookObj
-            if ((beg!=null)&&(end!=null)){
-              useCh = Object.keys(checkObj).find(key => key>=beg)
-            }
-          }
-        } else {
-          if (checkObj[ch]!=null) useCh = ch
-        }
-        if (useCh!=null){
-          const firstId = pad(parseInt(useCh))
-          const firstEntry = checkObj[useCh][0]
-          checkIcon = osisIconId[bk] + "_" + firstId + "_" + firstEntry
-        }
-      }
-// Book Icon - To Do - to be added in the future
-//    imgSrc = preBook +getOsisIcon(bk) +".png"
-      checkTitle = t(bk, { lng })
-    } else {
-      checkTitle = t(checkIcon, { lng })
-    }
-    imgSrc = preNav +checkIcon +".png"
-    let title = (ch!=null) ? getOsisChTitle(bk,ch,lng) : checkTitle
-    let subtitle
-    if (bk==null){ // level 1 and 2
-      const checkStr = checkIcon + "-descr"
-      subtitle = t(checkStr, { lng: serieLang[level0] })
-      if (subtitle===checkStr) subtitle = ""
-    } else if (ch==null){ // level 3
-      const {beg,end} = bookObj
-      if ((beg!=null)&&(end!=null)){
-        subtitle = (beg===end) ? beg : beg + " - " + end
-      }
-      const choiceTitle = getChoiceTitle(bk,key+1,lng)
-      if (choiceTitle!=null) {
-        title += " " + subtitle
-        subtitle = choiceTitle
-      }
-    } else { // level 4
-      // const bookTitle = t(bk, { lng })
-      const checkRegEx = /^(\d+)|(\D+)/g // separate numbers and letters
-      let bookTitle = bk
-      const matchesList = [...bk.matchAll(checkRegEx)]
-      if ((matchesList!=null)&&(matchesList.length>1)) {
-        bookTitle = `${matchesList[0][0]} ${matchesList[1][0]}`
-      }
-      if (title !== `${bk}.${ch}`) {
-        subtitle = `${bookTitle} ${ch}`
-      }
-    }
-    return {
-      imgSrc,
-      key,
-      subtitle,
-      title,
-      isBookIcon: false
-    }
   }
 
   // eslint-disable-next-line no-unused-vars
@@ -211,7 +136,7 @@ const BibleView = (props) => {
         validBookList.push(...foundList)
         if (foundList.length>0){
           lastInx = iconInx
-          validIconList.push(getChIcon(iconInx,iconInx))
+          validIconList.push(getChIcon(iconInx,level0,iconInx))
         }
       })
       if (validIconList.length===1) {
@@ -231,7 +156,8 @@ const BibleView = (props) => {
         validBookList.push(...foundList)
         if (foundList.length>0) {
           lastLetter = iconLetter
-          validIconList.push(getChIcon(iconLetter,level1,iconLetter))
+          const tempIcon = getChIcon(iconLetter,level0,level1,iconLetter)
+          validIconList.push(tempIcon)
         }
       })
       if (validIconList.length===1) {
@@ -244,7 +170,7 @@ const BibleView = (props) => {
     }
     if (curLevel===3){
       naviChapters[level1][level2].forEach((bookObj,i) => {
-        validIconList.push(getChIcon(i,level1,level2,bookObj))
+        validIconList.push(getChIcon(i,level0,level1,level2,bookObj))
       })
     } else if (curLevel===4){
       const bookObj = naviChapters[level1][level2][level3]
@@ -254,8 +180,8 @@ const BibleView = (props) => {
         if (bookObj.end==null) bookObj.end = chInBook[bk]
         const {beg,end} = bookObj
         rangeArray(beg,end).forEach(ch => {
-          validIconList.push(getChIcon(ch,level1,level2,bookObj,ch))
-  //          validIconList.push(getChIcon(index here,level1,bookObj,ch,ch))
+          validIconList.push(getChIcon(ch,level0,level1,level2,bookObj,ch))
+  //          validIconList.push(getChIcon(index here,...))
         })
       }
     }

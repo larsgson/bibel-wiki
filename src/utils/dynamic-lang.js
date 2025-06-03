@@ -151,24 +151,63 @@ export const getSerie = (lang,serId) => {
 }
 
 export const serieLang = (id) => {
-  const checkObj = {
-    "de-audio-bible-ML": "de",
-    "en-audio-bible-WEB": "en",
-    "es-audio-bible-WordProject": "es",
-    "pt-br-audio-bible-WordProject": "pt-br",
-    "fr-audio-bible-WordProject": "fr",
-    "hu-audio-bible-WordProject": "hu",
-    "lu-audio-bible-WordProject": "lu",
-    "ro-audio-bible-WordProject": "ro",
-    "de-jhn-serie": "de",
-    "en-jhn-serie": "en",
-    "es-jhn-serie": "es",
-    "de-jhn-plan": "de",
-    "en-jhn-plan": "en",
-    "es-jhn-plan": "es",
-    "en-audio-OBS": "en",
+  const checkSpecialId = "audio-bible-bb-project-"
+  if (id?.indexOf(checkSpecialId) === 0) {
+    const curLangId = id.substring(checkSpecialId.length,id.length)
+    return curLangId || "eng"
+  } else {
+    const checkObj = {
+      "de-audio-bible-ML": "ger",
+      "en-audio-bible-WEB": "eng",
+      "es-audio-bible-WordProject": "spa",
+      "pt-br-audio-bible-WordProject": "por",
+      "fr-audio-bible-WordProject": "fra",
+      "hu-audio-bible-WordProject": "hun",
+      "lu-audio-bible-WordProject": "lub",
+      "ro-audio-bible-WordProject": "ron",
+      "de-jhn-serie": "ger",
+      "en-jhn-serie": "eng",
+      "es-jhn-serie": "spa",
+      "de-jhn-plan": "ger",
+      "en-jhn-plan": "eng",
+      "es-jhn-plan": "spa",
+      "en-audio-OBS": "eng",
+    }
+    return checkObj[id] || "eng"
   }
-  return checkObj[id] || "en"
+}
+
+export const serieNavLang = (id) => {
+  const checkSpecialId = "audio-bible-bb-project-"
+  if (id?.indexOf(checkSpecialId) === 0) {
+    const curLangId = id.substring(checkSpecialId.length,id.length)
+    const adaptLangObj = {
+      "spa": "es",
+      "eng": "en",
+      "esp": "es",
+      "por": "pt-br",
+      "fra": "fr",
+      "deu": "de",
+      "ger": "de",
+    }
+    return adaptLangObj[curLangId] || "es"
+  } else {
+    const checkObj = {
+      "de-audio-bible-ML": "de",
+      "en-audio-bible-WEB": "en",
+      "es-audio-bible-WordProject": "es",
+      "pt-br-audio-bible-WordProject": "pt-br",
+      "fr-audio-bible-WordProject": "fr",
+      "de-jhn-serie": "de",
+      "en-jhn-serie": "en",
+      "es-jhn-serie": "es",
+      "de-jhn-plan": "de",
+      "en-jhn-plan": "en",
+      "es-jhn-plan": "es",
+      "en-audio-OBS": "en",
+    }
+    return checkObj[id] || "en"
+  }
 }
 
 export const serieNaviType =(id) => {
