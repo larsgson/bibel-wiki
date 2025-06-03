@@ -6,9 +6,14 @@ import { useTranslation } from 'react-i18next'
 import { serieLang, serieNaviType } from '../utils/dynamic-lang'
 import { freeAudioId, freeAudioIdOsisMap } from '../constants/osisFreeAudiobible'
 import { contentByLang } from '../constants/content-by-lang'
-import { audioByID, audioWithTimestampsSet } from '../constants/audio-by-b-id'
+import { 
+  audioByID, 
+  audioWithTimestampsSet, 
+  langWithTimestampsSet 
+} from '../constants/audio-by-b-id'
 import { iconsSyncData } from '../constants/iconsSyncData'
 import { freePixId, osisIconList } from '../constants/osisIconList'
+import { versesPerCh, getImgSrcString } from '../constants/naviChaptersJohn'
 
 const MediaPlayerContext = React.createContext([{}, () => {}])
 const MediaPlayerProvider = (props) => {
@@ -138,31 +143,53 @@ const MediaPlayerProvider = (props) => {
         // const curBook = osisFromFreeAudioId(curApiParam?.bookID)
         const curBookInx = freeAudioId.findIndex(el => (el === curApiParam?.bookID)) +1
         const curCh = curApiParam?.ch
-        if (iconsSyncData && iconsSyncData[curBookInx] && iconsSyncData[curBookInx][curCh]) {
-          const chIconData = iconsSyncData[curBookInx][curCh]
-          const curIconList = Object.keys(chIconData)
-          if (curIconList.length>1) {
-            const resTimestamp = await fetch(fetchTimestampPath, {
-              method: 'POST',
-              body: timestampParamStr
-            })
-            .then(resTimestamp => resTimestamp.json())
-            .catch(error => console.error(error))
-            setVerseTextPosAudio(resTimestamp?.data)
-            const timestampPoints = curIconList.map((verse,inx) => {
-              let pos = 0
-              const vInx = parseInt(verse)
-              const img = chIconData[vInx].id[0]
-              if (inx!==0) {
-                pos = resTimestamp?.data[vInx]?.timestamp
-              }
-              return {
-                img,
-                pos
-              }  
-            })
-            setImgPosAudio(timestampPoints)
-          }  
+        let doFetch = false
+        let curIconList
+        let chIconData
+        let tsType 
+        let resData
+        if ((curBookInx === 43) && langWithTimestampsSet.has(state.selectedLang)) {
+          tsType = "johnPics"
+          console.log(curCh)
+          doFetch = true
+        } else if (iconsSyncData && iconsSyncData[curBookInx] && iconsSyncData[curBookInx][curCh]) {
+          tsType = "sweetPublishing"
+          chIconData = iconsSyncData[curBookInx][curCh]
+          curIconList = Object.keys(chIconData)
+          doFetch = (curIconList.length>1)
+        }
+        if (doFetch) {
+          const resTimestamp = await fetch(fetchTimestampPath, {
+            method: 'POST',
+            body: timestampParamStr
+          })
+          .then(resTimestamp => resTimestamp.json())
+          .catch(error => console.error(error))
+          resData = resTimestamp?.data
+          setVerseTextPosAudio(resData)
+        }
+        if (tsType === "sweetPublishing") {
+          const timestampPoints = curIconList.map((verse,inx) => {
+            let pos = 0
+            const vInx = parseInt(verse)
+            const img = chIconData[vInx].id[0]
+            if (inx!==0) {
+              pos = resData[vInx]?.timestamp
+            }
+            return {
+              img,
+              pos
+            }  
+          })
+          setImgPosAudio(timestampPoints)
+        } else { // if (tsType === "johnPics") {
+          const timestampPoints = [...Array(versesPerCh[curCh])].map((_,i) => {
+            return {
+              img: getImgSrcString(curCh,i+1),
+              pos: resData[i]?.timestamp
+            }
+          })
+          setImgPosAudio(timestampPoints)
         }
       } else {
         setVerseTextPosAudio([])
@@ -192,8 +219,6 @@ const MediaPlayerProvider = (props) => {
     getTextData()
   }, [textParamStr])
 
-  const audioTypePriority = {ad: 4, a: 3, ads: 2, as: 1}
-
   const getAudioFilesetId = (langID) => {
     let hasTs = false
     let filesetID = undefined
@@ -202,8 +227,10 @@ const MediaPlayerProvider = (props) => {
     let langData
     if (state.langDataJsonStr && state.langDataJsonStr.length>0) {
       langData = JSON.parse(state.langDataJsonStr)
-      idList = Object.keys(langData.a)
-      console.log(idList)
+      if (langData?.a) {
+        idList = Object.keys(langData?.a)
+        console.log(idList)
+      }
     }
     const audioIdList = contentByLang[langID]?.a
     audioIdList && audioIdList.forEach(audioID => {
@@ -287,15 +314,15 @@ const MediaPlayerProvider = (props) => {
     let langData
     if (state.langDataJsonStr && state.langDataJsonStr.length>0) {
       langData = JSON.parse(state.langDataJsonStr)
-      idList = Object.keys(langData.a)
-      console.log(idList)
+      if (langData?.t) {
+        idList = Object.keys(langData?.t)
+        console.log(idList)
+      }
     }
     const textIDList = contentByLang[langID]?.t
     textIDList && textIDList.forEach(tID => {
-      console.log(tID)
       if (idList && idList.includes(tID)) {
         const idData = langData.t[tID]
-        console.log(idData)
         const fsIdList = Object.keys(idData?.fs)
         if (fsIdList && fsIdList.length>0) {
           fsIdList.filter(key => (key.indexOf("json")<0)).forEach(key => {
@@ -389,12 +416,14 @@ const MediaPlayerProvider = (props) => {
     (checkMsPosArray?.length>0) && checkMsPosArray?.map(checkObj => {
       const checkMs = parseInt(checkObj.pos) * 1000
       if (msPos>=checkMs) curImgSrc = checkObj.img
-    })  
+    })
     if (navType === "audioStories") {
       retStr = `https://storage.googleapis.com/img.bibel.wiki/obsIcons/obs-en-${curImgSrc}.mp4`
     } else if (navType === "audioBible") {
       const bookObj = ep?.bookObj
-      if (bookObj) {
+      if ((bookObj?.bk==="John") && langWithTimestampsSet.has(ep?.lang)) {
+        retStr = curImgSrc
+      } else if (bookObj) {
         const preNav = "https://storage.googleapis.com/img.bibel.wiki/navIcons/"
         const picsPreNav = "https://storage.googleapis.com/img.bibel.wiki/img/free-pics/"
         let useDefaultImage = true
