@@ -13,7 +13,7 @@ import {
 } from '../constants/audio-by-b-id'
 import { iconsSyncData } from '../constants/iconsSyncData'
 import { freePixId, osisIconList } from '../constants/osisIconList'
-import { versesPerCh, getImgSrcString } from '../constants/naviChaptersJohn'
+import { versesPerCh, getImgSrcString, getValidVerse } from '../constants/naviChaptersJohn'
 
 const MediaPlayerContext = React.createContext([{}, () => {}])
 const MediaPlayerProvider = (props) => {
@@ -150,7 +150,6 @@ const MediaPlayerProvider = (props) => {
         let resData
         if ((curBookInx === 43) && langWithTimestampsSet.has(state.selectedLang)) {
           tsType = "johnPics"
-          console.log(curCh)
           doFetch = true
         } else if (iconsSyncData && iconsSyncData[curBookInx] && iconsSyncData[curBookInx][curCh]) {
           tsType = "sweetPublishing"
@@ -185,7 +184,7 @@ const MediaPlayerProvider = (props) => {
         } else { // if (tsType === "johnPics") {
           const timestampPoints = [...Array(versesPerCh[curCh])].map((_,i) => {
             return {
-              img: getImgSrcString(curCh,i+1),
+              img: getImgSrcString(curCh,i+1) || getImgSrcString(curCh,getValidVerse(curCh,i+1)),
               pos: resData[i]?.timestamp
             }
           })
@@ -200,7 +199,7 @@ const MediaPlayerProvider = (props) => {
   }, [timestampParamStr])
 
   useEffect(() => {
-    const getTextData = async () => {
+    const getTextData = async () => {      
       if (textParamStr.length>0) {
         const fetchTextPath = `${apiBasePath}/get-text`
         const resText = await fetch(fetchTextPath, {
@@ -228,29 +227,27 @@ const MediaPlayerProvider = (props) => {
     if (state.langDataJsonStr && state.langDataJsonStr.length>0) {
       langData = JSON.parse(state.langDataJsonStr)
       if (langData?.a) {
-        idList = Object.keys(langData?.a)
+        // idList = Object.keys(langData?.a)
         console.log(idList)
       }
     }
     const audioIdList = contentByLang[langID]?.a
     audioIdList && audioIdList.forEach(audioID => {
-      console.log(audioID)
       if (idList && idList.includes(audioID)) {
         const idData = langData.a[audioID]
-        console.log(idData)
         hasTs = idData.ts
         const fsIdList = Object.keys(idData?.fs)
         if (fsIdList && fsIdList.length>0) {
           fsIdList.filter(key => (key.indexOf("opus")<0)).forEach(key => {
             // const fsObj = idData.fs[key]
             const typeStr = key.substring(6,8)
-            console.log(typeStr)
             const dramaType = (typeStr.length>1) && (typeStr[1] === "2")
+            const hasNT = (typeStr.length>1) && (typeStr[0] === "N")
             let chkP = dramaType ? 2 : 1
             const fullStr = key
             // Always prioritise higher for audio with timestamps - add 10
             if (idData.ts) chkP += 10
-            if (chkP>curPriority) {
+            if ((hasNT) && (chkP>curPriority)) {
               if (idData.ts) console.log("hasTS")
               curPriority = chkP 
               filesetID = fullStr
@@ -258,14 +255,12 @@ const MediaPlayerProvider = (props) => {
           })
         }
       } else {
-        console.log(audioByID[audioID])
         const fIdList = audioByID[audioID]
         if (fIdList) {
           fIdList.forEach(aType => {
             const chkType = aType.substring(1)
             let chkP = parseInt(chkType)
             // Always prioritise higher for audio with timestamps - add 10
-            console.log(`${audioID}${aType}DA`)
             const useIdStr = `${audioID}${aType}DA`
             if (audioWithTimestampsSet.has(useIdStr)) chkP += 10
             if (chkP>curPriority) {

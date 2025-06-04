@@ -190,7 +190,7 @@ export const serieNavLang = (id) => {
       "deu": "de",
       "ger": "de",
     }
-    return adaptLangObj[curLangId] || "es"
+    return adaptLangObj[curLangId] || "en"
   } else {
     const checkObj = {
       "de-audio-bible-ML": "de",
