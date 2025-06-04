@@ -26,6 +26,35 @@ export const imgAlt = {
   21: ["16c"]
 }
 
+export const imgSkip = {
+  1: [2,7,13,17],
+  2: [25],
+  3: [7,15,20,24,31,33,35],
+  4: [2,4,8,29,47],
+  5: [27,29,33,38,42,47],
+  6: [5,9,38,40,42,44,57,66],
+  7: [4,7,11,13,24,34,49,51],
+  8: [1,16,18,26,32,35,36,38,43,46,47,50,51,55,56],
+  9: [4,5,19,21,23,29,31,32],
+  10: [8,15,23,26,28,36],
+  11: [6,10,22,48],
+  12: [45],
+  14: [16,19],
+  18: [14,32]
+}
+
+export const getValidVerse = (ch,v) => {
+  let resV = v
+  if ((ch === 8) && (v === 1)) {
+    console.log("increase verse")
+    // This is the only exception with a larger number being returned
+    resV = 2
+  } else {
+    while (imgSkip[ch] && imgSkip[ch].includes(resV)) resV--
+  }
+  return resV
+}
+
 export const imgVerseMuliple = {
   1: {5: 2, 38: 2, 39: 2, 42: 2, 43: 2, 48: 2},
   2: {6: 2, 8: 2, 11: 2, 15: 2},
@@ -302,7 +331,9 @@ export const outlinesOfJohnObj = (entry) => {
 
 export const getImgSrcString = (ch,v) => {
   let imgVStr = v
-  if ((imgVerseMuliple[ch]) && (imgVerseMuliple[ch][v])) {
+  if ((imgSkip[ch]) && (imgSkip[ch].includes(v))) {
+    return undefined
+  } else if ((imgVerseMuliple[ch]) && (imgVerseMuliple[ch][v])) {
     imgVStr = v+"a"
   } else if ((imgVerseSpan[ch]) && (imgVerseSpan[ch][v])) {
     const addInx = imgVerseSpan[ch][v] -1
@@ -320,7 +351,7 @@ export const gospelOfJohnPlanObj = {
       const end = obj.end
       const ch = obj.begin.ch
       const v = obj.begin.v
-      const filename = getImgSrcString(ch,v)
+      const filename = getImgSrcString(ch,v) || getImgSrcString(ch,getValidVerse(ch,v))
       return {
         id: inx,
         title: `John.${ch}.${v}`,
@@ -338,7 +369,7 @@ export const gospelOfJohnPlanObj = {
       const end = useObj0.end
       const ch = useObj0.begin.ch
       const v = useObj0.begin.v
-      const filename = getImgSrcString(ch,v)
+      const filename = getImgSrcString(ch,v) || getImgSrcString(ch,getValidVerse(ch,v))
       return {
         id: inx,
         title: `John.${ch}.${v}`,

@@ -32,7 +32,7 @@ const HistoryView = (props) => {
           if (bookObj) {
             const checkLang = useEp?.lang 
             if ((bookObj?.bk==="John") && langWithTimestampsSet.has(checkLang)) {
-              useImg = getImgSrcString(useEp?.id,1)
+              useImg = getImgSrcString(useEp?.id,1) || getImgSrcString(useEp?.id,2)
             } else {
               const imgObj = getChFreePicFirstEntry(bookObj,useEp?.id)
               useImg = imgObj?.imgSrc

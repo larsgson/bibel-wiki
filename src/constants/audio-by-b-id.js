@@ -879,6 +879,7 @@ export const audioByID = {
   OKUWYI: ["N2","N1"],
   OLDBST: ["N2"],
   OM1TBL: ["N2","N1"],
+  ORYDPI: ["N1","N2"],
   ORYWTC: ["N2","N1"],
   OSSIBT: ["N2"],
   OTETBL: ["N2"],
@@ -1183,6 +1184,8 @@ export const audioByID = {
   URATBL: ["N2"],
   URBWBT: ["N2","N1"],
   URDERG: ["N1","O1"],
+  // Added this 2025-06-04
+  URDIRV: ["N1","O1"],
   URDPAK: ["N2"],
   URDWTC: ["N2"],
   URHUBS: ["N2"],
@@ -3214,6 +3217,8 @@ export const audioWithTimestamps = [
   "GUBWBTN2DA",
   "GUGRPVN1DA",
   "GUGRPVN2DA",
+  // Added this 2025-06-04
+  "GUJDPIN1DA",
   "GUJDPIO1DA",
   "HAEBSEN2DA",
   "HAKTHVN2DA",
@@ -3528,7 +3533,6 @@ export const langWithTimestamps = [
   "hae",
   "hak",
   "heh",
-  "hin",
   "hnn",
   "hui",
   "huu",
