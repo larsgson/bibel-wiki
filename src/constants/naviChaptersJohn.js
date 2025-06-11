@@ -46,7 +46,6 @@ export const imgSkip = {
 export const getValidVerse = (ch,v) => {
   let resV = v
   if ((ch === 8) && (v === 1)) {
-    console.log("increase verse")
     // This is the only exception with a larger number being returned
     resV = 2
   } else {
