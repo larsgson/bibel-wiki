@@ -17,7 +17,7 @@ import { getChIcon } from '../utils/icon-handler'
 import useBrowserData from '../hooks/useBrowserData'
 import useMediaPlayer from "../hooks/useMediaPlayer"
 import { naviSortOrder, chInBook,
-          naviBooksLevel1, naviBooksLevel2, naviChapters } from '../constants/naviChapters'
+  naviBooksLevel1, naviBooksLevel2, naviChapters } from '../constants/naviChapters'
 
 const SerieGridBar = (props) => {
   // eslint-disable-next-line no-unused-vars
