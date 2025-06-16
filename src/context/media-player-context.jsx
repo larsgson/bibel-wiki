@@ -17,9 +17,7 @@ import { versesPerCh, getImgSrcString, getValidVerse } from '../constants/naviCh
 
 const MediaPlayerContext = React.createContext([{}, () => {}])
 const MediaPlayerProvider = (props) => {
-  const [state, setState] = useState({
-    isPlaying: false,
-  })
+  const [state, setState] = useState({ isPlaying: false })
   const { t, i18n } = useTranslation()
   const setStateKeyVal = (key,val) => setState(state => ({ ...state, [key]: val }))
 
@@ -81,10 +79,16 @@ const MediaPlayerProvider = (props) => {
         setStateKeyVal("detectedCountry",detectedCountry)
       }
     }
-    const getCurLangs = async () => {
-      const curLangs = await apiGetStorage("selectedLang")
+    const getCurLangList = async () => {
+      const curLangs = await apiGetStorage("activeLangListStr")
       if (curLangs) {
-        setStateKeyVal("selectedLang",curLangs)
+        setStateKeyVal("activeLangListStr",curLangs)
+      }
+    }
+    const getCurLang = async () => {
+      const curLang = await apiGetStorage("selectedLanguage")
+      if (curLang) {
+        setStateKeyVal("selectedLanguage",curLang)
       }
     }
     const getNavHist = async () => {
@@ -93,27 +97,36 @@ const MediaPlayerProvider = (props) => {
     }
     getCurCountry()
     getConfirmedCountry()
-    getCurLangs()
+    getCurLangList()
+    getCurLang()
     getNavHist()
   }, [])
 
 
   useEffect(() => {
-    const getLangData = async (useLang) => {
-      console.log(useLang)
-      const usePath = `${apiURLPath}/.netlify/functions/get-content-by-lang`
-      const response = await fetch(usePath, {
-        method: 'POST',
-        body: JSON.stringify({
-          langCode: useLang,
-          query: ["a","t"]
-        })
-      }).then(response => response.json())
-      console.log(response?.data)
-      setStateKeyVal("langDataJsonStr",JSON.stringify(response?.data))
+    const getLangData = async (useLangListStr) => {
+      if (useLangListStr && useLangListStr.length>0) {
+        let curLangData = {}
+        if (state.langDataJsonStr && state.langDataJsonStr.length>0) {
+          curLangData = JSON.parse(state.langDataJsonStr)
+        }
+        const useLangList = JSON.parse(useLangListStr)
+        await Promise.all(useLangList.filter(l => (!curLangData.hasOwnProperty(l))).map(async langCode => {
+          const usePath = `${apiURLPath}/.netlify/functions/get-content-by-lang`
+          const response = await fetch(usePath, {
+            method: 'POST',
+            body: JSON.stringify({
+              langCode,
+              query: ["a","t"]
+            })
+          }).then(response => response.json())
+          curLangData[langCode] = response?.data
+        }))
+        setStateKeyVal("langDataJsonStr",JSON.stringify(curLangData))
+      }
     }
-    if ((state?.selectedLang) && (state.selectedLang.length>0)) getLangData(state.selectedLang)
-  }, [state.selectedLang,state.detectedLang])
+    if ((state?.activeLangListStr) && (state.activeLangListStr.length>0)) getLangData(state.activeLangListStr)
+  }, [state.activeLangListStr])
 
   useEffect(() => {
     const getCurCountryData = async (useCountry) => {
@@ -148,7 +161,9 @@ const MediaPlayerProvider = (props) => {
         let chIconData
         let tsType 
         let resData
-        if ((curBookInx === 43) && langWithTimestampsSet.has(state.selectedLang)) {
+        const activeLangList = state.activeLangListStr ? JSON.parse(state.activeLangListStr) : []
+        const lng = (activeLangList.length>0) ? activeLangList[0] : "eng"
+        if ((curBookInx === 43) && langWithTimestampsSet.has(lng)) {
           tsType = "johnPics"
           doFetch = true
         } else if (iconsSyncData && iconsSyncData[curBookInx] && iconsSyncData[curBookInx][curCh]) {
@@ -355,6 +370,11 @@ const MediaPlayerProvider = (props) => {
     await apiSetStorage("selectedCountry",newCountry)
   }
 
+  const setSelectedLanguage = async (newLang) => {
+    setStateKeyVal("selectedLanguage",newLang)
+    await apiSetStorage("selectedLanguage",newLang)
+  }
+
   const setConfirmedCountry = async (newCountry) => {
     setStateKeyVal("selectedCountry",newCountry)
     await apiSetStorage("selectedCountry",newCountry)
@@ -362,9 +382,16 @@ const MediaPlayerProvider = (props) => {
     await apiSetStorage("confirmedCountry",true)
   }
 
-  const setSelectedLang = async (newLang) => {
-    setStateKeyVal("selectedLang",newLang)
-    await apiSetStorage("selectedLang",newLang)
+  const updateActiveLang = async (newLangList) => {
+    const newUniqueArr = [ ...new Set(newLangList)]
+    const newStr = JSON.stringify(newUniqueArr)
+    setStateKeyVal("activeLangListStr",newStr)
+    await apiSetStorage("activeLangListStr",newStr)
+  }
+
+  const addActiveLang = async (newLang) => {
+    const activeLangList = state.activeLangListStr ? JSON.parse(state.activeLangListStr) : []
+    await updateActiveLang([ ...activeLangList, newLang ])
   }
 
   const onFinishedPlaying = () => {
@@ -416,7 +443,11 @@ const MediaPlayerProvider = (props) => {
       retStr = `https://storage.googleapis.com/img.bibel.wiki/obsIcons/obs-en-${curImgSrc}.mp4`
     } else if (navType === "audioBible") {
       const bookObj = ep?.bookObj
-      const checkLang = ep?.lang || state.selectedLang
+      let checkLang = ep?.lang
+      if (!checkLang) {
+        const activeLangList = state.activeLangListStr ? JSON.parse(state.activeLangListStr) : []
+        checkLang = (activeLangList.length>0) ? activeLangList[0] : "eng"
+      }
       if ((bookObj?.bk==="John") && langWithTimestampsSet.has(checkLang)) {
         retStr = curImgSrc
       } else if (bookObj) {
@@ -593,8 +624,10 @@ const MediaPlayerProvider = (props) => {
       onFinishedPlaying,
       setIsPaused,
       setSelectedCountry,
+      setSelectedLanguage,
       setConfirmedCountry,
-      setSelectedLang,
+      updateActiveLang,
+      addActiveLang,
       skipToNextTrack,
     }
   }

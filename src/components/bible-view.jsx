@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import Typography from '@mui/material/Typography'
 import Fab from '@mui/material/Fab'
@@ -7,6 +7,7 @@ import ChevronLeft from '@mui/icons-material/ChevronLeft'
 import ImageList from '@mui/material/ImageList'
 import ImageListItem from '@mui/material/ImageListItem'
 import ImageListItemBar from '@mui/material/ImageListItemBar'
+import LangSelect from './active-lang-select'
 import { rangeArray, isEmptyObj } from '../utils/obj-functions'
 import { 
   selectAudioBible,
@@ -33,14 +34,20 @@ const SerieGridBar = (props) => {
 const BibleView = (props) => {
   // eslint-disable-next-line no-unused-vars
   const { size } = useBrowserData()
-  const { curPlay, syncImgSrc, syncVerseText, selectedLang } = useMediaPlayer()
+  const { 
+    curPlay, 
+    syncImgSrc, 
+    syncVerseText, 
+    activeLangListStr,
+    selectedLanguage,
+  } = useMediaPlayer()
   const isPlaying = !isEmptyObj(curPlay)
   const { t, i18n } = useTranslation()
   const { onExitNavigation, onStartPlay } = props
-  const lng = selectedLang || "eng"
-  const useSerieId = selectAudioBible(lng)
+  const activeLangList = activeLangListStr ? JSON.parse(activeLangListStr) : []
+  const lng = selectedLanguage || ((activeLangList.length>0) ? activeLangList[0] : "eng")
   const [curLevel, setCurLevel] = useState(1)
-  const [level0, setLevel0] = useState(useSerieId)
+  const [level0, setLevel0] = useState("")
   const [level1, setLevel1] = useState(1)
   const [level2, setLevel2] = useState("")
   const [level3, setLevel3] = useState("")
@@ -50,6 +57,11 @@ const BibleView = (props) => {
   // eslint-disable-next-line no-unused-vars
   const getSort = (val) => naviSortOrder.indexOf(parseInt(val))
   const addSkipLevel = (level) => setSkipLevelList([...skipLevelList,level])
+
+useEffect(() => {
+  const useSerieId = selectAudioBible(lng)
+  setLevel0(useSerieId)
+}, [lng,setLevel0])
 
   // eslint-disable-next-line no-unused-vars
   const handleClick = (ev,id,_isBookIcon) => {
@@ -182,6 +194,7 @@ const BibleView = (props) => {
   const naviType = serieNaviType(level0) || "audioBible"
   return (
     <div>
+      {(activeLangList.length>1) && (curLevel===1) && <LangSelect/>}
       {(naviType==="audioBible") && (!isPlaying) && (curLevel>2) && (
         <Fab
           onClick={navigateHome}

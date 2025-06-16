@@ -74,32 +74,36 @@ export default function SettingsView({onConfirmClick,initialSettingsMode}) {
   const { 
     detectedCountry, 
     selectedCountry,
-    selectedLang, 
+    activeLangListStr, 
     curCountryJsonStr, 
     langListJsonStr,
+    langDataJsonStr,
     setSelectedCountry,
     setConfirmedCountry,
-    setSelectedLang,
+    updateActiveLang,
   } = useMediaPlayer()
   const curCountryLangList = (curCountryJsonStr) && JSON.parse(curCountryJsonStr)
   const langList = (langListJsonStr) && JSON.parse(langListJsonStr)
-  const curCountryLangData = {}
   const defaultLangList = ((curCountryLangList) && (curCountryLangList?.a)) ? Object.keys(curCountryLangList?.a) : []
   const defaultLang = (defaultLangList.length>0) ? defaultLangList[0] : "eng"
-  const curSelectedLang = selectedLang || defaultLang
+  const activeLangList = activeLangListStr ? JSON.parse(activeLangListStr) : [defaultLang]
   const curCountry = selectedCountry || detectedCountry
+  const langData = (langDataJsonStr) && JSON.parse(langDataJsonStr)
 
-  const typeKeyArr = (curCountryLangList) && Object.keys(curCountryLangList)
-  if (typeKeyArr?.length>0) {
-    typeKeyArr.forEach(typeKey => {
-      const langKeyArr = (curCountryLangList[typeKey]) && Object.keys(curCountryLangList[typeKey])
-      if (langKeyArr?.length>0) {
-        langKeyArr.forEach(langKey => {
-          curCountryLangData[langKey] = getNameLabel(langList[langKey])
-        })
-      }
-    })
+  const checkTSAvailable = (l) => {
+    let retVal = false
+    if ((langData) && (langData[l])) {
+      Object.keys(langData[l].a).forEach(id => {
+        if (langData[l].a[id].ts) retVal = true
+      })
+    }
+    return retVal
   }
+  const countryLangList = (curCountryLangList) && curCountryLangList?.a
+  const langListInfo = {...countryLangList}
+  activeLangList && activeLangList.forEach(l => {
+    langListInfo[l] = { ts: checkTSAvailable(l) }
+  })
   const langKeyArr = (langList) && Object.keys(langList) || []
   const availableLangOptions = langKeyArr.map(lKey => {
     return {value: lKey,label: getNameLabel(langList[lKey])}              
@@ -108,12 +112,24 @@ export default function SettingsView({onConfirmClick,initialSettingsMode}) {
   if (size==="xs") useCols = 2
   else if (size==="lg") useCols = 4
   else if (size==="xl") useCols = 5
-  const handleLangClick = (l) => setSelectedLang(l)
+
+  const handleLangClick = (l) => {
+    const newList = 
+      activeLangList.includes(l) 
+        ? activeLangList.filter(i => i !== l)
+        : [...activeLangList, l] 
+    console.log(newList)
+    updateActiveLang(newList)
+  }
   const handleConfirmClick = () => {
-    if (!selectedLang) setSelectedLang(defaultLang)
+    if (activeLangList.length<=0) addActiveLang(defaultLang)
     setConfirmedCountry(curCountry)
   }
   const handleCountryChange = (newCountry) => setSelectedCountry(newCountry) 
+  let selLangArr = [{value: "eng", label: "English"}]
+  if (langList) {
+    selLangArr = activeLangList.filter(l => l && l.length>0).map(l => mapOptions(l,langList[l]))
+  }
   return (
     <Box sx={{ tp: 3 }}>
       <CssBaseline />
@@ -167,35 +183,37 @@ export default function SettingsView({onConfirmClick,initialSettingsMode}) {
           /> */}
           <br/>
           <br/>
-          <div>Available Languages</div>
+          <div>Selected Languages</div>
           <br/>
           <Autocomplete
             id="lang-autocomplete"
             disablePortal
+            multiple
             options={availableLangOptions}
             getOptionDisabled={(option) =>option?.value === i18n.language}
             sx={{ 
               width: '100%',
               backgroundColor: "lightgrey"
             }}
-            renderInput={(params) => <TextField {...params} label="Language" />}
-            value={(langList) ? mapOptions(curSelectedLang,langList[curSelectedLang]) : {value: "eng", label: "English"}}
+            renderInput={(params) => <TextField {...params} label="Languages" />}
+            value={selLangArr}
             onChange={(event, newValue) => {
               if (newValue) {
-                handleLangClick(newValue.value)
+                const newList = newValue.map(item => item.value)
+                updateActiveLang(newList)
               }
             }}
           />
           <br/>
-          {curCountryLangList && curCountryLangList?.a && (
+          {langListInfo && (
             <ImageList
               rowHeight={120}
               cols={useCols}
               gap={9}
               sx={{overflowY: 'clip'}}
             >
-              {Object.keys(curCountryLangList?.a).map((lng) => {
-                const langData = langList[lng]
+              {Object.keys(langListInfo).map((lng) => {
+                const langData = langList && langList[lng]
                 let nativeStr = ""
                 let subtitle = undefined
                 if ((lng === "en") || (langData?.en === langData?.n)) {
@@ -213,13 +231,11 @@ export default function SettingsView({onConfirmClick,initialSettingsMode}) {
                 }
                 const shortNativeStr = ((curCountry === "IN") && (nativeStr)) ? nativeStr.substring(0,3) : lng
                 const shortLang = capitalizeFirstLetter(shortNativeStr)
-                // const isSelected = i18n.language === lng
-                const key = lng
-                const isCur = (lng === selectedLang)
-                const curData = curCountryLangList?.a[lng]
-                const bkgdColor = (curData?.ts) ? isCur ? 'lightgreen' :`green` : isCur ? 'lightblue' : `#020054`
+                const isActive = activeLangList.includes(lng) 
+                const curData = langListInfo[lng]
+                const bkgdColor = (curData?.ts) ? isActive ? 'lightgreen' :`green` : isActive ? 'lightblue' : `#020054`
                 return (
-                  <span key={key}>
+                  <span key={lng}>
                     <ImageListItem onClick={() => handleLangClick(lng)}>
                       <Typography 
                         sx={{ 
