@@ -236,7 +236,7 @@ export default function AudioBibleNavigationApp() {
                   <MenuIcon />
                 </IconButton>
                 <Typography variant="h6" noWrap component="div">
-                  Bible Wiki
+                  Bibel Wiki
                 </Typography>
               </Toolbar>
             </SimpleAppBar>

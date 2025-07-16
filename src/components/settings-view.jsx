@@ -136,7 +136,7 @@ export default function SettingsView({onConfirmClick,initialSettingsMode}) {
       {initialSettingsMode && (<SimpleAppBar position="fixed">
         <Toolbar>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            Bible Wiki
+            Bibel Wiki
           </Typography>
           <Button
             variant="contained"

@@ -1003,6 +1003,7 @@ export const audioByID = {
   RUSBSR: ["N2"],
   RUSIBS: ["N2"],
   RUSS76: ["N2","O2"],
+  RUSMPK: ["N1","O1"],
   SABWBT: ["N2"],
   SAGCAR: ["N2"],
   SAJLAI: ["N1"],

@@ -203,6 +203,7 @@ const MediaPlayerProvider = (props) => {
               pos: resData[i]?.timestamp
             }
           })
+          console.log(timestampPoints)
           setImgPosAudio(timestampPoints)
         }
       } else {
