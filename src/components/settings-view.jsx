@@ -92,7 +92,7 @@ export default function SettingsView({onConfirmClick,initialSettingsMode}) {
 
   const checkTSAvailable = (l) => {
     let retVal = false
-    if ((langData) && (langData[l])) {
+    if ((langData) && (langData[l]) && langData[l].a) {
       Object.keys(langData[l].a).forEach(id => {
         if (langData[l].a[id].ts) retVal = true
       })
