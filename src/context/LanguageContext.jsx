@@ -148,6 +148,7 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
   const loadingAudioRef = useRef({}); // Track loading audio URLs
   const audioUrlsRef = useRef({}); // Track cached audio URLs
   const timingFileCacheRef = useRef({}); // Track cached timing files
+  const timingManifestRef = useRef(null); // Track loaded ALL-timings manifest
   const preloadStartedRef = useRef(false);
   const initializationStartedRef = useRef(false);
 
@@ -294,6 +295,30 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
     [probeFileset],
   );
 
+  // Load ALL-timings manifest once and cache it
+  const loadTimingManifest = useCallback(async () => {
+    if (timingManifestRef.current) {
+      return timingManifestRef.current;
+    }
+
+    try {
+      const manifestPath = `/ALL-timings/manifest.json`;
+      const manifestResponse = await fetch(manifestPath);
+
+      if (!manifestResponse.ok) {
+        console.warn("Failed to load ALL-timings manifest.json");
+        return null;
+      }
+
+      const manifest = await manifestResponse.json();
+      timingManifestRef.current = manifest;
+      return manifest;
+    } catch (error) {
+      console.warn("Error loading ALL-timings manifest:", error);
+      return null;
+    }
+  }, []);
+
   // Load bible-data.json for a specific language using manifest
   const loadLanguageData = useCallback(
     async (langCode) => {
@@ -380,16 +405,18 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
                           // It's a full fileset ID - use as is
                           filesetId = textValue;
                         }
-                      } else {
-                        // Fallback to distinctId if no 't' field
-                        filesetId = distinctId;
                       }
 
-                      testamentData.category = category;
-                      testamentData.distinctId = distinctId;
-                      testamentData.filesetId = filesetId;
+                      // Only set text data if we actually found a text fileset
+                      if (filesetId) {
+                        testamentData.category = category;
+                        testamentData.distinctId = distinctId;
+                        testamentData.filesetId = filesetId;
+                      }
                       // basePath is NOT set - no local chapter JSON files exist, text loads from API
-                      break; // Found text data
+                      if (filesetId) {
+                        break; // Found text data
+                      }
                     }
                   } catch (err) {
                     continue;
@@ -901,6 +928,9 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
           if (timingFileCacheRef.current[timingCacheKey]) {
             timingData = timingFileCacheRef.current[timingCacheKey];
           } else {
+            // Load timing manifest to check if timing file exists before fetching
+            const timingManifest = await loadTimingManifest();
+
             // Load and cache the whole timing file
             try {
               const audioCategory = langData.audioCategory;
@@ -914,6 +944,29 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
               }
 
               for (const timingCategory of timingCategoriesToTry) {
+                // Check manifest first to see if this timing file exists
+                if (timingManifest) {
+                  const categoryData =
+                    timingManifest.files?.[testament]?.[timingCategory];
+                  if (!categoryData) {
+                    continue; // Category doesn't exist in manifest
+                  }
+
+                  const distinctIdsForLang = categoryData[langCode];
+                  if (!distinctIdsForLang) {
+                    continue; // Language not available in this category
+                  }
+
+                  // Check if distinctId is in the array
+                  const distinctIdExists = Array.isArray(distinctIdsForLang)
+                    ? distinctIdsForLang.includes(distinctId)
+                    : false;
+
+                  if (!distinctIdExists) {
+                    continue; // This specific distinctId doesn't have timing data
+                  }
+                }
+
                 const timingPath = `/ALL-timings/${testament}/${timingCategory}/${langCode}/${distinctId}/timing.json`;
 
                 try {
