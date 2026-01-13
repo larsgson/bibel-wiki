@@ -86,7 +86,7 @@ In the Netlify dashboard:
 
 Optional variable:
    - **Key**: `DBT_API_BASE_URL`
-   - **Value**: `https://4.dbt.io/api`
+   - **Value**: your-API-URL-here
 
 ### 3. Deploy
 
