@@ -31,7 +31,7 @@ Edit `.env` and add your DBT API key:
 
 ```
 DBT_API_KEY=your_actual_api_key_here
-DBT_API_BASE_URL=https://4.dbt.io/api
+DBT_API_BASE_URL=your-API-URL-here
 ```
 
 

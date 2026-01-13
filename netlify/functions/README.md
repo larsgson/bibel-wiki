@@ -74,7 +74,7 @@ The proxy requires the DBT API key to be set as an environment variable:
    - Value: Your DBT API key
 
 Optional environment variable:
-- `DBT_API_BASE_URL` - DBT API base URL (defaults to `https://4.dbt.io/api`)
+- `DBT_API_BASE_URL` - your-API-URL-here
 
 ### Testing Locally
 

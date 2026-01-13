@@ -61,8 +61,8 @@ exports.handler = async (event) => {
   }
 
   try {
-    // Get base URL from environment or use default
-    const baseUrl = process.env.DBT_API_BASE_URL || "https://4.dbt.io/api";
+    // Get base URL from environment
+    const baseUrl = process.env.DBT_API_BASE_URL;
     let url;
     let response;
 
