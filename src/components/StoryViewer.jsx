@@ -353,45 +353,20 @@ function StoryViewer({ storyData, onBack }) {
           });
         });
 
-        console.log(
-          "[DEBUG] Chapters needed for",
-          forAudioLanguage,
-          ":",
-          Array.from(chaptersNeeded.keys()),
-        );
-
         for (const [audioKey, chapterInfo] of chaptersNeeded.entries()) {
           const { book, chapter, testament, refs } = chapterInfo;
 
           let audioEntry = audioUrls[audioKey];
-          console.log(
-            "[DEBUG] Checking audioKey:",
-            audioKey,
-            "cached:",
-            !!audioEntry,
-          );
 
           if (!audioEntry) {
             try {
-              console.log(
-                "[DEBUG] Loading audio URL for:",
-                book,
-                chapter,
-                testament,
-                forAudioLanguage,
-              );
               audioEntry = await loadAudioUrl(
                 book,
                 chapter,
                 testament,
                 forAudioLanguage,
               );
-              console.log(
-                "[DEBUG] Loaded audio entry:",
-                audioEntry ? "success" : "null",
-              );
             } catch (err) {
-              console.log("[DEBUG] Error loading audio:", err.message);
               // Audio not available for this chapter
             }
           }
@@ -401,14 +376,6 @@ function StoryViewer({ storyData, onBack }) {
               audioEntry.url.lastIndexOf("/") + 1,
             );
             const filename = fullFilename.split("?")[0];
-            console.log(
-              "[DEBUG] Processing audio entry:",
-              audioKey,
-              "hasTimecode:",
-              audioEntry.hasTimecode,
-              "hasTimingData:",
-              !!audioEntry.timingData,
-            );
 
             refs.forEach(({ ref, refIndex, sectionNum, imageUrl, text }) => {
               const parsed = parseReference(ref);
@@ -443,21 +410,6 @@ function StoryViewer({ storyData, onBack }) {
                   refBook,
                   refChapter,
                   verseSpec,
-                );
-                console.log(
-                  "[DEBUG] Timing extraction for",
-                  ref,
-                  ":",
-                  timingEntry
-                    ? `${timingEntry.timestamps?.length} timestamps`
-                    : "null",
-                );
-              } else {
-                console.log(
-                  "[DEBUG] No timecode/timingData for",
-                  ref,
-                  "hasTimecode:",
-                  audioEntry.hasTimecode,
                 );
               }
 
@@ -496,21 +448,8 @@ function StoryViewer({ storyData, onBack }) {
 
         // Only set data if this collection is still the current one
         if (isCollectingPlaylistRef.current === collectionId) {
-          console.log(
-            "[DEBUG] Setting audioPlaylistData:",
-            allPlaylistEntries.length,
-            "entries for",
-            collectionId,
-          );
           setAudioPlaylistData(allPlaylistEntries);
           isCollectingPlaylistRef.current = null;
-        } else {
-          console.log(
-            "[DEBUG] Discarding playlist data - collection superseded. Current:",
-            isCollectingPlaylistRef.current,
-            "This:",
-            collectionId,
-          );
         }
       } catch (err) {
         // Only clear if this collection is still current
@@ -639,12 +578,6 @@ function StoryViewer({ storyData, onBack }) {
         preferredAudioLanguage,
       };
 
-      console.log(
-        "[DEBUG] Story capabilities:",
-        capabilities,
-        "testamentsToCheck:",
-        testamentsToCheck,
-      );
       setStoryCapabilities(capabilities);
     },
     [storyId, selectedLanguages, languageData, getStoryMetadata],
@@ -694,13 +627,6 @@ function StoryViewer({ storyData, onBack }) {
 
   // Collect audio playlist - with deduplication
   useEffect(() => {
-    console.log("[DEBUG] Audio playlist effect:", {
-      hasParsedData: !!parsedData,
-      sectionsLength: parsedData?.sections?.length,
-      hasTimecode: storyCapabilities.hasTimecode,
-      audioLanguage,
-      lastCollectedLang: lastCollectedLangRef.current,
-    });
     if (
       parsedData &&
       parsedData.sections &&
@@ -710,11 +636,9 @@ function StoryViewer({ storyData, onBack }) {
     ) {
       // Skip if we already collected for this language
       if (lastCollectedLangRef.current === audioLanguage) {
-        console.log("[DEBUG] Skipping - already collected for this language");
         return;
       }
 
-      console.log("[DEBUG] Collecting audio playlist for:", audioLanguage);
       // Reset playlist loaded flag when language changes so new playlist will be loaded
       playlistLoadedRef.current = false;
       playlistLoadedCountRef.current = 0;
@@ -734,25 +658,13 @@ function StoryViewer({ storyData, onBack }) {
 
   // Load playlist and auto-play when audio data is ready AND chapters are loaded
   useEffect(() => {
-    console.log("[DEBUG] Load playlist effect:", {
-      isReturningToPlayingStory,
-      suppressAutoplay: suppressAutoplayRef.current,
-      audioPlaylistDataLength: audioPlaylistData.length,
-      hasTimecode: storyCapabilities.hasTimecode,
-      isChaptersLoading,
-      playlistLoaded: playlistLoadedRef.current,
-      playlistLoadedCount: playlistLoadedCountRef.current,
-    });
-
     // Skip if returning to an already-playing story
     if (isReturningToPlayingStory) {
-      console.log("[DEBUG] Skipping load - returning to playing story");
       return;
     }
 
     // Skip loading playlist if autoplay is suppressed (another story was playing when we entered)
     if (suppressAutoplayRef.current) {
-      console.log("[DEBUG] Skipping load - autoplay suppressed");
       return;
     }
 
@@ -767,18 +679,11 @@ function StoryViewer({ storyData, onBack }) {
       !isChaptersLoading &&
       shouldLoad
     ) {
-      console.log(
-        "[DEBUG] Loading playlist with",
-        audioPlaylistData.length,
-        "entries",
-      );
       playlistLoadedRef.current = true;
       playlistLoadedCountRef.current = audioPlaylistData.length;
       // Set the current story ID and data before loading the playlist
       setCurrentStoryId(storyId, storyData);
       loadPlaylist(audioPlaylistData, { mode: "replace", autoPlay: true });
-    } else {
-      console.log("[DEBUG] Not loading playlist - conditions not met");
     }
   }, [
     audioPlaylistData,

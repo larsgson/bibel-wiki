@@ -1045,7 +1045,7 @@ const LanguageProvider = ({
         return;
       }
 
-      const chaptersToLoad = new Set();
+      const chaptersToLoad = new Map(); // Use Map with string keys for proper deduplication
 
       // Parse all references to extract unique chapters
       references.forEach((ref) => {
@@ -1057,15 +1057,23 @@ const LanguageProvider = ({
           // Add for each selected language
           languages.forEach((langCode) => {
             const chapterKey = `${langCode}-${book}.${chapter}`;
-            chaptersToLoad.add({ langCode, book, chapter, testament });
+            if (!chaptersToLoad.has(chapterKey)) {
+              chaptersToLoad.set(chapterKey, {
+                langCode,
+                book,
+                chapter,
+                testament,
+              });
+            }
           });
         }
       });
 
       // Load each chapter if not already cached
-      for (const { langCode, book, chapter, testament } of chaptersToLoad) {
-        const chapterKey = `${langCode}-${book}.${chapter}`;
-
+      for (const [
+        chapterKey,
+        { langCode, book, chapter, testament },
+      ] of chaptersToLoad) {
         // Skip if already cached or currently loading
         if (
           chapterTextRef.current[chapterKey] ||
