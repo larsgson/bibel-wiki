@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { parseReference, getTestament } from "../utils/bibleUtils";
 
 const LanguageContext = React.createContext([{}, () => {}]);
 
@@ -25,7 +26,28 @@ const FRENCH_FILESET_CANDIDATES = {
   ],
 };
 
-const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
+const LanguageProvider = ({
+  children,
+  initialLanguage = "fra",
+  initialSecondaryLanguage = null,
+}) => {
+  // Helper function to compute active languages array (ensures no duplicates)
+  const getActiveLanguages = (primary, secondary) => {
+    const languages = new Set();
+
+    // Always add primary first
+    languages.add(primary);
+
+    // Add secondary if different from primary
+    if (secondary && secondary !== primary) {
+      languages.add(secondary);
+    }
+
+    // Always include English if not already present
+    languages.add("eng");
+
+    return Array.from(languages);
+  };
   // Helper function to parse TOML files
   const parseToml = (text) => {
     const lines = text.split("\n");
@@ -125,11 +147,16 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
   };
 
   const [state, setState] = useState({
-    selectedLanguage: initialLanguage, // Set from prop or default to English
+    selectedLanguage: initialLanguage, // Primary language (for backward compatibility)
+    secondaryLanguage: initialSecondaryLanguage, // Secondary language
+    selectedLanguages: getActiveLanguages(
+      initialLanguage,
+      initialSecondaryLanguage,
+    ), // Array of all active languages
     availableLanguages: [],
     languageData: {}, // Bible data for each language: { langCode: { ot: {...}, nt: {...} } }
     languageNames: {}, // Language display names: { langCode: { english: "...", vernacular: "..." } }
-    chapterText: {}, // Loaded chapter text: { "GEN.1": "chapter content...", ... }
+    chapterText: {}, // Loaded chapter text: { "lang-GEN.1": "chapter content...", ... } - NOW LANGUAGE-SPECIFIC
     audioUrls: {}, // Cached audio URLs: { "lang-testament-BOOK.chapter": "url", ... }
     timingFileCache: {}, // Cached timing files: { "lang-testament": timingData }
     storyMetadata: {}, // Lightweight story metadata cache: { storyId: { testaments, title } } - ~50KB for 1000 stories vs ~10MB if caching parsed sections
@@ -144,6 +171,10 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
   const loadingChaptersRef = useRef({});
   const chapterTextRef = useRef({});
   const selectedLanguageRef = useRef(initialLanguage);
+  const secondaryLanguageRef = useRef(initialSecondaryLanguage);
+  const selectedLanguagesRef = useRef(
+    getActiveLanguages(initialLanguage, initialSecondaryLanguage),
+  );
   const languageDataRef = useRef({});
   const loadingAudioRef = useRef({}); // Track loading audio URLs
   const audioUrlsRef = useRef({}); // Track cached audio URLs
@@ -164,6 +195,12 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
       }
       if (updates.selectedLanguage) {
         selectedLanguageRef.current = updates.selectedLanguage;
+      }
+      if (updates.secondaryLanguage !== undefined) {
+        secondaryLanguageRef.current = updates.secondaryLanguage;
+      }
+      if (updates.selectedLanguages) {
+        selectedLanguagesRef.current = updates.selectedLanguages;
       }
       if (updates.audioUrls) {
         audioUrlsRef.current = newState.audioUrls;
@@ -557,8 +594,16 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
 
   // Load a specific chapter text using DBT API proxy
   const loadChapter = useCallback(
-    async (bookId, chapterNum, testament = "ot") => {
-      const chapterKey = `${bookId}.${chapterNum}`;
+    async (bookId, chapterNum, testament = "ot", language = null) => {
+      // Use provided language or fall back to primary language
+      const langCode = language || selectedLanguageRef.current;
+
+      if (!langCode) {
+        return null;
+      }
+
+      // Language-specific cache key
+      const chapterKey = `${langCode}-${bookId}.${chapterNum}`;
 
       // Check if already loading using ref (check this first!)
       if (loadingChaptersRef.current[chapterKey]) {
@@ -570,19 +615,14 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
         return chapterTextRef.current[chapterKey];
       }
 
-      const selectedLanguage = selectedLanguageRef.current;
       const languageData = languageDataRef.current;
 
-      if (!selectedLanguage) {
-        return null;
-      }
-
       // Load language data if not already loaded
-      if (!languageData[selectedLanguage]) {
-        await loadLanguageData(selectedLanguage);
+      if (!languageData[langCode]) {
+        await loadLanguageData(langCode);
       }
 
-      if (!languageData[selectedLanguage]) {
+      if (!languageData[langCode]) {
         return null;
       }
 
@@ -590,7 +630,7 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
       const testamentToUse = testament;
 
       // Early detection: check if testament data exists
-      const langData = languageData[selectedLanguage][testamentToUse];
+      const langData = languageData[langCode][testamentToUse];
       if (!langData) {
         return null;
       }
@@ -617,13 +657,14 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
         const filesetId = langData.filesetId || langData.distinctId;
 
         if (!filesetId) {
-          throw new Error(
-            `No fileset ID for ${testamentToUse} in ${selectedLanguage}`,
-          );
+          throw new Error(`No fileset ID for ${testamentToUse} in ${langCode}`);
         }
 
         const url = `/.netlify/functions/dbt-proxy?type=text&fileset_id=${filesetId}&book_id=${bookId}&chapter_id=${chapterNum}`;
-        const response = await fetch(url);
+        // Use low priority for background loading to avoid interfering with audio playback
+        const response = await fetch(url, {
+          priority: "low", // Chrome/Edge - deprioritize this request
+        });
 
         if (!response.ok) {
           throw new Error(`API request failed: ${response.status}`);
@@ -639,20 +680,19 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
           }));
         }
 
-        // Update state with loaded chapter
+        // Update state with loaded chapter - immutably
         delete loadingChaptersRef.current[chapterKey];
 
-        setState((prevState) => ({
-          ...prevState,
-          chapterText: {
-            ...prevState.chapterText,
-            [chapterKey]: verseArray,
-          },
-          isLoadingChapter: false,
-        }));
+        const newChapterText = {
+          ...chapterTextRef.current,
+          [chapterKey]: verseArray,
+        };
+        chapterTextRef.current = newChapterText;
 
-        // Update ref immediately
-        chapterTextRef.current[chapterKey] = verseArray;
+        updateState({
+          chapterText: newChapterText,
+          isLoadingChapter: false,
+        });
 
         return verseArray;
       } catch (error) {
@@ -668,13 +708,44 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
     [state, loadLanguageData],
   );
 
-  // Preload Bible references from all markdown files and analyze testament usage per story
+  // Scan markdown files to build story testament metadata
+  // Optimized: fetches in parallel batches and updates state progressively
   const preloadBibleReferences = useCallback(async () => {
     // Prevent multiple preload attempts
     if (preloadStartedRef.current) {
       return;
     }
     preloadStartedRef.current = true;
+
+    const ntBooks = [
+      "MAT",
+      "MRK",
+      "LUK",
+      "JHN",
+      "ACT",
+      "ROM",
+      "1CO",
+      "2CO",
+      "GAL",
+      "EPH",
+      "PHP",
+      "COL",
+      "1TH",
+      "2TH",
+      "1TI",
+      "2TI",
+      "TIT",
+      "PHM",
+      "HEB",
+      "JAS",
+      "1PE",
+      "2PE",
+      "1JN",
+      "2JN",
+      "3JN",
+      "JUD",
+      "REV",
+    ];
 
     try {
       // Get list of all categories from main index
@@ -686,9 +757,8 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
       const indexData = parseToml(indexText);
       const categories = indexData.categories || [];
 
-      // Collect all story paths from all categories
-      const storyPaths = [];
-      for (const categoryDir of categories) {
+      // Collect all story paths from all categories (fetch category indexes in parallel)
+      const categoryPromises = categories.map(async (categoryDir) => {
         try {
           const catResponse = await fetch(
             `/templates/OBS/${categoryDir}/index.toml`,
@@ -697,159 +767,94 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
             const catText = await catResponse.text();
             const catData = parseToml(catText);
             if (catData.stories) {
-              catData.stories.forEach((story) => {
-                storyPaths.push(`${categoryDir}/${story.id}.md`);
-              });
+              return catData.stories.map((story) => ({
+                path: `${categoryDir}/${story.id}.md`,
+                storyId: story.id,
+              }));
             }
           }
         } catch (err) {
-          console.error(`Error loading category ${categoryDir}:`, err);
+          // Ignore errors for individual categories
         }
-      }
+        return [];
+      });
 
-      const allReferences = new Set();
-      const storyTestaments = {}; // Track testament usage per story
+      const storyArrays = await Promise.all(categoryPromises);
+      const allStories = storyArrays.flat();
 
-      const ntBooks = [
-        "MAT",
-        "MRK",
-        "LUK",
-        "JHN",
-        "ACT",
-        "ROM",
-        "1CO",
-        "2CO",
-        "GAL",
-        "EPH",
-        "PHP",
-        "COL",
-        "1TH",
-        "2TH",
-        "1TI",
-        "2TI",
-        "TIT",
-        "PHM",
-        "HEB",
-        "JAS",
-        "1PE",
-        "2PE",
-        "1JN",
-        "2JN",
-        "3JN",
-        "JUD",
-        "REV",
-      ];
-
-      // Scan all markdown files for references and analyze testament usage
-      for (const storyPath of storyPaths) {
-        // Extract story ID from path (e.g., "03-Exodus/09.md" -> "09")
-        const pathMatch = storyPath.match(/\/(\d+)\.md$/);
-        const storyId = pathMatch ? pathMatch[1] : null;
-
-        if (!storyId) continue;
-
+      // Fetch all markdown files in parallel (batch of all at once - they're small)
+      const storyPromises = allStories.map(async ({ path, storyId }) => {
         try {
-          const mdResponse = await fetch(`/templates/OBS/${storyPath}`);
+          const mdResponse = await fetch(`/templates/OBS/${path}`);
           if (mdResponse.ok) {
             const content = await mdResponse.text();
+            const testamentsUsed = { ot: false, nt: false };
 
-            // Initialize testament tracking for this story
-            const testamentsUsed = new Set();
-
-            // Extract all references for this story
+            // Extract all references and determine testaments
             const refMatches = content.matchAll(/<<<REF:\s*([^>]+)>>>/g);
             for (const match of refMatches) {
               const ref = match[1].trim();
-              allReferences.add(ref);
-
-              // Determine testament for this reference
               const bookMatch = ref.match(/^([A-Z0-9]+)\s+/i);
               if (bookMatch) {
                 const book = bookMatch[1].toUpperCase();
-                const testament = ntBooks.includes(book) ? "nt" : "ot";
-                testamentsUsed.add(testament);
+                if (ntBooks.includes(book)) {
+                  testamentsUsed.nt = true;
+                } else {
+                  testamentsUsed.ot = true;
+                }
               }
             }
 
-            // Cache testament info for this story
-            storyTestaments[storyId] = {
-              usesOT: testamentsUsed.has("ot"),
-              usesNT: testamentsUsed.has("nt"),
-            };
-          } else {
-            // Story file doesn't exist - mark as having no testaments (will show as empty)
-            storyTestaments[storyId] = {
-              usesOT: false,
-              usesNT: false,
+            return {
+              storyId,
+              testaments: {
+                usesOT: testamentsUsed.ot,
+                usesNT: testamentsUsed.nt,
+              },
             };
           }
         } catch (err) {
-          // Error fetching story - mark as having no testaments
-          storyTestaments[storyId] = {
-            usesOT: false,
-            usesNT: false,
-          };
+          // Ignore errors for individual stories
         }
-      }
+        return { storyId, testaments: { usesOT: false, usesNT: false } };
+      });
 
-      // Update state with story testament metadata
+      const storyResults = await Promise.all(storyPromises);
+
+      // Build metadata object
       const newStoryMetadata = {};
-      for (const [storyId, testaments] of Object.entries(storyTestaments)) {
+      for (const { storyId, testaments } of storyResults) {
         newStoryMetadata[storyId] = {
           testaments,
-          title: null, // Title can be added later when story is opened
+          title: null,
           cachedAt: Date.now(),
         };
       }
 
-      updateState({
+      // Update state with all story metadata at once
+      setState((prevState) => ({
+        ...prevState,
         storyMetadata: {
-          ...state.storyMetadata,
+          ...prevState.storyMetadata,
           ...newStoryMetadata,
         },
-      });
-
-      // Parse references and extract unique chapters
-      const chaptersToLoad = new Set();
-      for (const ref of allReferences) {
-        const match = ref.match(/^([A-Z0-9]+)\s+(\d+):/i);
-        if (match) {
-          const book = match[1].toUpperCase();
-          const chapter = parseInt(match[2], 10);
-          chaptersToLoad.add(`${book}.${chapter}`);
-        }
-      }
-
-      // Load all chapters in background
-      for (const chapterKey of chaptersToLoad) {
-        const [book, chapter] = chapterKey.split(".");
-        const testament = ntBooks.includes(book) ? "nt" : "ot";
-
-        // Only load if not already cached or loading (use ref for real-time check)
-        if (
-          !chapterTextRef.current[chapterKey] &&
-          !loadingChaptersRef.current[chapterKey]
-        ) {
-          await loadChapter(book, parseInt(chapter, 10), testament);
-          // Small delay between each request
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
-      }
+      }));
     } catch (error) {
-      console.error("Error preloading Bible references:", error);
+      console.error("Error scanning story testament metadata:", error);
       preloadStartedRef.current = false; // Reset on error so it can retry
     }
-  }, [loadChapter, state.storyMetadata]);
+  }, []);
 
   // Load audio URL for a specific chapter (cache only what's requested)
   const loadAudioUrl = useCallback(
-    async (bookId, chapterNum, testament = "ot") => {
-      const { selectedLanguage } = state;
-      if (!selectedLanguage) {
+    async (bookId, chapterNum, testament = "ot", forLanguage = null) => {
+      // Use provided language or fall back to selected language
+      const targetLanguage = forLanguage || state.selectedLanguage;
+      if (!targetLanguage) {
         return null;
       }
 
-      const audioKey = `${selectedLanguage}-${testament}-${bookId}.${chapterNum}`;
+      const audioKey = `${targetLanguage}-${testament}-${bookId}.${chapterNum}`;
 
       // Check if already cached using ref (real-time value)
       if (audioUrlsRef.current[audioKey]) {
@@ -865,11 +870,11 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
       const languageData = languageDataRef.current;
 
       // Load language data if not already loaded
-      if (!languageData[selectedLanguage]) {
-        await loadLanguageData(selectedLanguage);
+      if (!languageData[targetLanguage]) {
+        await loadLanguageData(targetLanguage);
       }
 
-      const langData = languageData[selectedLanguage]?.[testament];
+      const langData = languageData[targetLanguage]?.[testament];
       if (!langData) {
         return null;
       }
@@ -889,7 +894,7 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
 
         if (!audioFilesetId) {
           throw new Error(
-            `No audio fileset ID for ${testament} in ${selectedLanguage}`,
+            `No audio fileset ID for ${testament} in ${targetLanguage}`,
           );
         }
 
@@ -922,7 +927,7 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
         let timingData = null;
 
         if (hasTimecode) {
-          const timingCacheKey = `${selectedLanguage}-${testament}`;
+          const timingCacheKey = `${targetLanguage}-${testament}`;
 
           // Check if timing file is already cached
           if (timingFileCacheRef.current[timingCacheKey]) {
@@ -934,8 +939,8 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
             // Load and cache the whole timing file
             try {
               const audioCategory = langData.audioCategory;
-              const distinctId = langData.distinctId || selectedLanguage;
-              const langCode = selectedLanguage;
+              const distinctId = langData.distinctId || targetLanguage;
+              const langCode = targetLanguage;
 
               // Try timing file with audio category first, then fallback to with-timecode
               const timingCategoriesToTry = [audioCategory];
@@ -1033,43 +1038,149 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
     [state, loadLanguageData],
   );
 
-  // Set selected language and load its data
-  const setSelectedLanguage = useCallback(
-    async (langCode) => {
-      // Clear timing file cache when language changes
-      timingFileCacheRef.current = {};
-      updateState({
-        selectedLanguage: langCode,
-        timingFileCache: {},
-      });
-      // Pre-load language data if not cached
-      if (!state.languageData[langCode]) {
-        await loadLanguageData(langCode);
+  // Load chapters on-demand for a specific story
+  const loadChaptersForStory = useCallback(
+    async (references, languages) => {
+      if (!references || references.length === 0) {
+        return;
       }
 
-      // Log language info using ref (has most up-to-date data)
-      const langData = languageDataRef.current[langCode];
-      if (langData) {
-        const otTextCat = langData.ot?.category || "N/A";
-        const otAudioCat = langData.ot?.audioCategory || "N/A";
-        const ntTextCat = langData.nt?.category || "N/A";
-        const ntAudioCat = langData.nt?.audioCategory || "N/A";
+      const chaptersToLoad = new Set();
 
-        console.log(
-          `Language changed to ${langCode.toUpperCase()} - OT: text(${otTextCat})/audio(${otAudioCat}), NT: text(${ntTextCat})/audio(${ntAudioCat})`,
-        );
+      // Parse all references to extract unique chapters
+      references.forEach((ref) => {
+        const parsed = parseReference(ref);
+        if (parsed) {
+          const { book, chapter } = parsed;
+          const testament = getTestament(book);
 
-        const otIds = langData.ot
-          ? `Text: ${langData.ot.filesetId || "N/A"}, Audio: ${langData.ot.audioFilesetId || "N/A"}`
-          : "Text: N/A, Audio: N/A";
-        const ntIds = langData.nt
-          ? `Text: ${langData.nt.filesetId || "N/A"}, Audio: ${langData.nt.audioFilesetId || "N/A"}`
-          : "Text: N/A, Audio: N/A";
-        console.log(`  OT IDs - ${otIds}`);
-        console.log(`  NT IDs - ${ntIds}`);
+          // Add for each selected language
+          languages.forEach((langCode) => {
+            const chapterKey = `${langCode}-${book}.${chapter}`;
+            chaptersToLoad.add({ langCode, book, chapter, testament });
+          });
+        }
+      });
+
+      // Load each chapter if not already cached
+      for (const { langCode, book, chapter, testament } of chaptersToLoad) {
+        const chapterKey = `${langCode}-${book}.${chapter}`;
+
+        // Skip if already cached or currently loading
+        if (
+          chapterTextRef.current[chapterKey] ||
+          loadingChaptersRef.current[chapterKey]
+        ) {
+          continue;
+        }
+
+        // Load the chapter
+        await loadChapter(book, parseInt(chapter, 10), testament, langCode);
+
+        // Small delay to avoid overwhelming the server
+        await new Promise((resolve) => setTimeout(resolve, 50));
       }
     },
-    [state.languageData, loadLanguageData],
+    [loadChapter],
+  );
+
+  // Clean up cached data for a deselected language
+  const cleanupLanguageData = useCallback((langCode) => {
+    const newChapterText = {};
+    const newAudioUrls = {};
+    const newTimingFileCache = {};
+
+    // Keep all data except for the deselected language
+    Object.keys(chapterTextRef.current).forEach((key) => {
+      if (!key.startsWith(`${langCode}-`)) {
+        newChapterText[key] = chapterTextRef.current[key];
+      }
+    });
+
+    Object.keys(audioUrlsRef.current).forEach((key) => {
+      if (!key.startsWith(`${langCode}-`)) {
+        newAudioUrls[key] = audioUrlsRef.current[key];
+      }
+    });
+
+    Object.keys(timingFileCacheRef.current).forEach((key) => {
+      if (!key.startsWith(`${langCode}-`)) {
+        newTimingFileCache[key] = timingFileCacheRef.current[key];
+      }
+    });
+
+    chapterTextRef.current = newChapterText;
+    audioUrlsRef.current = newAudioUrls;
+    timingFileCacheRef.current = newTimingFileCache;
+
+    updateState({
+      chapterText: newChapterText,
+      audioUrls: newAudioUrls,
+      timingFileCache: newTimingFileCache,
+    });
+
+    console.log(`Cleaned up cached data for ${langCode.toUpperCase()}`);
+  }, []);
+
+  // Set selected languages (primary and secondary) and load their data
+  const setSelectedLanguages = useCallback(
+    async (primaryLangCode, secondaryLangCode = null) => {
+      // Compute old and new active languages
+      const oldActiveLanguages = selectedLanguagesRef.current;
+      const newActiveLanguages = getActiveLanguages(
+        primaryLangCode,
+        secondaryLangCode,
+      );
+
+      // Find languages that were deselected
+      const deselectedLanguages = oldActiveLanguages.filter(
+        (lang) => !newActiveLanguages.includes(lang),
+      );
+
+      // Clean up deselected languages
+      deselectedLanguages.forEach((langCode) => {
+        cleanupLanguageData(langCode);
+      });
+
+      // Clear timing file cache when languages change
+      timingFileCacheRef.current = {};
+      selectedLanguageRef.current = primaryLangCode;
+      secondaryLanguageRef.current = secondaryLangCode;
+      selectedLanguagesRef.current = newActiveLanguages;
+
+      updateState({
+        selectedLanguage: primaryLangCode,
+        secondaryLanguage: secondaryLangCode,
+        selectedLanguages: newActiveLanguages,
+        timingFileCache: {},
+      });
+
+      // Load language data for all active languages
+      for (const langCode of newActiveLanguages) {
+        if (!languageDataRef.current[langCode]) {
+          await loadLanguageData(langCode);
+        }
+      }
+
+      // Log language info
+      console.log(
+        `Languages updated: ${newActiveLanguages.join(", ").toUpperCase()}`,
+      );
+      if (deselectedLanguages.length > 0) {
+        console.log(
+          `Cleaned up: ${deselectedLanguages.join(", ").toUpperCase()}`,
+        );
+      }
+    },
+    [loadLanguageData, cleanupLanguageData],
+  );
+
+  // Set selected language and load its data (backward compatibility)
+  const setSelectedLanguage = useCallback(
+    async (langCode) => {
+      await setSelectedLanguages(langCode, secondaryLanguageRef.current);
+    },
+    [setSelectedLanguages],
   );
 
   // Get available books for selected language
@@ -1120,34 +1231,33 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
     const init = async () => {
       try {
         await loadSummary();
-        // Load language data for selected language
-        await loadLanguageData(state.selectedLanguage);
-        // Preload Bible chapters from markdown files
-        await preloadBibleReferences();
+
+        // Load language data for ALL active languages
+        const activeLanguages = selectedLanguagesRef.current;
+        for (const langCode of activeLanguages) {
+          await loadLanguageData(langCode);
+        }
 
         // Log initial language info after data is loaded
-        const langCode = state.selectedLanguage;
-        const langData = languageDataRef.current[langCode];
-        if (langData) {
-          const otTextCat = langData.ot?.category || "N/A";
-          const otAudioCat = langData.ot?.audioCategory || "N/A";
-          const ntTextCat = langData.nt?.category || "N/A";
-          const ntAudioCat = langData.nt?.audioCategory || "N/A";
+        console.log(
+          `Initialized with languages: ${activeLanguages.join(", ").toUpperCase()}`,
+        );
 
-          console.log(
-            `Initial language ${langCode.toUpperCase()} - OT: text(${otTextCat})/audio(${otAudioCat}), NT: text(${ntTextCat})/audio(${ntAudioCat})`,
-          );
+        for (const langCode of activeLanguages) {
+          const langData = languageDataRef.current[langCode];
+          if (langData) {
+            const otTextCat = langData.ot?.category || "N/A";
+            const otAudioCat = langData.ot?.audioCategory || "N/A";
+            const ntTextCat = langData.nt?.category || "N/A";
+            const ntAudioCat = langData.nt?.audioCategory || "N/A";
 
-          const otIds = langData.ot
-            ? `Text: ${langData.ot.filesetId || "N/A"}, Audio: ${langData.ot.audioFilesetId || "N/A"}`
-            : "Text: N/A, Audio: N/A";
-          const ntIds = langData.nt
-            ? `Text: ${langData.nt.filesetId || "N/A"}, Audio: ${langData.nt.audioFilesetId || "N/A"}`
-            : "Text: N/A, Audio: N/A";
-          console.log(`  OT IDs - ${otIds}`);
-          console.log(`  NT IDs - ${ntIds}`);
+            console.log(
+              `  ${langCode.toUpperCase()} - OT: text(${otTextCat})/audio(${otAudioCat}), NT: text(${ntTextCat})/audio(${ntAudioCat})`,
+            );
+          }
         }
       } catch (error) {
+        console.error("Initialization error:", error);
         // Initialization failed
         initializationStartedRef.current = false; // Reset on error
       }
@@ -1157,31 +1267,59 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
 
   // Sync external language prop changes with state
   useEffect(() => {
-    if (initialLanguage && initialLanguage !== state.selectedLanguage) {
-      // Clear caches when language changes
-      chapterTextRef.current = {};
+    const needsUpdate =
+      initialLanguage !== state.selectedLanguage ||
+      initialSecondaryLanguage !== state.secondaryLanguage;
+
+    if (needsUpdate) {
+      // Recompute active languages
+      const newActiveLanguages = getActiveLanguages(
+        initialLanguage,
+        initialSecondaryLanguage,
+      );
+
+      // Update refs
+      selectedLanguageRef.current = initialLanguage;
+      secondaryLanguageRef.current = initialSecondaryLanguage;
+      selectedLanguagesRef.current = newActiveLanguages;
+
+      // Clear caches when languages change (immutably)
+      const newChapterText = {};
+      const newAudioUrls = {};
+      const newTimingFileCache = {};
+      chapterTextRef.current = newChapterText;
+      audioUrlsRef.current = newAudioUrls;
       loadingChaptersRef.current = {};
       loadingAudioRef.current = {};
-      timingFileCacheRef.current = {};
+      timingFileCacheRef.current = newTimingFileCache;
       preloadStartedRef.current = false; // Reset preload flag to allow reloading
-      selectedLanguageRef.current = initialLanguage; // Update ref immediately
 
-      // Load language data if not already loaded
-      if (!languageDataRef.current[initialLanguage]) {
-        loadLanguageData(initialLanguage).then(() => {
-          // Update selectedLanguage AFTER data is loaded
-          updateState({
-            selectedLanguage: initialLanguage,
-            languageData: { ...languageDataRef.current },
-            chapterText: {},
-            audioUrls: {},
-            timingFileCache: {},
-          });
-          // Reload Bible references for new language
-          preloadBibleReferences();
+      // Load language data for ALL active languages
+      const loadPromises = newActiveLanguages.map((langCode) => {
+        if (!languageDataRef.current[langCode]) {
+          return loadLanguageData(langCode);
+        }
+        return Promise.resolve();
+      });
 
-          // Log language info after loading
-          const langData = languageDataRef.current[initialLanguage];
+      Promise.all(loadPromises).then(() => {
+        // Update state AFTER all languages are loaded
+        updateState({
+          selectedLanguage: initialLanguage,
+          secondaryLanguage: initialSecondaryLanguage,
+          selectedLanguages: newActiveLanguages,
+          languageData: { ...languageDataRef.current },
+          chapterText: newChapterText,
+          audioUrls: newAudioUrls,
+          timingFileCache: newTimingFileCache,
+        });
+
+        // Log language info with details
+        console.log(
+          `Languages changed to: ${newActiveLanguages.join(", ").toUpperCase()}`,
+        );
+        for (const langCode of newActiveLanguages) {
+          const langData = languageDataRef.current[langCode];
           if (langData) {
             const otTextCat = langData.ot?.category || "N/A";
             const otAudioCat = langData.ot?.audioCategory || "N/A";
@@ -1189,55 +1327,22 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
             const ntAudioCat = langData.nt?.audioCategory || "N/A";
 
             console.log(
-              `Language changed to ${initialLanguage.toUpperCase()} - OT: text(${otTextCat})/audio(${otAudioCat}), NT: text(${ntTextCat})/audio(${ntAudioCat})`,
+              `  ${langCode.toUpperCase()} - OT: text(${otTextCat})/audio(${otAudioCat}), NT: text(${ntTextCat})/audio(${ntAudioCat})`,
             );
-
-            const otIds = langData.ot
-              ? `Text: ${langData.ot.filesetId || "N/A"}, Audio: ${langData.ot.audioFilesetId || "N/A"}`
-              : "Text: N/A, Audio: N/A";
-            const ntIds = langData.nt
-              ? `Text: ${langData.nt.filesetId || "N/A"}, Audio: ${langData.nt.audioFilesetId || "N/A"}`
-              : "Text: N/A, Audio: N/A";
-            console.log(`  OT IDs - ${otIds}`);
-            console.log(`  NT IDs - ${ntIds}`);
+          } else {
+            console.log(
+              `  ${langCode.toUpperCase()} - No language data loaded`,
+            );
           }
-        });
-      } else {
-        // Language data already cached, update state to trigger recalculation
-        updateState({
-          selectedLanguage: initialLanguage,
-          languageData: { ...languageDataRef.current },
-          chapterText: {},
-          audioUrls: {},
-          timingFileCache: {},
-        });
-        // Reload Bible references for new language
-        preloadBibleReferences();
-
-        // Log language info from cache
-        const langData = languageDataRef.current[initialLanguage];
-        if (langData) {
-          const otTextCat = langData.ot?.category || "N/A";
-          const otAudioCat = langData.ot?.audioCategory || "N/A";
-          const ntTextCat = langData.nt?.category || "N/A";
-          const ntAudioCat = langData.nt?.audioCategory || "N/A";
-
-          console.log(
-            `Language changed to ${initialLanguage.toUpperCase()} - OT: text(${otTextCat})/audio(${otAudioCat}), NT: text(${ntTextCat})/audio(${ntAudioCat})`,
-          );
-
-          const otIds = langData.ot
-            ? `Text: ${langData.ot.filesetId || "N/A"}, Audio: ${langData.ot.audioFilesetId || "N/A"}`
-            : "Text: N/A, Audio: N/A";
-          const ntIds = langData.nt
-            ? `Text: ${langData.nt.filesetId || "N/A"}, Audio: ${langData.nt.audioFilesetId || "N/A"}`
-            : "Text: N/A, Audio: N/A";
-          console.log(`  OT IDs - ${otIds}`);
-          console.log(`  NT IDs - ${ntIds}`);
         }
-      }
+      });
     }
-  }, [initialLanguage]);
+  }, [initialLanguage, initialSecondaryLanguage, loadLanguageData]);
+
+  // Helper to get current chapter text from ref (for immediate access after loading)
+  const getChapterTextSnapshot = useCallback(() => {
+    return chapterTextRef.current;
+  }, []);
 
   const value = {
     ...state,
@@ -1246,11 +1351,15 @@ const LanguageProvider = ({ children, initialLanguage = "fra" }) => {
     loadChapter,
     loadAudioUrl,
     setSelectedLanguage,
+    setSelectedLanguages,
+    cleanupLanguageData,
+    loadChaptersForStory,
     getAvailableBooks,
     probeFileset,
     probeFilesets,
-    preloadBibleReferences,
     getStoryMetadata,
+    getChapterTextSnapshot,
+    preloadBibleReferences,
   };
 
   return (

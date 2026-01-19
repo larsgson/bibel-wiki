@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from "react";
 import useMediaPlayer from "../hooks/useMediaPlayer";
 import useTranslation from "../hooks/useTranslation";
+import useLanguage from "../hooks/useLanguage";
+import LanguageSwitcher from "./LanguageSwitcher";
 import "./AudioPlayer.css";
 
 const AudioPlayer = () => {
   const { t } = useTranslation();
+  const { selectedLanguages, languageData } = useLanguage();
   const {
     currentPlaylist,
     isPlaying,
@@ -20,7 +23,28 @@ const AudioPlayer = () => {
     getCurrentSegment,
     getCurrentVerse,
     getSegmentMap,
+    audioLanguage,
+    setAudioLanguage,
   } = useMediaPlayer();
+
+  // Get languages that have timecode audio available
+  const languagesWithAudio = selectedLanguages.filter((langCode) => {
+    const langData = languageData[langCode];
+    if (!langData) return false;
+
+    const hasOtTimecode =
+      langData.ot?.audioFilesetId &&
+      ["with-timecode", "audio-with-timecode"].includes(
+        langData.ot?.audioCategory,
+      );
+    const hasNtTimecode =
+      langData.nt?.audioFilesetId &&
+      ["with-timecode", "audio-with-timecode"].includes(
+        langData.nt?.audioCategory,
+      );
+
+    return hasOtTimecode || hasNtTimecode;
+  });
 
   const [isDragging, setIsDragging] = useState(false);
   const [localTime, setLocalTime] = useState(0);
@@ -38,7 +62,17 @@ const AudioPlayer = () => {
   const currentSegment = getCurrentSegment();
   const currentReference =
     currentSegment?.reference || t("audioPlayer.defaultReference");
-  const currentVerse = getCurrentVerse();
+  const currentVerseData = getCurrentVerse();
+  const currentVerse = currentVerseData
+    ? `${currentVerseData.book} ${currentVerseData.chapter}:${currentVerseData.verse}`
+    : null;
+
+  // Calculate current section and total sections for display
+  const currentSectionNum = currentSegment?.sectionNum || 1;
+  const totalSections = currentPlaylist.reduce(
+    (max, entry) => Math.max(max, entry.sectionNum || 0),
+    0,
+  );
 
   const handlePlayPause = () => {
     if (isPlaying) {
@@ -78,16 +112,25 @@ const AudioPlayer = () => {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Create marks for segment boundaries using virtual timeline
+  // Create marks for section boundaries using virtual timeline
+  // Only show marks where sectionNum changes (not for every reference within a section)
   const segmentMap = getSegmentMap();
   const segmentMarks = segmentMap
     .map((segment, index) => {
       // Each segment should have virtualStart from the enhanced segment map
       if (segment.virtualStart !== undefined && totalDuration > 0) {
-        return {
-          position: (segment.virtualStart / totalDuration) * 100,
-          index,
-        };
+        // Only show mark at start of a new section (first reference of the section)
+        const prevSegment = index > 0 ? segmentMap[index - 1] : null;
+        const isNewSection =
+          !prevSegment || prevSegment.sectionNum !== segment.sectionNum;
+
+        if (isNewSection) {
+          return {
+            position: (segment.virtualStart / totalDuration) * 100,
+            index,
+            sectionNum: segment.sectionNum,
+          };
+        }
       }
       return null;
     })
@@ -98,25 +141,52 @@ const AudioPlayer = () => {
       <div className="audio-player-header">
         <div className="audio-player-info">
           <div className="audio-player-title">
-            {currentSegmentIndex + 1}/{currentPlaylist.length} -{" "}
+            {currentSectionNum}/{totalSections} -{" "}
             {currentVerse || t("audioPlayer.loadingVerse")}
           </div>
         </div>
-        <button
-          className="audio-player-minimize-btn"
-          onClick={handleMinimize}
-          aria-label={t("audioPlayer.minimize")}
-        >
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-            style={{ display: "block" }}
+        <div className="audio-player-header-right">
+          {/* Show language switcher if multiple languages have suitable timecode audio */}
+          {languagesWithAudio.length > 1 && audioLanguage && (
+            <LanguageSwitcher
+              availableLanguages={languagesWithAudio}
+              currentLanguage={audioLanguage}
+              onLanguageChange={setAudioLanguage}
+            />
+          )}
+          {/* Show fallback badge when primary language doesn't have timecode audio (forced to use fallback) */}
+          {audioLanguage &&
+            selectedLanguages.length > 1 &&
+            !languagesWithAudio.includes(selectedLanguages[0]) && (
+              <div className="audio-player-fallback-badge">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="#555"
+                  style={{ display: "block" }}
+                >
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                <div className="audio-player-fallback-slash" />
+              </div>
+            )}
+          <button
+            className="audio-player-minimize-btn"
+            onClick={handleMinimize}
+            aria-label={t("audioPlayer.minimize")}
           >
-            <path d="M7 10l5 5 5-5z" fill="#fff" />
-          </svg>
-        </button>
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{ display: "block" }}
+            >
+              <path d="M7 10l5 5 5-5z" fill="#fff" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div className="audio-player-controls">

@@ -1,50 +1,24 @@
-import React, { useState, useEffect } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import "./StoryViewer.css";
 import BibleText from "./BibleText";
 import { parseMarkdownIntoSections } from "../utils/markdownParser";
-import { parseReference, getTestament } from "../utils/bibleUtils";
+import {
+  parseReference,
+  getTestament,
+  splitReference,
+} from "../utils/bibleUtils";
 import useLanguage from "../hooks/useLanguage";
 import useMediaPlayer from "../hooks/useMediaPlayer";
 import useTranslation from "../hooks/useTranslation";
 import AudioPlayer from "./AudioPlayer";
-import MinimizedAudioPlayer from "./MinimizedAudioPlayer";
 import FullPlayingPane from "./FullPlayingPane";
-
-/**
- * Split a complex reference into individual reference parts
- */
-const splitReference = (reference) => {
-  if (!reference) return [];
-
-  const parts = reference.split(",").map((p) => p.trim());
-  const results = [];
-
-  let currentBook = null;
-  let currentChapter = null;
-
-  parts.forEach((part) => {
-    const bookMatch = part.match(/^([A-Z0-9]+)\s*(\d+):(.+)$/i);
-
-    if (bookMatch) {
-      currentBook = bookMatch[1].toUpperCase();
-      currentChapter = bookMatch[2];
-      const verses = bookMatch[3];
-      results.push(`${currentBook} ${currentChapter}:${verses}`);
-    } else {
-      const chapterMatch = part.match(/^(\d+):(.+)$/);
-
-      if (chapterMatch) {
-        currentChapter = chapterMatch[1];
-        const verses = chapterMatch[2];
-        results.push(`${currentBook} ${currentChapter}:${verses}`);
-      } else {
-        results.push(`${currentBook} ${currentChapter}:${part}`);
-      }
-    }
-  });
-
-  return results;
-};
+import StorySection from "./MultiLanguage/StorySection";
 
 /**
  * Extract raw timing data for a specific reference
@@ -82,11 +56,25 @@ function StoryViewer({ storyData, onBack }) {
     audioUrls,
     loadAudioUrl,
     selectedLanguage,
+    secondaryLanguage,
+    selectedLanguages,
     languageData,
     getStoryMetadata,
+    loadChaptersForStory,
+    getChapterTextSnapshot,
   } = useLanguage();
-  const { loadPlaylist, isMinimized, currentSegmentIndex, currentPlaylist } =
-    useMediaPlayer();
+  const {
+    loadPlaylist,
+    isMinimized,
+    setMinimized,
+    currentSegmentIndex,
+    currentPlaylist,
+    playSegment,
+    audioLanguage,
+    setAudioLanguage,
+    currentStoryId,
+    setCurrentStoryId,
+  } = useMediaPlayer();
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [parsedData, setParsedData] = useState(null);
@@ -98,250 +86,571 @@ function StoryViewer({ storyData, onBack }) {
     usesOT: false,
     usesNT: false,
   });
+  const [audioAvailability, setAudioAvailability] = useState({});
+  const [contentByLanguage, setContentByLanguage] = useState({});
+  const [isChaptersLoading, setIsChaptersLoading] = useState(true);
+  const [requiredChapters, setRequiredChapters] = useState(new Set());
+
+  // Refs to prevent duplicate operations
+  const playlistLoadedRef = useRef(false);
+  const playlistLoadedCountRef = useRef(0);
+  const lastAnalyzedLangRef = useRef(null);
+  const lastCollectedLangRef = useRef(null);
+  const lastParsedSectionsLengthRef = useRef(0);
+  const isCollectingPlaylistRef = useRef(false);
+  const suppressAutoplayRef = useRef(false); // Suppress autoplay until user clicks a section
+
+  // Memoized story ID for dependency tracking
+  const storyId = useMemo(() => storyData?.id || storyData?.path, [storyData]);
+
+  // Check if we're returning to an already-playing story
+  const isReturningToPlayingStory = useMemo(() => {
+    return (
+      currentStoryId === storyId &&
+      currentPlaylist &&
+      currentPlaylist.length > 0
+    );
+  }, [currentStoryId, storyId, currentPlaylist]);
 
   useEffect(() => {
+    // If returning to the same story that's already playing, still load content but keep playlist
+    if (isReturningToPlayingStory) {
+      suppressAutoplayRef.current = false;
+      // Mark playlist as already loaded to prevent re-loading
+      playlistLoadedRef.current = true;
+      loadStory();
+      return;
+    }
+
+    // Check if another story is playing when we enter this story
+    const anotherStoryPlaying =
+      currentStoryId !== null &&
+      currentStoryId !== storyId &&
+      currentPlaylist &&
+      currentPlaylist.length > 0;
+
+    if (anotherStoryPlaying) {
+      suppressAutoplayRef.current = true;
+    } else {
+      suppressAutoplayRef.current = false;
+    }
+
+    playlistLoadedRef.current = false;
+    playlistLoadedCountRef.current = 0;
+    lastAnalyzedLangRef.current = null;
+    lastCollectedLangRef.current = null;
+    lastParsedSectionsLengthRef.current = 0;
     loadStory();
   }, [storyData]);
 
-  // Reload story when language changes
+  // Reload story when languages change
   useEffect(() => {
-    if (storyData) {
-      // Clear playlist when language changes
+    if (
+      storyData &&
+      !isReturningToPlayingStory &&
+      !suppressAutoplayRef.current
+    ) {
+      playlistLoadedRef.current = false;
+      playlistLoadedCountRef.current = 0;
+      lastAnalyzedLangRef.current = null;
+      lastCollectedLangRef.current = null;
       loadPlaylist([], { mode: "replace", autoPlay: false });
-      // Reload story content
       loadStory();
     }
-  }, [selectedLanguage]);
+  }, [selectedLanguage, secondaryLanguage]);
 
-  // Reparse when chapter count changes (not on every chapterText update)
+  // Track when all required chapters are loaded
+  useEffect(() => {
+    if (requiredChapters.size === 0) {
+      return;
+    }
+
+    const loadedChapters = new Set(Object.keys(chapterText));
+    const allLoaded = [...requiredChapters].every((ch) =>
+      loadedChapters.has(ch),
+    );
+
+    if (allLoaded) {
+      setIsChaptersLoading(false);
+    }
+  }, [chapterText, requiredChapters]);
+
+  // Reparse when chapter count changes for multi-language
   useEffect(() => {
     const newCount = Object.keys(chapterText).length;
-    if (content && newCount > 0 && newCount !== chapterCount) {
-      const parsed = parseMarkdownIntoSections(content, chapterText);
-      setParsedData(parsed);
+
+    if (newCount > 0 && newCount !== chapterCount && content) {
+      const parsedByLanguage = {};
+
+      selectedLanguages.forEach((langCode) => {
+        const langChapterText = {};
+        Object.keys(chapterText).forEach((key) => {
+          if (key.startsWith(`${langCode}-`)) {
+            const unprefixedKey = key.replace(/^[a-z]+-/, "");
+            langChapterText[unprefixedKey] = chapterText[key];
+          }
+        });
+
+        const parsed = parseMarkdownIntoSections(content, langChapterText);
+        parsedByLanguage[langCode] = parsed;
+
+        if (langCode === selectedLanguage) {
+          setParsedData(parsed);
+        }
+      });
+
+      setContentByLanguage({ ...parsedByLanguage });
       setChapterCount(newCount);
     }
-  }, [chapterText]);
+  }, [chapterText, content, selectedLanguage, selectedLanguages]);
 
   const loadStory = async () => {
     setLoading(true);
+    setIsChaptersLoading(true);
+
     try {
-      // Always load and parse (browser caches markdown, parsing is fast)
+      // STEP 1: Fetch markdown ONCE (it's the same file for all languages)
       const response = await fetch(`/templates/OBS/${storyData.path}`);
 
       if (!response.ok) {
         throw new Error(`Story not found: ${response.status}`);
       }
 
-      const text = await response.text();
+      const markdown = await response.text();
 
-      // Check if we got HTML instead of markdown (happens with 404 pages)
       if (
-        text.trim().startsWith("<!doctype") ||
-        text.trim().startsWith("<!DOCTYPE")
+        markdown.trim().startsWith("<!doctype") ||
+        markdown.trim().startsWith("<!DOCTYPE")
       ) {
-        throw new Error("Story file not found or returned HTML");
+        throw new Error("Story file not found");
       }
 
-      setContent(text);
+      setContent(markdown);
 
-      // Parse content into sections, passing chapter text cache for Bible text replacement
-      const parsed = parseMarkdownIntoSections(text, chapterText);
-      setParsedData(parsed);
-      setChapterCount(Object.keys(chapterText).length);
+      // STEP 2: First parse - extract structure and references (no chapter text yet)
+      const initialParsed = parseMarkdownIntoSections(markdown, {});
+      setParsedData(initialParsed);
 
+      // Extract all references from the parsed sections
+      const allReferences = [];
+      initialParsed.sections.forEach((section) => {
+        if (section.reference) {
+          splitReference(section.reference).forEach((ref) => {
+            if (!allReferences.includes(ref)) {
+              allReferences.push(ref);
+            }
+          });
+        }
+      });
+
+      // Build required chapters set for tracking
+      const allRequiredChapters = new Set();
+      allReferences.forEach((ref) => {
+        const refParsed = parseReference(ref);
+        if (refParsed) {
+          const { book, chapter } = refParsed;
+          selectedLanguages.forEach((langCode) => {
+            allRequiredChapters.add(`${langCode}-${book}.${chapter}`);
+          });
+        }
+      });
+      setRequiredChapters(allRequiredChapters);
+
+      // Check audio availability for each language
+      const availability = {};
+      const storyMeta = getStoryMetadata(storyData.id);
+
+      for (const langCode of selectedLanguages) {
+        const langData = languageData[langCode];
+        availability[langCode] = !!(
+          langData?.ot?.audioFilesetId || langData?.nt?.audioFilesetId
+        );
+      }
+      setAudioAvailability(availability);
+
+      // STEP 3: Load all chapters for all languages
+      await loadChaptersForStory(allReferences, selectedLanguages);
+      const freshChapterText = getChapterTextSnapshot();
+
+      // STEP 4: Second parse - now with chapter text, for each language
+      const parsedByLanguage = {};
+
+      for (const langCode of selectedLanguages) {
+        // Build language-specific chapter text
+        const langChapterText = {};
+        Object.keys(freshChapterText).forEach((key) => {
+          if (key.startsWith(`${langCode}-`)) {
+            langChapterText[key.replace(/^[a-z]+-/, "")] =
+              freshChapterText[key];
+          }
+        });
+
+        // Parse with chapter text for this language
+        const parsed = parseMarkdownIntoSections(markdown, langChapterText);
+        parsedByLanguage[langCode] = parsed;
+
+        if (langCode === selectedLanguage) {
+          setParsedData(parsed);
+        }
+      }
+
+      setContentByLanguage(parsedByLanguage);
+      setChapterCount(Object.keys(freshChapterText).length);
+      setIsChaptersLoading(false);
       setError(null);
     } catch (err) {
       setContent("");
       setParsedData(null);
+      setContentByLanguage({});
+      setAudioAvailability({});
       setError(err.message);
     }
     setLoading(false);
   };
 
-  const collectAudioPlaylistData = async (sections) => {
-    const allPlaylistEntries = [];
-    const chaptersNeeded = new Map();
+  // Memoized function to collect audio playlist data
+  const collectAudioPlaylistData = useCallback(
+    async (sections, forAudioLanguage) => {
+      // Track which language this collection is for
+      const collectionId = forAudioLanguage;
+      isCollectingPlaylistRef.current = collectionId;
 
-    // First pass: collect all references with section tracking
-    sections.forEach((section, sectionIndex) => {
-      if (!section.reference) return;
+      try {
+        const allPlaylistEntries = [];
+        const chaptersNeeded = new Map();
 
-      const splitRefs = splitReference(section.reference);
+        sections.forEach((section, sectionIndex) => {
+          if (!section.reference) return;
 
-      splitRefs.forEach((ref) => {
-        const parsed = parseReference(ref);
-        if (parsed) {
-          const { book, chapter } = parsed;
-          const testament = getTestament(book);
-          const chapterKey = `${book}.${chapter}`;
-          const audioKey = `${selectedLanguage}-${testament}-${chapterKey}`;
+          const splitRefs = splitReference(section.reference);
 
-          if (!chaptersNeeded.has(audioKey)) {
-            chaptersNeeded.set(audioKey, {
-              book,
-              chapter,
-              testament,
-              audioKey,
-              refs: [],
-            });
-          }
+          splitRefs.forEach((ref, refIndex) => {
+            const parsed = parseReference(ref);
+            if (parsed) {
+              const { book, chapter } = parsed;
+              const testament = getTestament(book);
+              const chapterKey = `${book}.${chapter}`;
+              const audioKey = `${forAudioLanguage}-${testament}-${chapterKey}`;
 
-          chaptersNeeded.get(audioKey).refs.push({
-            ref,
-            sectionNum: sectionIndex + 1,
-            imageUrl: section.imageUrl,
-            text: section.text,
-          });
-        }
-      });
-    });
+              if (!chaptersNeeded.has(audioKey)) {
+                chaptersNeeded.set(audioKey, {
+                  book,
+                  chapter,
+                  testament,
+                  audioKey,
+                  refs: [],
+                });
+              }
 
-    // Second pass: load audio for all needed chapters
-    for (const [audioKey, chapterInfo] of chaptersNeeded.entries()) {
-      const { book, chapter, testament, refs } = chapterInfo;
-
-      // Check if already cached
-      let audioEntry = audioUrls[audioKey];
-
-      // If not cached, try to load
-      if (!audioEntry) {
-        try {
-          audioEntry = await loadAudioUrl(book, chapter, testament);
-        } catch (err) {
-          // Audio not available for this chapter
-        }
-      }
-
-      if (audioEntry && audioEntry.url) {
-        const fullFilename = audioEntry.url.substring(
-          audioEntry.url.lastIndexOf("/") + 1,
-        );
-        const filename = fullFilename.split("?")[0];
-
-        // Process each reference for this chapter
-        refs.forEach(({ ref, sectionNum, imageUrl, text }) => {
-          const parsed = parseReference(ref);
-          if (!parsed) return;
-
-          const {
-            book: refBook,
-            chapter: refChapter,
-            verseStart,
-            verseEnd,
-            verses,
-          } = parsed;
-
-          let verseSpec;
-          if (verses && Array.isArray(verses)) {
-            verseSpec = verses.join(",");
-          } else if (verseStart === verseEnd) {
-            verseSpec = String(verseStart);
-          } else {
-            verseSpec = `${verseStart}-${verseEnd}`;
-          }
-
-          // Extract timing data for this specific reference
-          let timingEntry = null;
-          if (audioEntry.hasTimecode && audioEntry.timingData) {
-            const audioFilesetId =
-              audioEntry.audioFilesetId ||
-              Object.keys(audioEntry.timingData)[0];
-
-            timingEntry = extractRawTimingData(
-              audioEntry.timingData,
-              audioFilesetId,
-              refBook,
-              refChapter,
-              verseSpec,
-            );
-          }
-
-          allPlaylistEntries.push({
-            sectionNum,
-            reference: ref,
-            audioFile: filename,
-            audioUrl: audioEntry.url,
-            timingData: timingEntry,
-            book: refBook,
-            chapter: refChapter,
-            testament,
-            imageUrl,
-            text,
+              chaptersNeeded.get(audioKey).refs.push({
+                ref,
+                refIndex, // Track order within section for sorting
+                sectionNum: sectionIndex + 1,
+                imageUrl: section.imageUrl,
+                text: section.text,
+              });
+            }
           });
         });
+
+        console.log(
+          "[DEBUG] Chapters needed for",
+          forAudioLanguage,
+          ":",
+          Array.from(chaptersNeeded.keys()),
+        );
+
+        for (const [audioKey, chapterInfo] of chaptersNeeded.entries()) {
+          const { book, chapter, testament, refs } = chapterInfo;
+
+          let audioEntry = audioUrls[audioKey];
+          console.log(
+            "[DEBUG] Checking audioKey:",
+            audioKey,
+            "cached:",
+            !!audioEntry,
+          );
+
+          if (!audioEntry) {
+            try {
+              console.log(
+                "[DEBUG] Loading audio URL for:",
+                book,
+                chapter,
+                testament,
+                forAudioLanguage,
+              );
+              audioEntry = await loadAudioUrl(
+                book,
+                chapter,
+                testament,
+                forAudioLanguage,
+              );
+              console.log(
+                "[DEBUG] Loaded audio entry:",
+                audioEntry ? "success" : "null",
+              );
+            } catch (err) {
+              console.log("[DEBUG] Error loading audio:", err.message);
+              // Audio not available for this chapter
+            }
+          }
+
+          if (audioEntry && audioEntry.url) {
+            const fullFilename = audioEntry.url.substring(
+              audioEntry.url.lastIndexOf("/") + 1,
+            );
+            const filename = fullFilename.split("?")[0];
+            console.log(
+              "[DEBUG] Processing audio entry:",
+              audioKey,
+              "hasTimecode:",
+              audioEntry.hasTimecode,
+              "hasTimingData:",
+              !!audioEntry.timingData,
+            );
+
+            refs.forEach(({ ref, refIndex, sectionNum, imageUrl, text }) => {
+              const parsed = parseReference(ref);
+              if (!parsed) return;
+
+              const {
+                book: refBook,
+                chapter: refChapter,
+                verseStart,
+                verseEnd,
+                verses,
+              } = parsed;
+
+              let verseSpec;
+              if (verses && Array.isArray(verses)) {
+                verseSpec = verses.join(",");
+              } else if (verseStart === verseEnd) {
+                verseSpec = String(verseStart);
+              } else {
+                verseSpec = `${verseStart}-${verseEnd}`;
+              }
+
+              let timingEntry = null;
+              if (audioEntry.hasTimecode && audioEntry.timingData) {
+                const audioFilesetId =
+                  audioEntry.audioFilesetId ||
+                  Object.keys(audioEntry.timingData)[0];
+
+                timingEntry = extractRawTimingData(
+                  audioEntry.timingData,
+                  audioFilesetId,
+                  refBook,
+                  refChapter,
+                  verseSpec,
+                );
+                console.log(
+                  "[DEBUG] Timing extraction for",
+                  ref,
+                  ":",
+                  timingEntry
+                    ? `${timingEntry.timestamps?.length} timestamps`
+                    : "null",
+                );
+              } else {
+                console.log(
+                  "[DEBUG] No timecode/timingData for",
+                  ref,
+                  "hasTimecode:",
+                  audioEntry.hasTimecode,
+                );
+              }
+
+              // Only add to playlist if we have valid timing data
+              if (
+                timingEntry &&
+                timingEntry.timestamps &&
+                timingEntry.timestamps.length >= 2
+              ) {
+                allPlaylistEntries.push({
+                  sectionNum,
+                  refIndex,
+                  reference: ref,
+                  audioFile: filename,
+                  audioUrl: audioEntry.url,
+                  timingData: timingEntry,
+                  book: refBook,
+                  chapter: refChapter,
+                  testament,
+                  imageUrl,
+                  text,
+                });
+              }
+            });
+          }
+        }
+
+        // Sort playlist entries by sectionNum and then by their order within the section
+        allPlaylistEntries.sort((a, b) => {
+          if (a.sectionNum !== b.sectionNum) {
+            return a.sectionNum - b.sectionNum;
+          }
+          // Within same section, maintain the order they were added (by refIndex)
+          return (a.refIndex || 0) - (b.refIndex || 0);
+        });
+
+        // Only set data if this collection is still the current one
+        if (isCollectingPlaylistRef.current === collectionId) {
+          console.log(
+            "[DEBUG] Setting audioPlaylistData:",
+            allPlaylistEntries.length,
+            "entries for",
+            collectionId,
+          );
+          setAudioPlaylistData(allPlaylistEntries);
+          isCollectingPlaylistRef.current = null;
+        } else {
+          console.log(
+            "[DEBUG] Discarding playlist data - collection superseded. Current:",
+            isCollectingPlaylistRef.current,
+            "This:",
+            collectionId,
+          );
+        }
+      } catch (err) {
+        // Only clear if this collection is still current
+        if (isCollectingPlaylistRef.current === collectionId) {
+          isCollectingPlaylistRef.current = null;
+        }
       }
-    }
+    },
+    [audioUrls, loadAudioUrl],
+  );
 
-    setAudioPlaylistData(allPlaylistEntries);
-  };
+  // Memoized function to analyze story capabilities
+  const analyzeStoryCapabilities = useCallback(
+    (sections) => {
+      const cachedMetadata = getStoryMetadata(storyId);
+      const langData = languageData[selectedLanguage];
 
-  // Analyze what features are available for this story based on its references
-  const analyzeStoryCapabilities = (sections) => {
-    // Try to get cached testament analysis first (lightweight metadata)
-    const storyId = storyData.id || storyData.path;
-    const cachedMetadata = getStoryMetadata(storyId);
+      // If no cached metadata, analyze sections directly to determine testament usage
+      let testamentsInfo = cachedMetadata?.testaments;
 
-    // Get testament info from pre-cached metadata
-    const testamentsInfo = cachedMetadata?.testaments || {
-      usesOT: true,
-      usesNT: true,
-    };
+      if (!testamentsInfo) {
+        // Analyze sections to determine which testaments this story uses
+        const ntBooks = [
+          "MAT",
+          "MRK",
+          "LUK",
+          "JHN",
+          "ACT",
+          "ROM",
+          "1CO",
+          "2CO",
+          "GAL",
+          "EPH",
+          "PHP",
+          "COL",
+          "1TH",
+          "2TH",
+          "1TI",
+          "2TI",
+          "TIT",
+          "PHM",
+          "HEB",
+          "JAS",
+          "1PE",
+          "2PE",
+          "1JN",
+          "2JN",
+          "3JN",
+          "JUD",
+          "REV",
+        ];
 
-    const langData = languageData[selectedLanguage];
+        let usesOT = false;
+        let usesNT = false;
 
-    if (!langData) {
-      setStoryCapabilities({
-        hasTimecode: false,
+        sections.forEach((section) => {
+          if (section.reference) {
+            const bookMatch = section.reference.match(/^([A-Z0-9]+)\s+/i);
+            if (bookMatch) {
+              const book = bookMatch[1].toUpperCase();
+              if (ntBooks.includes(book)) {
+                usesNT = true;
+              } else {
+                usesOT = true;
+              }
+            }
+          }
+        });
+
+        testamentsInfo = { usesOT, usesNT };
+      }
+
+      if (!langData) {
+        setStoryCapabilities({
+          hasTimecode: false,
+          usesOT: testamentsInfo.usesOT,
+          usesNT: testamentsInfo.usesNT,
+        });
+        return;
+      }
+
+      const testamentsToCheck = [];
+      if (testamentsInfo.usesOT) testamentsToCheck.push("ot");
+      if (testamentsInfo.usesNT) testamentsToCheck.push("nt");
+
+      // Check if ANY of the selected languages has audio with timecodes for all required testaments
+      let hasTimecode = false;
+      let preferredAudioLanguage = null;
+
+      for (const checkLang of selectedLanguages) {
+        const checkLangData = languageData[checkLang];
+        if (!checkLangData) continue;
+
+        let langHasAllTestaments = true;
+
+        for (const testament of testamentsToCheck) {
+          const testamentData = checkLangData[testament];
+
+          if (!testamentData || !testamentData.audioFilesetId) {
+            langHasAllTestaments = false;
+            break;
+          }
+
+          const hasTimecodeForTestament = [
+            "with-timecode",
+            "audio-with-timecode",
+          ].includes(testamentData.audioCategory);
+
+          if (!hasTimecodeForTestament) {
+            langHasAllTestaments = false;
+            break;
+          }
+        }
+
+        if (langHasAllTestaments) {
+          hasTimecode = true;
+          preferredAudioLanguage = checkLang;
+          break;
+        }
+      }
+
+      const capabilities = {
+        hasTimecode,
         usesOT: testamentsInfo.usesOT,
         usesNT: testamentsInfo.usesNT,
-      });
-      return;
-    }
+        preferredAudioLanguage,
+      };
 
-    // Check if ALL required testaments have audio with timecode
-    // Audio player requires timecode to build playlist
-    let hasTimecode = true;
-    const testamentsToCheck = [];
-    if (testamentsInfo.usesOT) testamentsToCheck.push("ot");
-    if (testamentsInfo.usesNT) testamentsToCheck.push("nt");
+      console.log(
+        "[DEBUG] Story capabilities:",
+        capabilities,
+        "testamentsToCheck:",
+        testamentsToCheck,
+      );
+      setStoryCapabilities(capabilities);
+    },
+    [storyId, selectedLanguages, languageData, getStoryMetadata],
+  );
 
-    for (const testament of testamentsToCheck) {
-      const testamentData = langData[testament];
-
-      if (!testamentData) {
-        hasTimecode = false;
-        break;
-      }
-
-      // Check audio availability
-      if (!testamentData.audioFilesetId) {
-        hasTimecode = false;
-        break;
-      }
-
-      // Check timecode availability - required for playlist
-      const hasTimecodeForTestament = [
-        "with-timecode",
-        "audio-with-timecode",
-      ].includes(testamentData.audioCategory);
-
-      if (!hasTimecodeForTestament) {
-        hasTimecode = false;
-        break;
-      }
-    }
-
-    const capabilities = {
-      hasTimecode,
-      usesOT: testamentsInfo.usesOT,
-      usesNT: testamentsInfo.usesNT,
-    };
-
-    setStoryCapabilities(capabilities);
-  };
-
-  // Analyze story capabilities when parsed data or language data changes
+  // Analyze story capabilities - with deduplication
   useEffect(() => {
     if (
       parsedData &&
@@ -351,42 +660,177 @@ function StoryViewer({ storyData, onBack }) {
       languageData &&
       languageData[selectedLanguage]
     ) {
+      // Skip if we already analyzed for this language and sections haven't changed
+      const sectionsLength = parsedData.sections.length;
+      if (
+        lastAnalyzedLangRef.current === selectedLanguage &&
+        lastParsedSectionsLengthRef.current === sectionsLength
+      ) {
+        return;
+      }
+
+      lastAnalyzedLangRef.current = selectedLanguage;
+      lastParsedSectionsLengthRef.current = sectionsLength;
       analyzeStoryCapabilities(parsedData.sections);
     }
-  }, [parsedData, selectedLanguage, languageData]);
+  }, [parsedData, selectedLanguage, languageData, analyzeStoryCapabilities]);
 
-  // Re-collect audio playlist when sections change or timecode becomes available
+  // Initialize audioLanguage when story capabilities are determined
   useEffect(() => {
+    if (storyCapabilities.hasTimecode && !audioLanguage) {
+      // Use the preferred audio language determined during capability analysis
+      // This is the first language that has audio for ALL testaments the story needs
+      if (storyCapabilities.preferredAudioLanguage) {
+        setAudioLanguage(storyCapabilities.preferredAudioLanguage);
+      }
+    }
+  }, [
+    storyCapabilities.hasTimecode,
+    storyCapabilities.preferredAudioLanguage,
+    audioLanguage,
+    languageData,
+    setAudioLanguage,
+  ]);
+
+  // Collect audio playlist - with deduplication
+  useEffect(() => {
+    console.log("[DEBUG] Audio playlist effect:", {
+      hasParsedData: !!parsedData,
+      sectionsLength: parsedData?.sections?.length,
+      hasTimecode: storyCapabilities.hasTimecode,
+      audioLanguage,
+      lastCollectedLang: lastCollectedLangRef.current,
+    });
     if (
       parsedData &&
       parsedData.sections &&
       parsedData.sections.length > 0 &&
-      storyCapabilities.hasTimecode
+      storyCapabilities.hasTimecode &&
+      audioLanguage
     ) {
-      collectAudioPlaylistData(parsedData.sections);
-    } else if (!storyCapabilities.hasTimecode) {
-      // Clear playlist if timecode is not available
-      setAudioPlaylistData([]);
-    }
-  }, [parsedData, audioUrls, selectedLanguage, storyCapabilities.hasTimecode]);
+      // Skip if we already collected for this language
+      if (lastCollectedLangRef.current === audioLanguage) {
+        console.log("[DEBUG] Skipping - already collected for this language");
+        return;
+      }
 
-  // Load playlist and auto-play when audio data is ready (only if timecode available)
-  useEffect(() => {
-    if (audioPlaylistData.length > 0 && storyCapabilities.hasTimecode) {
-      loadPlaylist(audioPlaylistData, { mode: "replace", autoPlay: true });
+      console.log("[DEBUG] Collecting audio playlist for:", audioLanguage);
+      // Reset playlist loaded flag when language changes so new playlist will be loaded
+      playlistLoadedRef.current = false;
+      playlistLoadedCountRef.current = 0;
+
+      lastCollectedLangRef.current = audioLanguage;
+      collectAudioPlaylistData(parsedData.sections, audioLanguage);
+    } else if (!storyCapabilities.hasTimecode) {
+      setAudioPlaylistData([]);
+      lastCollectedLangRef.current = null;
     }
-  }, [audioPlaylistData, loadPlaylist, storyCapabilities.hasTimecode]);
+  }, [
+    parsedData,
+    audioLanguage,
+    storyCapabilities.hasTimecode,
+    collectAudioPlaylistData,
+  ]);
+
+  // Load playlist and auto-play when audio data is ready AND chapters are loaded
+  useEffect(() => {
+    console.log("[DEBUG] Load playlist effect:", {
+      isReturningToPlayingStory,
+      suppressAutoplay: suppressAutoplayRef.current,
+      audioPlaylistDataLength: audioPlaylistData.length,
+      hasTimecode: storyCapabilities.hasTimecode,
+      isChaptersLoading,
+      playlistLoaded: playlistLoadedRef.current,
+      playlistLoadedCount: playlistLoadedCountRef.current,
+    });
+
+    // Skip if returning to an already-playing story
+    if (isReturningToPlayingStory) {
+      console.log("[DEBUG] Skipping load - returning to playing story");
+      return;
+    }
+
+    // Skip loading playlist if autoplay is suppressed (another story was playing when we entered)
+    if (suppressAutoplayRef.current) {
+      console.log("[DEBUG] Skipping load - autoplay suppressed");
+      return;
+    }
+
+    const shouldLoad =
+      !playlistLoadedRef.current ||
+      (audioPlaylistData.length > playlistLoadedCountRef.current &&
+        playlistLoadedCountRef.current > 0);
+
+    if (
+      audioPlaylistData.length > 0 &&
+      storyCapabilities.hasTimecode &&
+      !isChaptersLoading &&
+      shouldLoad
+    ) {
+      console.log(
+        "[DEBUG] Loading playlist with",
+        audioPlaylistData.length,
+        "entries",
+      );
+      playlistLoadedRef.current = true;
+      playlistLoadedCountRef.current = audioPlaylistData.length;
+      // Set the current story ID and data before loading the playlist
+      setCurrentStoryId(storyId, storyData);
+      loadPlaylist(audioPlaylistData, { mode: "replace", autoPlay: true });
+    } else {
+      console.log("[DEBUG] Not loading playlist - conditions not met");
+    }
+  }, [
+    audioPlaylistData,
+    loadPlaylist,
+    storyCapabilities.hasTimecode,
+    isChaptersLoading,
+    isReturningToPlayingStory,
+    storyId,
+    setCurrentStoryId,
+  ]);
 
   // Separate effect to clear playlist when timecode becomes unavailable
   useEffect(() => {
+    // Don't clear playlist if autoplay is suppressed (another story is playing)
+    if (suppressAutoplayRef.current) {
+      return;
+    }
+
+    // Don't clear if returning to a playing story (capabilities not yet analyzed)
+    if (isReturningToPlayingStory) {
+      return;
+    }
+
+    // Only clear if this story's playlist is loaded (not another story's)
     if (
       !storyCapabilities.hasTimecode &&
       currentPlaylist &&
-      currentPlaylist.length > 0
+      currentPlaylist.length > 0 &&
+      currentStoryId === storyId
     ) {
       loadPlaylist([], { mode: "replace", autoPlay: false });
     }
-  }, [storyCapabilities.hasTimecode, currentPlaylist, loadPlaylist]);
+  }, [
+    storyCapabilities.hasTimecode,
+    currentPlaylist,
+    loadPlaylist,
+    currentStoryId,
+    storyId,
+    isReturningToPlayingStory,
+  ]);
+
+  // Memoize sectionsMap to avoid recreating on every render
+  const sectionsMap = useMemo(() => {
+    const map = {};
+    selectedLanguages.forEach((langCode) => {
+      const langParsed = contentByLanguage[langCode];
+      if (langParsed?.sections) {
+        map[langCode] = langParsed.sections;
+      }
+    });
+    return map;
+  }, [selectedLanguages, contentByLanguage]);
 
   if (loading) {
     return <div className="story-loading">{t("storyViewer.loadingStory")}</div>;
@@ -452,61 +896,87 @@ function StoryViewer({ storyData, onBack }) {
       {!isMinimized && currentPlaylist && currentPlaylist.length > 0 ? (
         // FULL PLAYER MODE - show only playing pane (requires timecode to have playlist)
         <div className="story-content story-content-full-player">
-          <FullPlayingPane />
+          <FullPlayingPane
+            sectionsMap={sectionsMap}
+            selectedLanguages={selectedLanguages}
+            primaryLanguage={selectedLanguage}
+          />
         </div>
       ) : (
-        // DEFAULT MODE - show all story sections
+        // DEFAULT MODE - show all story sections with multi-language support
         <div className="story-content story-sections-vertical">
           {parsedData.sections.map((section, index) => {
-            // Check if this section is currently playing
             const isPlaying =
               currentPlaylist &&
               currentPlaylist.length > 0 &&
               currentSegmentIndex >= 0 &&
               currentPlaylist[currentSegmentIndex]?.sectionNum === index + 1;
 
+            // Skip if no sections available
+            if (Object.keys(sectionsMap).length === 0) {
+              return null;
+            }
+
+            // Check if audio fallback is being used (preferred audio language is not primary)
+            const isAudioFallback =
+              storyCapabilities.preferredAudioLanguage &&
+              storyCapabilities.preferredAudioLanguage !== selectedLanguage;
+
             return (
-              <div
+              <StorySection
                 key={index}
-                className={`story-section ${isPlaying ? "story-section-playing" : ""}`}
-              >
-                <div className="story-section-image-wrapper">
-                  {section.imageUrl && (
-                    <img
-                      src={section.imageUrl}
-                      alt={`Section ${index + 1}`}
-                      className="story-image"
-                    />
-                  )}
-                  {section.reference && (
-                    <div className="story-section-ref-overlay">
-                      {section.reference}
-                    </div>
-                  )}
-                </div>
-                {section.text && section.text.trim() && (
-                  <div className="story-section-text">
-                    {section.text.split("\n").map((line, lineIndex) => {
-                      const trimmedLine = line.trim();
-                      if (!trimmedLine) return null;
-                      return (
-                        <p key={lineIndex} className="story-paragraph">
-                          {trimmedLine}
-                        </p>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                section={section}
+                sectionIndex={index}
+                selectedLanguages={selectedLanguages}
+                primaryLanguage={selectedLanguage}
+                sectionsMap={sectionsMap}
+                isPlaying={isPlaying}
+                audioFallback={isAudioFallback}
+                onSectionClick={(sectionIdx) => {
+                  // If this story's playlist is already loaded, just play the segment
+                  if (
+                    currentStoryId === storyId &&
+                    currentPlaylist &&
+                    currentPlaylist.length > 0
+                  ) {
+                    const playlistIdx = currentPlaylist.findIndex(
+                      (entry) => entry.sectionNum === sectionIdx + 1,
+                    );
+                    if (playlistIdx >= 0) {
+                      setMinimized(false);
+                      playSegment(playlistIdx);
+                    }
+                  } else if (audioPlaylistData.length > 0) {
+                    // Another story is playing or no playlist loaded yet
+                    // Load this story's playlist and start at the clicked section
+                    suppressAutoplayRef.current = false; // Clear suppression on explicit click
+                    setCurrentStoryId(storyId, storyData);
+                    const playlistIdx = audioPlaylistData.findIndex(
+                      (entry) => entry.sectionNum === sectionIdx + 1,
+                    );
+                    const startIndex = playlistIdx >= 0 ? playlistIdx : 0;
+                    loadPlaylist(audioPlaylistData, {
+                      mode: "replace",
+                      autoPlay: false,
+                    });
+                    // Use setTimeout to ensure playlist is loaded before playing
+                    setTimeout(() => {
+                      setMinimized(false);
+                      playSegment(startIndex);
+                    }, 100);
+                  }
+                }}
+                isLoading={isChaptersLoading}
+              />
             );
           })}
         </div>
       )}
 
-      {/* Audio Player - show full or minimized based on state (requires timecode) */}
-      {currentPlaylist &&
-        currentPlaylist.length > 0 &&
-        (isMinimized ? <MinimizedAudioPlayer /> : <AudioPlayer />)}
+      {/* Audio Player - show full player when not minimized (minimized player is in App.jsx) */}
+      {currentPlaylist && currentPlaylist.length > 0 && !isMinimized && (
+        <AudioPlayer />
+      )}
     </div>
   );
 }

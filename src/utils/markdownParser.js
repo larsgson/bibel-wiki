@@ -1,11 +1,8 @@
-import {
-  parseReference,
-  extractVerses,
-  getTextForReference,
-} from "./bibleUtils";
+import { getTextForReference } from "./bibleUtils";
 
 /**
  * Replace <<<REF>>> markers in text with actual Bible verses from cache
+ * Supports multi-reference strings like "HEB 9:11-14,JOH 1:29, 1PE 1:18-19"
  */
 const replaceBibleReferences = (text, chapterText) => {
   if (!text || !chapterText) return text;
@@ -14,32 +11,15 @@ const replaceBibleReferences = (text, chapterText) => {
   const refPattern = /<<<REF:\s*(.+?)>>>/g;
   let result = text;
   let match;
-  let replacementCount = 0;
 
   while ((match = refPattern.exec(text)) !== null) {
     const fullMatch = match[0];
     const reference = match[1].trim();
 
-    const parsed = parseReference(reference);
-    if (!parsed) {
-      continue;
-    }
-
-    const { book, chapter, verseStart, verseEnd, verses } = parsed;
-    const chapterKey = `${book}.${chapter}`;
-
-    // Check if chapter is in cache
-    if (chapterText[chapterKey]) {
-      const extractedVerses = extractVerses(
-        chapterText[chapterKey],
-        verseStart,
-        verseEnd,
-        verses,
-      );
-      if (extractedVerses) {
-        result = result.replace(fullMatch, extractedVerses);
-        replacementCount++;
-      }
+    // Use getTextForReference which handles multi-reference strings
+    const extractedText = getTextForReference(reference, chapterText);
+    if (extractedText) {
+      result = result.replace(fullMatch, extractedText);
     }
   }
 

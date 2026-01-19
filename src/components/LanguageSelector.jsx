@@ -3,7 +3,14 @@ import "./LanguageSelector.css";
 import useLanguage from "../hooks/useLanguage";
 import useTranslation from "../hooks/useTranslation";
 
-function LanguageSelector({ selectedLanguage, onSelect, onClose }) {
+function LanguageSelector({
+  selectedLanguage,
+  onSelect,
+  onClose,
+  excludeLanguages = [],
+  title = null,
+  allowNone = false,
+}) {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const [languages, setLanguages] = useState([]);
@@ -47,12 +54,18 @@ function LanguageSelector({ selectedLanguage, onSelect, onClose }) {
   }, []);
 
   const filteredLanguages = useMemo(() => {
+    // First filter out excluded languages
+    let filtered = languages.filter(
+      (lang) => !excludeLanguages.includes(lang.code),
+    );
+
+    // Then apply search filter
     if (!searchTerm.trim()) {
-      return languages;
+      return filtered;
     }
 
     const search = searchTerm.toLowerCase();
-    return languages.filter((lang) => {
+    return filtered.filter((lang) => {
       const english = (lang.english || "").toLowerCase();
       const vernacular = (lang.vernacular || "").toLowerCase();
       const code = (lang.code || "").toLowerCase();
@@ -63,10 +76,15 @@ function LanguageSelector({ selectedLanguage, onSelect, onClose }) {
         code.includes(search)
       );
     });
-  }, [languages, searchTerm]);
+  }, [languages, searchTerm, excludeLanguages]);
 
   const handleLanguageClick = (language) => {
     onSelect(language);
+    onClose();
+  };
+
+  const handleNoneClick = () => {
+    onSelect(null);
     onClose();
   };
 
@@ -92,7 +110,7 @@ function LanguageSelector({ selectedLanguage, onSelect, onClose }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="language-selector-header">
-          <h2>{t("languageSelector.title")}</h2>
+          <h2>{title || t("languageSelector.title")}</h2>
           <button
             className="close-button"
             onClick={handleClose}
@@ -156,37 +174,59 @@ function LanguageSelector({ selectedLanguage, onSelect, onClose }) {
                 No languages found matching "{searchTerm}"
               </div>
             ) : (
-              filteredLanguages.map((language) => {
-                const isActive = selectedLanguage?.code === language.code;
-
-                return (
+              <>
+                {allowNone && !searchTerm && (
                   <div
-                    key={language.code}
-                    className={`language-item ${isActive ? "active" : ""}`}
-                    onClick={() => handleLanguageClick(language)}
+                    className={`language-item none-option ${!selectedLanguage ? "active" : ""}`}
+                    onClick={handleNoneClick}
                   >
                     <div className="language-info">
                       <div className="language-name">
-                        {language.english || language.code}
-                        {isActive && <span className="check-icon"> ✓</span>}
+                        <em>None</em>
+                        {!selectedLanguage && (
+                          <span className="check-icon"> ✓</span>
+                        )}
                       </div>
-                      {language.vernacular && (
-                        <div className="language-vernacular">
-                          {language.vernacular}
-                        </div>
-                      )}
-                      <div className="language-code-small">{language.code}</div>
+                      <div className="language-vernacular">
+                        No secondary language
+                      </div>
                     </div>
-                    <div
-                      className="language-category-indicator"
-                      style={{
-                        backgroundColor: getCategoryColor(language.category),
-                      }}
-                      title={language.category}
-                    />
                   </div>
-                );
-              })
+                )}
+                {filteredLanguages.map((language) => {
+                  const isActive = selectedLanguage?.code === language.code;
+
+                  return (
+                    <div
+                      key={language.code}
+                      className={`language-item ${isActive ? "active" : ""}`}
+                      onClick={() => handleLanguageClick(language)}
+                    >
+                      <div className="language-info">
+                        <div className="language-name">
+                          {language.english || language.code}
+                          {isActive && <span className="check-icon"> ✓</span>}
+                        </div>
+                        {language.vernacular && (
+                          <div className="language-vernacular">
+                            {language.vernacular}
+                          </div>
+                        )}
+                        <div className="language-code-small">
+                          {language.code}
+                        </div>
+                      </div>
+                      <div
+                        className="language-category-indicator"
+                        style={{
+                          backgroundColor: getCategoryColor(language.category),
+                        }}
+                        title={language.category}
+                      />
+                    </div>
+                  );
+                })}
+              </>
             )}
           </div>
         </div>

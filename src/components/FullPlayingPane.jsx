@@ -1,21 +1,26 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import useMediaPlayer from "../hooks/useMediaPlayer";
 import useTranslation from "../hooks/useTranslation";
 import "./FullPlayingPane.css";
 
-const FullPlayingPane = () => {
+const FullPlayingPane = ({
+  sectionsMap = {},
+  selectedLanguages = [],
+  primaryLanguage = null,
+}) => {
   const { t } = useTranslation();
-  const {
-    currentPlaylist,
-    isPlaying,
-    currentSegmentIndex,
-    getCurrentSegment,
-    totalDuration,
-  } = useMediaPlayer();
+  const { currentPlaylist, isPlaying, currentSegmentIndex, getCurrentSegment } =
+    useMediaPlayer();
 
   const [showText, setShowText] = useState(false);
 
   const currentSegment = getCurrentSegment();
+
+  // Get current section index (0-based) from the segment
+  const currentSectionIndex = useMemo(() => {
+    if (!currentSegment) return -1;
+    return (currentSegment.sectionNum || 1) - 1;
+  }, [currentSegment]);
 
   // Get current section data from parsed sections
   const currentSectionData = useMemo(() => {
@@ -25,7 +30,6 @@ const FullPlayingPane = () => {
 
     return {
       imageUrl: currentSegment.imageUrl,
-      text: currentSegment.text || "",
       reference: currentSegment.reference || "",
       sectionNum: currentSegment.sectionNum || currentSegmentIndex + 1,
     };
@@ -96,25 +100,75 @@ const FullPlayingPane = () => {
       <div
         className={`full-playing-pane-text ${showText ? "visible" : "hidden"}`}
       >
-        {currentSectionData.text && currentSectionData.text.trim() ? (
-          <div className="full-playing-pane-text-content">
-            {currentSectionData.text.split("\n").map((line, index) => {
-              const trimmedLine = line.trim();
-              if (!trimmedLine) return null;
-              return (
-                <p key={index} className="full-playing-pane-paragraph">
-                  {trimmedLine}
-                </p>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="full-playing-pane-text-content">
-            <p className="full-playing-pane-paragraph">
-              No text available for this section.
-            </p>
-          </div>
-        )}
+        <div className="full-playing-pane-text-content">
+          {selectedLanguages.map((langCode, langIndex) => {
+            const isPrimary = langIndex === 0;
+            const isSecondary = langIndex === 1 && selectedLanguages.length > 2;
+            const isFallback =
+              langIndex === selectedLanguages.length - 1 && langIndex > 0;
+            const langSection = sectionsMap[langCode]?.[currentSectionIndex];
+
+            // Skip if no content for this language
+            if (!langSection?.text?.trim()) {
+              return null;
+            }
+
+            // Hide fallback language if any non-fallback language has text for this section
+            // But track if we're showing fallback because primary is missing
+            let showingFallbackWarning = false;
+            if (isFallback) {
+              const otherLanguagesHaveText = selectedLanguages
+                .slice(0, -1)
+                .some((otherLang) => {
+                  const otherSection =
+                    sectionsMap[otherLang]?.[currentSectionIndex];
+                  return otherSection?.text?.trim();
+                });
+              if (otherLanguagesHaveText) {
+                return null;
+              }
+              // If we get here, fallback is being shown because others are missing
+              showingFallbackWarning = true;
+            }
+
+            return (
+              <div
+                key={langCode}
+                className="full-playing-pane-language-section"
+              >
+                {/* Warning line when showing fallback text due to missing primary */}
+                {showingFallbackWarning && (
+                  <div className="full-playing-pane-missing-warning">
+                    ⚠ [...] ∅
+                  </div>
+                )}
+
+                {/* Language code - shown only for non-primary */}
+                {!isPrimary && (
+                  <span className="full-playing-pane-language-code">
+                    {langCode.toUpperCase()}
+                  </span>
+                )}
+
+                {/* Text content */}
+                <div className="full-playing-pane-section-text">
+                  {langSection.text.split("\n").map((line, lineIndex) => {
+                    const trimmedLine = line.trim();
+                    if (!trimmedLine) return null;
+                    return (
+                      <p
+                        key={lineIndex}
+                        className="full-playing-pane-paragraph"
+                      >
+                        {trimmedLine}
+                      </p>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

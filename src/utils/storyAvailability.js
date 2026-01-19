@@ -4,7 +4,119 @@
  */
 
 /**
- * Calculate text availability for a story
+ * Calculate text availability for a story across multiple languages
+ * A story is considered "full" if the non-fallback languages can cover all required testaments
+ * @param {Object} storyMetadata - Cached story metadata with testaments info
+ * @param {Object} languageDataMap - Map of language codes to language data
+ * @param {Array} selectedLanguages - Array of selected language codes (fallback is last)
+ * @returns {Object} Availability status
+ */
+export const getStoryAvailabilityMultiLang = (
+  storyMetadata,
+  languageDataMap,
+  selectedLanguages,
+) => {
+  // If no selected languages, return unknown
+  if (!selectedLanguages || selectedLanguages.length === 0) {
+    return {
+      status: "unknown",
+      hasText: false,
+      missingTestaments: [],
+      availableTestaments: [],
+    };
+  }
+
+  // Non-fallback languages: exclude the last language if it's 'eng' (the fallback)
+  // and there are other languages available
+  const lastLang = selectedLanguages[selectedLanguages.length - 1];
+  const isFallbackPresent = lastLang === "eng" && selectedLanguages.length > 1;
+  const nonFallbackLanguages = isFallbackPresent
+    ? selectedLanguages.slice(0, -1)
+    : selectedLanguages;
+
+  // If no metadata, return unknown
+  if (!storyMetadata?.testaments) {
+    return {
+      status: "unknown",
+      hasText: false,
+      missingTestaments: [],
+      availableTestaments: [],
+    };
+  }
+
+  const testaments = storyMetadata.testaments;
+
+  // If story uses no testaments, it's empty
+  if (!testaments.usesOT && !testaments.usesNT) {
+    return {
+      status: "empty",
+      hasText: false,
+      missingTestaments: [],
+      availableTestaments: [],
+    };
+  }
+
+  // Check which testaments are needed
+  const testamentsNeeded = [];
+  if (testaments.usesOT) testamentsNeeded.push("ot");
+  if (testaments.usesNT) testamentsNeeded.push("nt");
+
+  const availableTestaments = [];
+
+  // For each needed testament, check if ANY non-fallback language can cover it
+  for (const testament of testamentsNeeded) {
+    const isCovered = nonFallbackLanguages.some((langCode) => {
+      const langData = languageDataMap[langCode];
+      if (!langData) return false;
+
+      const testamentData = langData[testament];
+      if (!testamentData) return false;
+
+      // Check if testament has TEXT fileset
+      const hasText = !!testamentData.filesetId;
+
+      // Check if testament has AUDIO with timecode
+      const hasAudioWithTimecode =
+        testamentData.audioFilesetId &&
+        (testamentData.audioCategory === "audio-with-timecode" ||
+          testamentData.audioCategory === "with-timecode");
+
+      return hasText || hasAudioWithTimecode;
+    });
+
+    if (isCovered) {
+      availableTestaments.push(testament);
+    }
+  }
+
+  const missingTestaments = testamentsNeeded.filter(
+    (t) => !availableTestaments.includes(t),
+  );
+
+  // Determine status:
+  // - "full" if all needed testaments are covered
+  // - "partial" if some (but not all) needed testaments are covered
+  // - "empty" if no needed testaments are covered
+  let status;
+  if (missingTestaments.length === 0) {
+    status = "full";
+  } else if (availableTestaments.length > 0) {
+    status = "partial";
+  } else {
+    status = "empty";
+  }
+  const hasText = missingTestaments.length === 0;
+
+  return {
+    status,
+    hasText,
+    missingTestaments,
+    availableTestaments,
+  };
+};
+
+/**
+ * Calculate text availability for a story (single language - legacy)
  * @param {Object} storyMetadata - Cached story metadata with testaments info
  * @param {Object} languageData - Language data with OT/NT text filesets
  * @returns {Object} Availability status
@@ -20,11 +132,18 @@ export const getStoryAvailability = (storyMetadata, languageData) => {
     };
   }
 
-  // If no metadata, assume story needs both OT and NT (most stories do)
-  const testaments = storyMetadata?.testaments || {
-    usesOT: true,
-    usesNT: true,
-  };
+  // If no metadata, return unknown - don't assume both testaments are needed
+  // This prevents filtering out stories before metadata is loaded
+  if (!storyMetadata?.testaments) {
+    return {
+      status: "unknown",
+      hasText: false,
+      missingTestaments: [],
+      availableTestaments: [],
+    };
+  }
+
+  const testaments = storyMetadata.testaments;
 
   // If story uses no testaments, it's empty (shouldn't happen, but handle it)
   if (!testaments.usesOT && !testaments.usesNT) {
@@ -128,9 +247,71 @@ export const getCategoryAvailability = (
 export const getAvailabilityIcon = (status) => {
   const iconMap = {
     full: "✓",
+    partial: "◐",
     empty: "∅",
+    missing: "∅",
     unknown: "?",
   };
 
   return iconMap[status] || "?";
+};
+
+/**
+ * Check if a story needs audio fallback (primary language doesn't have timecode audio)
+ * @param {Object} storyMetadata - Cached story metadata with testaments info
+ * @param {Object} languageDataMap - Map of language codes to language data
+ * @param {Array} selectedLanguages - Array of selected language codes (fallback is last)
+ * @returns {boolean} True if audio fallback is needed
+ */
+export const needsAudioFallback = (
+  storyMetadata,
+  languageDataMap,
+  selectedLanguages,
+) => {
+  // If no selected languages or only one language, no fallback concept
+  if (!selectedLanguages || selectedLanguages.length <= 1) {
+    return false;
+  }
+
+  // If no metadata, can't determine
+  if (!storyMetadata?.testaments) {
+    return false;
+  }
+
+  const testaments = storyMetadata.testaments;
+
+  // Check which testaments are needed
+  const testamentsNeeded = [];
+  if (testaments.usesOT) testamentsNeeded.push("ot");
+  if (testaments.usesNT) testamentsNeeded.push("nt");
+
+  if (testamentsNeeded.length === 0) {
+    return false;
+  }
+
+  // Check if primary language (first in array) has timecode audio for all needed testaments
+  const primaryLang = selectedLanguages[0];
+  const primaryLangData = languageDataMap[primaryLang];
+
+  if (!primaryLangData) {
+    return true; // No data for primary = needs fallback
+  }
+
+  for (const testament of testamentsNeeded) {
+    const testamentData = primaryLangData[testament];
+
+    if (!testamentData || !testamentData.audioFilesetId) {
+      return true; // Missing audio fileset = needs fallback
+    }
+
+    const hasTimecode = ["with-timecode", "audio-with-timecode"].includes(
+      testamentData.audioCategory,
+    );
+
+    if (!hasTimecode) {
+      return true; // No timecode = needs fallback
+    }
+  }
+
+  return false; // Primary language has all needed audio with timecode
 };

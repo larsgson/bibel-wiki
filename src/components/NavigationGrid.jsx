@@ -3,10 +3,12 @@ import "./NavigationGrid.css";
 import useTranslation from "../hooks/useTranslation";
 import useLanguage from "../hooks/useLanguage";
 import AvailabilityBadge from "./AvailabilityBadge";
+import AudioFallbackBadge from "./AudioFallbackBadge";
 import {
-  getStoryAvailability,
-  getCategoryAvailability,
+  getStoryAvailabilityMultiLang,
+  needsAudioFallback,
 } from "../utils/storyAvailability";
+import { checkMissingStories, isStoryMissing } from "../utils/missingStories";
 
 function NavigationGrid({
   onStorySelect,
@@ -14,16 +16,44 @@ function NavigationGrid({
   onToggleEmptyContent,
 }) {
   const { t } = useTranslation();
-  const { getStoryMetadata, languageData, selectedLanguage, storyMetadata } =
-    useLanguage();
+  const {
+    getStoryMetadata,
+    languageData,
+    selectedLanguage,
+    selectedLanguages,
+    storyMetadata,
+    preloadBibleReferences,
+  } = useLanguage();
   const [navigationPath, setNavigationPath] = useState([]);
   const [currentItems, setCurrentItems] = useState([]);
   const [currentLevel, setCurrentLevel] = useState("collection");
   const [loading, setLoading] = useState(true);
+  const [missingStoriesData, setMissingStoriesData] = useState(null);
+
+  // Load missing stories data on mount
+  useEffect(() => {
+    const loadMissingStories = async () => {
+      const data = await checkMissingStories("OBS");
+      setMissingStoriesData(data);
+    };
+    loadMissingStories();
+  }, []);
+
+  // Preload story metadata for availability badges
+  useEffect(() => {
+    preloadBibleReferences();
+  }, [preloadBibleReferences]);
 
   useEffect(() => {
     loadCurrentLevel();
-  }, [navigationPath, storyMetadata, selectedLanguage]);
+  }, [
+    navigationPath,
+    storyMetadata,
+    selectedLanguage,
+    selectedLanguages,
+    languageData,
+    missingStoriesData,
+  ]);
 
   const loadCurrentLevel = async () => {
     setLoading(true);
@@ -45,28 +75,56 @@ function NavigationGrid({
               ? catData.stories.map((s) => s.id)
               : [];
 
-            // Build storyMetadataCache for these stories
-            const storyMetadataCache = {};
-            storyIds.forEach((storyId) => {
+            // Count missing stories (files that don't exist in templates)
+            const missingCount = storyIds.filter((id) =>
+              isStoryMissing(id, missingStoriesData),
+            ).length;
+
+            // Check availability for stories that exist using multi-language logic
+            const existingStoryIds = storyIds.filter(
+              (id) => !isStoryMissing(id, missingStoriesData),
+            );
+
+            // Count story availability statuses
+            let emptyCount = 0;
+            let partialCount = 0;
+            let fullCount = 0;
+            existingStoryIds.forEach((storyId) => {
               const metadata = getStoryMetadata(storyId);
-              if (metadata) {
-                storyMetadataCache[storyId] = metadata;
+              const availability = getStoryAvailabilityMultiLang(
+                metadata,
+                languageData,
+                selectedLanguages,
+              );
+              if (availability.status === "empty") {
+                emptyCount++;
+              } else if (availability.status === "partial") {
+                partialCount++;
+              } else if (availability.status === "full") {
+                fullCount++;
               }
             });
 
-            const categoryAvail = getCategoryAvailability(
-              storyIds,
-              storyMetadataCache,
-              languageData[selectedLanguage],
-            );
-
-            // Show empty badge only if ALL stories are empty (no content at all)
+            // Determine category status:
+            // - "missing" only if ALL stories are missing from templates
+            // - "empty" only if ALL existing stories lack content in non-fallback languages
+            // - "partial" if at least one story has partial availability
+            // - null otherwise (all stories are fully available)
             let categoryStatus = null;
-            if (
-              categoryAvail.total > 0 &&
-              categoryAvail.empty === categoryAvail.total
+            const totalStories = storyIds.length;
+
+            if (totalStories > 0 && missingCount === totalStories) {
+              // ALL stories are missing
+              categoryStatus = "missing";
+            } else if (
+              existingStoryIds.length > 0 &&
+              emptyCount === existingStoryIds.length
             ) {
+              // All existing stories lack content in non-fallback languages
               categoryStatus = "empty";
+            } else if (partialCount > 0) {
+              // At least one story has partial availability
+              categoryStatus = "partial";
             }
 
             return {
@@ -76,6 +134,7 @@ function NavigationGrid({
               path: categoryDir,
               level: "category",
               availability: categoryStatus ? { status: categoryStatus } : null,
+              missingCount,
             };
           }),
         );
@@ -92,10 +151,34 @@ function NavigationGrid({
 
         const storiesData = data.stories.map((story) => {
           const storyId = story.id;
+
+          // First check if story file is missing from templates
+          const isMissing = isStoryMissing(storyId, missingStoriesData);
+
+          if (isMissing) {
+            // Story file doesn't exist - show "missing" badge
+            return {
+              id: story.id,
+              title: story.title,
+              image: story.image || data.image?.filename,
+              path: `${categoryPath}/${story.id}.md`,
+              level: "story",
+              storyImage: story.image,
+              availability: { status: "missing" },
+            };
+          }
+
+          // Story exists - check language availability across all non-fallback languages
           const metadata = getStoryMetadata(storyId);
-          const availability = getStoryAvailability(
+          const availability = getStoryAvailabilityMultiLang(
             metadata,
-            languageData[selectedLanguage],
+            languageData,
+            selectedLanguages,
+          );
+          const audioFallback = needsAudioFallback(
+            metadata,
+            languageData,
+            selectedLanguages,
           );
 
           return {
@@ -106,6 +189,7 @@ function NavigationGrid({
             level: "story",
             storyImage: story.image,
             availability: availability,
+            audioFallback: audioFallback,
           };
         });
 
@@ -249,15 +333,22 @@ function NavigationGrid({
   }
 
   // Filter items based on showEmptyContent state
+  // Include both "empty" and "missing" in the filter
   const visibleItems = showEmptyContent
     ? currentItems
     : currentItems.filter(
-        (item) => !item.availability || item.availability.status !== "empty",
+        (item) =>
+          !item.availability ||
+          (item.availability.status !== "empty" &&
+            item.availability.status !== "missing"),
       );
 
-  // Count total empty items (for showing button)
+  // Count total empty/missing items (for showing button)
   const emptyItemCount = currentItems.filter(
-    (item) => item.availability && item.availability.status === "empty",
+    (item) =>
+      item.availability &&
+      (item.availability.status === "empty" ||
+        item.availability.status === "missing"),
   ).length;
 
   // Count currently hidden items (for display)
@@ -289,6 +380,7 @@ function NavigationGrid({
 
       <div className={`navigation-grid ${currentLevel}`}>
         {visibleItems.map((item) => {
+          const isCategory = item.level === "category";
           return (
             <div
               key={item.path}
@@ -296,16 +388,31 @@ function NavigationGrid({
               onClick={() => handleItemClick(item)}
             >
               {item.image && (
-                <div style={{ position: "relative" }}>
-                  <img
-                    src={
-                      item.image.startsWith("http")
-                        ? item.image
-                        : `/navIcons/${item.image}`
+                <div
+                  className={
+                    isCategory ? "category-icon-wrapper" : "story-icon-wrapper"
+                  }
+                  style={{ position: "relative" }}
+                >
+                  <div
+                    className={
+                      isCategory
+                        ? "category-icon-clipped"
+                        : "story-icon-clipped"
                     }
-                    alt={item.title}
-                    className="navigation-image"
-                  />
+                  >
+                    <img
+                      src={
+                        item.image.startsWith("http")
+                          ? item.image
+                          : `/navIcons/${item.image}`
+                      }
+                      alt={item.title}
+                      className="navigation-image"
+                    />
+                    <div className="navigation-item-title">{item.title}</div>
+                  </div>
+                  {item.audioFallback && <AudioFallbackBadge size="small" />}
                   {item.availability && (
                     <AvailabilityBadge
                       status={item.availability.status}
@@ -314,7 +421,6 @@ function NavigationGrid({
                   )}
                 </div>
               )}
-              <div className="navigation-item-title">{item.title}</div>
             </div>
           );
         })}

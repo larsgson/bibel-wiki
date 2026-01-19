@@ -130,21 +130,47 @@
     flex-direction: column;
 }
 
-/* Category items - square format */
+/* Category items - iOS app icon style */
 .navigation-item.category {
     flex-direction: column;
     position: relative;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
 }
 
-/* Story items - image with overlay title */
+/* Story items - clean style like categories */
 .navigation-item.story {
     flex-direction: column;
     position: relative;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
 }
 
 .navigation-item:hover {
     transform: translateY(-4px);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* Category hover - subtle scale like iOS */
+.navigation-item.category:hover {
+    transform: scale(1.05);
+    box-shadow: none;
+}
+
+.navigation-item.category:hover .category-icon-wrapper {
+    filter: drop-shadow(0 6px 20px rgba(0, 0, 0, 0.25));
+}
+
+/* Story hover - subtle scale */
+.navigation-item.story:hover {
+    transform: scale(1.02);
+    box-shadow: none;
+}
+
+.navigation-item.story:hover .story-icon-wrapper {
+    filter: drop-shadow(0 6px 20px rgba(0, 0, 0, 0.25));
 }
 
 .navigation-image {
@@ -156,15 +182,43 @@
     border: 1px solid #e0e0e0;
 }
 
+/* Category icon wrapper - provides shadow */
+.category-icon-wrapper {
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
+}
+
+/* Category icon clipped container - 12px rounded corners */
+.category-icon-clipped {
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+}
+
 /* Category images - square */
 .navigation-item.category .navigation-image {
     aspect-ratio: 1 / 1;
+    border: none;
+    display: block;
+}
+
+/* Story icon wrapper - provides shadow */
+.story-icon-wrapper {
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
+}
+
+/* Story icon clipped container - 8px rounded corners */
+.story-icon-clipped {
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
 }
 
 /* Story images - landscape */
 .navigation-item.story .navigation-image {
     width: 100%;
     aspect-ratio: 16 / 9;
+    border: none;
+    display: block;
 }
 
 .navigation-item-title {
@@ -176,8 +230,8 @@
     background-color: #f8f9fa;
 }
 
-/* Category titles - overlay at bottom */
-.navigation-item.category .navigation-item-title {
+/* Category titles - overlay at bottom inside clipped container */
+.category-icon-clipped .navigation-item-title {
     position: absolute;
     bottom: 0;
     left: 0;
@@ -197,8 +251,8 @@
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
-/* Story titles - overlay at bottom */
-.navigation-item.story .navigation-item-title {
+/* Story titles - overlay at bottom inside clipped container */
+.story-icon-clipped .navigation-item-title {
     position: absolute;
     bottom: 0;
     left: 0;

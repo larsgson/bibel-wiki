@@ -66,6 +66,12 @@
     min-width: 0;
 }
 
+.minimized-audio-player-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .minimized-audio-player-title {
     color: #eee;
     font-size: 11px;
@@ -124,6 +130,27 @@
     height: 3px;
     background: linear-gradient(90deg, #e94560 0%, #ff6b7a 100%);
     animation: pulse 2s ease-in-out infinite;
+}
+
+/* Audio fallback badge */
+.minimized-audio-player-fallback-badge {
+    position: relative;
+    width: 22px;
+    height: 22px;
+    background-color: #ffcc00;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.minimized-audio-player-fallback-slash {
+    position: absolute;
+    width: 16px;
+    height: 2px;
+    background-color: #dc3545;
+    transform: rotate(-45deg);
+    border-radius: 1px;
 }
 
 @keyframes pulse {

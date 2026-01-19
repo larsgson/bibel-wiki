@@ -17,4 +17,28 @@
   framework = "#auto"
   targetPort = 3000
 
+# Cache headers for static template files
+# TOML index files - 1 week cache (indexes may change when new stories are added)
+[[headers]]
+  for = "/templates/OBS/*.toml"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/templates/OBS/*/*.toml"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+# Markdown story files - 30 days cache (story content rarely changes)
+[[headers]]
+  for = "/templates/OBS/**/*.md"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+
+# All other template files - 30 days cache (images, assets, etc.)
+[[headers]]
+  for = "/templates/**/*"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+
   ## more info on configuring this file: https://www.netlify.com/docs/netlify-toml-reference/

@@ -1,10 +1,13 @@
 import React, { useMemo } from "react";
 import useMediaPlayer from "../hooks/useMediaPlayer";
 import useTranslation from "../hooks/useTranslation";
+import useLanguage from "../hooks/useLanguage";
+import LanguageSwitcher from "./LanguageSwitcher";
 import "./MinimizedAudioPlayer.css";
 
-const MinimizedAudioPlayer = () => {
+const MinimizedAudioPlayer = ({ onNavigateToStory }) => {
   const { t } = useTranslation();
+  const { selectedLanguages, languageData } = useLanguage();
   const {
     currentPlaylist,
     isPlaying,
@@ -14,7 +17,28 @@ const MinimizedAudioPlayer = () => {
     setMinimized,
     getCurrentSegment,
     getCurrentVerse,
+    audioLanguage,
+    setAudioLanguage,
   } = useMediaPlayer();
+
+  // Get languages that have timecode audio available
+  const languagesWithAudio = selectedLanguages.filter((langCode) => {
+    const langData = languageData[langCode];
+    if (!langData) return false;
+
+    const hasOtTimecode =
+      langData.ot?.audioFilesetId &&
+      ["with-timecode", "audio-with-timecode"].includes(
+        langData.ot?.audioCategory,
+      );
+    const hasNtTimecode =
+      langData.nt?.audioFilesetId &&
+      ["with-timecode", "audio-with-timecode"].includes(
+        langData.nt?.audioCategory,
+      );
+
+    return hasOtTimecode || hasNtTimecode;
+  });
 
   if (!currentPlaylist || currentPlaylist.length === 0) {
     return null;
@@ -22,7 +46,17 @@ const MinimizedAudioPlayer = () => {
 
   const currentSegment = getCurrentSegment();
   const currentReference = currentSegment?.reference || "";
-  const currentVerse = getCurrentVerse();
+  const currentVerseData = getCurrentVerse();
+  const currentVerse = currentVerseData
+    ? `${currentVerseData.book} ${currentVerseData.chapter}:${currentVerseData.verse}`
+    : null;
+
+  // Calculate current section and total sections for display
+  const currentSectionNum = currentSegment?.sectionNum || 1;
+  const totalSections = currentPlaylist.reduce(
+    (max, entry) => Math.max(max, entry.sectionNum || 0),
+    0,
+  );
 
   // Get the image URL for the current section
   const currentImageUrl = useMemo(() => {
@@ -43,7 +77,11 @@ const MinimizedAudioPlayer = () => {
   };
 
   const handleExpand = () => {
-    setMinimized(false);
+    if (onNavigateToStory) {
+      onNavigateToStory();
+    } else {
+      setMinimized(false);
+    }
   };
 
   return (
@@ -61,40 +99,74 @@ const MinimizedAudioPlayer = () => {
         <div className="minimized-audio-player-content">
           <div className="minimized-audio-player-info">
             <div className="minimized-audio-player-title">
-              {currentSegmentIndex + 1}/{currentPlaylist.length} -{" "}
+              {currentSectionNum}/{totalSections} -{" "}
               {currentVerse || "Loading..."}
             </div>
           </div>
 
-          <button
-            className="minimized-audio-player-btn"
-            onClick={handlePlayPause}
-            aria-label={
-              isPlaying ? t("audioPlayer.pause") : t("audioPlayer.play")
-            }
-          >
-            {isPlaying ? (
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-                style={{ display: "block" }}
+          <div className="minimized-audio-player-controls">
+            {/* Show language switcher if multiple languages have suitable timecode audio */}
+            {languagesWithAudio.length > 1 && audioLanguage && (
+              <div
+                onClick={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
               >
-                <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" fill="#fff" />
-              </svg>
-            ) : (
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-                style={{ display: "block" }}
-              >
-                <path d="M8 5v14l11-7z" fill="#fff" />
-              </svg>
+                <LanguageSwitcher
+                  availableLanguages={languagesWithAudio}
+                  currentLanguage={audioLanguage}
+                  onLanguageChange={setAudioLanguage}
+                  compact
+                />
+              </div>
             )}
-          </button>
+            {/* Show fallback badge when primary language doesn't have timecode audio (forced to use fallback) */}
+            {audioLanguage &&
+              selectedLanguages.length > 1 &&
+              !languagesWithAudio.includes(selectedLanguages[0]) && (
+                <div className="minimized-audio-player-fallback-badge">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="#555"
+                    style={{ display: "block" }}
+                  >
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                  <div className="minimized-audio-player-fallback-slash" />
+                </div>
+              )}
+
+            <button
+              className="minimized-audio-player-btn"
+              onClick={handlePlayPause}
+              aria-label={
+                isPlaying ? t("audioPlayer.pause") : t("audioPlayer.play")
+              }
+            >
+              {isPlaying ? (
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                  style={{ display: "block" }}
+                >
+                  <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" fill="#fff" />
+                </svg>
+              ) : (
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                  style={{ display: "block" }}
+                >
+                  <path d="M8 5v14l11-7z" fill="#fff" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
 
         {isPlaying && <div className="minimized-audio-player-pulse" />}

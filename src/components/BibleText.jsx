@@ -38,7 +38,7 @@ function BibleText({ reference, className = "" }) {
 
       const { book, chapter, verseStart, verseEnd, verses } = parsed;
       const testament = getTestament(book);
-      const chapterKey = `${book}.${chapter}`;
+      const chapterKey = `${selectedLanguage}-${book}.${chapter}`;
 
       // Early detection: Check if testament data is available
       if (selectedLanguage && languageData && languageData[selectedLanguage]) {
@@ -51,7 +51,7 @@ function BibleText({ reference, className = "" }) {
         }
       }
 
-      // Check if already cached
+      // Check if already cached (language-specific key)
       if (chapterText[chapterKey]) {
         const extractedVerses = extractVerses(
           chapterText[chapterKey],
@@ -75,7 +75,12 @@ function BibleText({ reference, className = "" }) {
         setError(null);
 
         try {
-          const verseArray = await loadChapter(book, chapter, testament);
+          const verseArray = await loadChapter(
+            book,
+            chapter,
+            testament,
+            selectedLanguage,
+          );
           if (verseArray) {
             const extractedVerses = extractVerses(
               verseArray,

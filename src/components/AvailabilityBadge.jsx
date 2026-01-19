@@ -5,7 +5,7 @@ import { getAvailabilityIcon } from "../utils/storyAvailability";
 const AvailabilityBadge = ({ status, showTooltip = true, size = "small" }) => {
   const { t } = useTranslation();
 
-  // IMPORTANT: Only show badge for empty content
+  // IMPORTANT: Only show badge for partial, empty, or missing content
   if (!status || status === "unknown" || status === "full") {
     return null;
   }
@@ -13,6 +13,11 @@ const AvailabilityBadge = ({ status, showTooltip = true, size = "small" }) => {
   const icon = getAvailabilityIcon(status);
   const tooltipKey = `availabilityBadge.${status}Tooltip`;
   const tooltip = showTooltip ? t(tooltipKey) : null;
+
+  // Determine colors based on status
+  const isPartial = status === "partial";
+  const backgroundColor = isPartial ? "#f0ad4e" : "#dc3545"; // Yellow for partial, red for empty/missing
+  const borderColor = isPartial ? "#d99a3e" : "#bd2130";
 
   // Badge styles - inline to avoid CSS file dependency
   const badgeStyles = {
@@ -30,9 +35,9 @@ const AvailabilityBadge = ({ status, showTooltip = true, size = "small" }) => {
     boxShadow: "0 2px 6px rgba(0, 0, 0, 0.3)",
     zIndex: 10,
     transition: "transform 0.2s ease",
-    backgroundColor: "#dc3545",
+    backgroundColor,
     color: "white",
-    border: "2px solid #bd2130",
+    border: `2px solid ${borderColor}`,
   };
 
   return (

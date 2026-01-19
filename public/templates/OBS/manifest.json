@@ -1,0 +1,114 @@
+{
+  "files": [
+    {
+      "path": ".DS_Store",
+      "size": 10244
+    },
+    {
+      "path": "01-Beginning/01.md",
+      "size": 1425
+    },
+    {
+      "path": "01-Beginning/02.md",
+      "size": 1061
+    },
+    {
+      "path": "01-Beginning/03.md",
+      "size": 1447
+    },
+    {
+      "path": "01-Beginning/index.toml",
+      "size": 483
+    },
+    {
+      "path": "02-Patriarchs/04.md",
+      "size": 811
+    },
+    {
+      "path": "02-Patriarchs/05.md",
+      "size": 935
+    },
+    {
+      "path": "02-Patriarchs/06.md",
+      "size": 650
+    },
+    {
+      "path": "02-Patriarchs/index.toml",
+      "size": 755
+    },
+    {
+      "path": "03-Exodus/09.md",
+      "size": 1330
+    },
+    {
+      "path": "03-Exodus/index.toml",
+      "size": 835
+    },
+    {
+      "path": "04-In-the-Promised-Land/15.md",
+      "size": 1221
+    },
+    {
+      "path": "04-In-the-Promised-Land/index.toml",
+      "size": 748
+    },
+    {
+      "path": "05-Exile-Return-and-waiting-on-the-Messiah/22.md",
+      "size": 660
+    },
+    {
+      "path": "05-Exile-Return-and-waiting-on-the-Messiah/index.toml",
+      "size": 566
+    },
+    {
+      "path": "06-Jesus-Starts-His-Ministry/23.md",
+      "size": 903
+    },
+    {
+      "path": "06-Jesus-Starts-His-Ministry/24.md",
+      "size": 824
+    },
+    {
+      "path": "06-Jesus-Starts-His-Ministry/index.toml",
+      "size": 658
+    },
+    {
+      "path": "07-Stories-and-Miracles/27.md",
+      "size": 959
+    },
+    {
+      "path": "07-Stories-and-Miracles/index.toml",
+      "size": 1330
+    },
+    {
+      "path": "08-Triumph-Over-Death/36.md",
+      "size": 625
+    },
+    {
+      "path": "08-Triumph-Over-Death/index.toml",
+      "size": 1015
+    },
+    {
+      "path": "09-The-Church-Begins/43.md",
+      "size": 1172
+    },
+    {
+      "path": "09-The-Church-Begins/index.toml",
+      "size": 776
+    },
+    {
+      "path": "10-God's-New-Covenant/48.md",
+      "size": 1389
+    },
+    {
+      "path": "10-God's-New-Covenant/index.toml",
+      "size": 526
+    },
+    {
+      "path": "index.toml",
+      "size": 405
+    }
+  ],
+  "total_files": 27,
+  "total_size": 33753
+}

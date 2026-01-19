@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
+import { Howl } from "howler";
 
 const MediaPlayerContext = createContext(null);
 
@@ -23,9 +24,13 @@ export const MediaPlayerProvider = ({ children }) => {
     error: null,
     playbackRate: 1.0,
     isMinimized: false,
+    audioLanguage: null, // Language for audio playback (independent of display language)
+    currentStoryId: null, // Track which story is currently loaded/playing
+    currentStoryData: null, // Full story data for navigation back to playing story
   });
 
-  const audioRef = useRef(null);
+  const howlRef = useRef(null);
+  const nextHowlRef = useRef(null); // For prefetching next segment
   const currentSegmentRef = useRef(null);
   const isSeekingRef = useRef(false);
   const playlistRef = useRef(null);
@@ -33,6 +38,9 @@ export const MediaPlayerProvider = ({ children }) => {
   const segmentMapRef = useRef([]); // Enhanced playlist with virtual timeline
   const virtualTimeRef = useRef(0);
   const isPlayingRef = useRef(false);
+  const timeUpdateIntervalRef = useRef(null);
+  const playlistIdRef = useRef(0); // Unique ID to track playlist loads
+  const isLoadingPlaylistRef = useRef(false); // Prevent concurrent playlist loads
 
   // Build segment map with virtual timeline
   const buildSegmentMap = useCallback((playlist) => {
@@ -73,35 +81,65 @@ export const MediaPlayerProvider = ({ children }) => {
   const calculateVirtualTime = useCallback(() => {
     const segmentMap = segmentMapRef.current;
     const currentIndex = currentSegmentRef.current;
-    const audio = audioRef.current;
+    const howl = howlRef.current;
 
-    if (!segmentMap.length || !audio || currentIndex >= segmentMap.length) {
+    if (!segmentMap.length || !howl || currentIndex >= segmentMap.length) {
       return 0;
     }
 
     const currentSegment = segmentMap[currentIndex];
-    const realTime = audio.currentTime;
+    const realTime = howl.seek();
     const offset = realTime - currentSegment.startTimestamp;
     const virtualTime = currentSegment.virtualStart + offset;
 
     return Math.max(0, virtualTime);
   }, []);
 
-  // Initialize audio element
-  useEffect(() => {
-    const audio = new Audio();
-    audio.preload = "auto";
-    audioRef.current = audio;
+  // Prefetch next segment audio
+  const prefetchNextSegment = useCallback(() => {
+    const segmentMap = segmentMapRef.current;
+    const currentIndex = currentSegmentRef.current;
 
-    // Audio event handlers
-    const handleTimeUpdate = () => {
-      if (!isSeekingRef.current && audioRef.current) {
-        const realTime = audioRef.current.currentTime;
+    if (!segmentMap.length) return;
+
+    const nextIndex = currentIndex + 1;
+    if (nextIndex >= segmentMap.length) return;
+
+    const nextSegment = segmentMap[nextIndex];
+    if (!nextSegment) return;
+
+    // Clean up previous prefetch
+    if (nextHowlRef.current) {
+      nextHowlRef.current.unload();
+      nextHowlRef.current = null;
+    }
+
+    // Create new Howl for next segment (preload only, don't play)
+    try {
+      nextHowlRef.current = new Howl({
+        src: [nextSegment.audioUrl],
+        preload: true,
+        html5: true, // Use HTML5 Audio for better compatibility on mobile
+      });
+    } catch (error) {
+      console.error("Failed to prefetch next segment:", error);
+    }
+  }, []);
+
+  // Handle time updates (manual polling since Howler doesn't have timeupdate event)
+  const startTimeUpdateLoop = useCallback(() => {
+    if (timeUpdateIntervalRef.current) {
+      clearInterval(timeUpdateIntervalRef.current);
+    }
+
+    timeUpdateIntervalRef.current = setInterval(() => {
+      if (!isSeekingRef.current && howlRef.current && isPlayingRef.current) {
+        const realTime = howlRef.current.seek();
         const virtualTime = calculateVirtualTime();
 
         setState((prev) => ({
           ...prev,
-          currentTime: realTime,
+          currentTime: typeof realTime === "number" ? realTime : 0,
           virtualTime: virtualTime,
         }));
 
@@ -112,75 +150,36 @@ export const MediaPlayerProvider = ({ children }) => {
         const currentIndex = currentSegmentRef.current;
         if (segmentMap.length && currentIndex < segmentMap.length) {
           const currentSegment = segmentMap[currentIndex];
-          if (realTime >= currentSegment.endTimestamp) {
+          if (
+            typeof realTime === "number" &&
+            realTime >= currentSegment.endTimestamp - 0.1
+          ) {
             handleSegmentEnd();
           }
         }
       }
-    };
+    }, 100); // Update every 100ms
+  }, [calculateVirtualTime]);
 
-    const handleDurationChange = () => {
-      if (audioRef.current) {
-        setState((prev) => ({
-          ...prev,
-          duration: audioRef.current.duration,
-        }));
-      }
-    };
-
-    const handleEnded = () => {
-      handleSegmentEnd();
-    };
-
-    const handleCanPlay = () => {
-      setState((prev) => ({
-        ...prev,
-        isLoading: false,
-      }));
-    };
-
-    const handleWaiting = () => {
-      setState((prev) => ({
-        ...prev,
-        isLoading: true,
-      }));
-    };
-
-    const handleError = (e) => {
-      console.error("Audio playback error:", e);
-      setState((prev) => ({
-        ...prev,
-        isLoading: false,
-        error: "Failed to load audio",
-        isPlaying: false,
-      }));
-    };
-
-    audio.addEventListener("timeupdate", handleTimeUpdate);
-    audio.addEventListener("durationchange", handleDurationChange);
-    audio.addEventListener("ended", handleEnded);
-    audio.addEventListener("canplay", handleCanPlay);
-    audio.addEventListener("waiting", handleWaiting);
-    audio.addEventListener("error", handleError);
-
-    return () => {
-      audio.removeEventListener("timeupdate", handleTimeUpdate);
-      audio.removeEventListener("durationchange", handleDurationChange);
-      audio.removeEventListener("ended", handleEnded);
-      audio.removeEventListener("canplay", handleCanPlay);
-      audio.removeEventListener("waiting", handleWaiting);
-      audio.removeEventListener("error", handleError);
-      audio.pause();
-      audio.src = "";
-    };
+  const stopTimeUpdateLoop = useCallback(() => {
+    if (timeUpdateIntervalRef.current) {
+      clearInterval(timeUpdateIntervalRef.current);
+      timeUpdateIntervalRef.current = null;
+    }
   }, []);
 
-  // Update playback rate when it changes
+  // Cleanup on unmount
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.playbackRate = state.playbackRate;
-    }
-  }, [state.playbackRate]);
+    return () => {
+      stopTimeUpdateLoop();
+      if (howlRef.current) {
+        howlRef.current.unload();
+      }
+      if (nextHowlRef.current) {
+        nextHowlRef.current.unload();
+      }
+    };
+  }, [stopTimeUpdateLoop]);
 
   // Keep refs in sync and rebuild segment map when playlist changes
   useEffect(() => {
@@ -204,6 +203,7 @@ export const MediaPlayerProvider = ({ children }) => {
     }
   }, [state.currentPlaylist, state.currentSegmentIndex, buildSegmentMap]);
 
+  // Keep queue ref in sync
   useEffect(() => {
     queueRef.current = state.queue;
   }, [state.queue]);
@@ -215,12 +215,8 @@ export const MediaPlayerProvider = ({ children }) => {
   // Load audio for a specific segment
   const loadSegmentAudio = useCallback(
     (segmentOrIndex, seekOffset = 0) => {
-      if (!audioRef.current) {
-        return;
-      }
-
-      const audio = audioRef.current;
       const segmentMap = segmentMapRef.current;
+      const currentPlaylistId = playlistIdRef.current;
 
       // Handle both segment object and index
       let segment;
@@ -236,41 +232,86 @@ export const MediaPlayerProvider = ({ children }) => {
       if (!segment) {
         return;
       }
-      const needsNewFile = audio.src !== segment.audioUrl;
+
+      if (!segment.audioUrl) {
+        updateState({ isLoading: false, error: "No audio URL for segment" });
+        return;
+      }
+
       const targetTime = segment.startTimestamp + seekOffset;
 
-      if (needsNewFile) {
-        updateState({ isLoading: true });
-        audio.src = segment.audioUrl;
-        audio.load();
+      // Check if we can reuse the prefetched next segment
+      const isPrefetched =
+        nextHowlRef.current &&
+        nextHowlRef.current._src === segment.audioUrl &&
+        nextHowlRef.current.state() === "loaded";
 
-        const handleLoaded = () => {
-          audio.currentTime = targetTime;
-          updateState({ isLoading: false });
-          audio.removeEventListener("loadeddata", handleLoaded);
-        };
+      if (isPrefetched && nextHowlRef.current) {
+        // Swap the prefetched Howl to be the current one
+        if (howlRef.current) {
+          howlRef.current.unload();
+        }
+        howlRef.current = nextHowlRef.current;
+        nextHowlRef.current = null;
 
-        const handleError = (e) => {
-          updateState({ isLoading: false, error: "Failed to load audio" });
-          audio.removeEventListener("error", handleError);
-        };
+        // Seek to the target time
+        howlRef.current.seek(targetTime);
 
-        audio.addEventListener("loadeddata", handleLoaded);
-        audio.addEventListener("error", handleError);
+        // Set playback rate
+        howlRef.current.rate(state.playbackRate);
+
+        updateState({ isLoading: false });
+
+        // Prefetch the next segment
+        prefetchNextSegment();
       } else {
-        // Same file, just seek
-        audio.currentTime = targetTime;
+        // Need to load new file
+        updateState({ isLoading: true });
+
+        // Clean up old howl
+        if (howlRef.current) {
+          howlRef.current.unload();
+        }
+
+        // Create new Howl instance
+        howlRef.current = new Howl({
+          src: [segment.audioUrl],
+          html5: true, // Use HTML5 Audio for better compatibility
+          preload: true,
+          onload: () => {
+            // Check if playlist changed while loading
+            if (playlistIdRef.current !== currentPlaylistId) {
+              return;
+            }
+            if (howlRef.current) {
+              howlRef.current.seek(targetTime);
+              howlRef.current.rate(state.playbackRate);
+              updateState({ isLoading: false });
+              // Prefetch next segment after loading
+              prefetchNextSegment();
+            }
+          },
+          onloaderror: (id, error) => {
+            console.error("Failed to load audio:", error);
+            updateState({
+              isLoading: false,
+              error: `Failed to load audio: ${error}`,
+            });
+          },
+          onplayerror: (id, error) => {
+            console.error("Playback error:", error);
+            updateState({ error: `Playback failed: ${error}` });
+          },
+        });
       }
     },
-    [updateState],
+    [state.playbackRate, updateState, prefetchNextSegment],
   );
 
-  // Handle playlist end - move to queue or stop
+  // Handle playlist end - move to queue or fully reset
   const handlePlaylistEnd = useCallback(() => {
-    updateState({
-      isPlaying: false,
-      isPaused: false,
-    });
+    isPlayingRef.current = false;
+    stopTimeUpdateLoop();
 
     // Check if there's a queued playlist
     const queue = queueRef.current;
@@ -283,21 +324,48 @@ export const MediaPlayerProvider = ({ children }) => {
         queue: remainingQueue,
         currentSegmentIndex: 0,
         currentTime: 0,
+        isPlaying: false,
+        isPaused: false,
       });
 
       if (nextPlaylist && nextPlaylist.length > 0) {
         loadSegmentAudio(nextPlaylist[0]);
-        audioRef.current
-          .play()
-          .then(() => {
+        setTimeout(() => {
+          if (howlRef.current) {
+            howlRef.current.play();
+            isPlayingRef.current = true;
+            startTimeUpdateLoop();
             updateState({ isPlaying: true });
-          })
-          .catch((err) => {
-            console.error("Failed to play queued playlist:", err);
-          });
+          }
+        }, 100);
       }
+    } else {
+      // No queue - full reset to initial state
+      if (howlRef.current) {
+        howlRef.current.unload();
+        howlRef.current = null;
+      }
+      if (nextHowlRef.current) {
+        nextHowlRef.current.unload();
+        nextHowlRef.current = null;
+      }
+      segmentMapRef.current = [];
+
+      updateState({
+        currentPlaylist: null,
+        queue: [],
+        isPlaying: false,
+        isPaused: false,
+        currentSegmentIndex: 0,
+        currentTime: 0,
+        virtualTime: 0,
+        totalDuration: 0,
+        isMinimized: false,
+        currentStoryId: null,
+        currentStoryData: null,
+      });
     }
-  }, [loadSegmentAudio, updateState, buildSegmentMap]);
+  }, [loadSegmentAudio, updateState, stopTimeUpdateLoop, startTimeUpdateLoop]);
 
   // Handle segment end - move to next segment or playlist
   const handleSegmentEnd = useCallback(() => {
@@ -311,8 +379,8 @@ export const MediaPlayerProvider = ({ children }) => {
     const nextIndex = currentIndex + 1;
     if (nextIndex < segmentMap.length) {
       // Pause current audio before loading next segment
-      if (audioRef.current) {
-        audioRef.current.pause();
+      if (howlRef.current) {
+        howlRef.current.pause();
       }
 
       updateState({ currentSegmentIndex: nextIndex });
@@ -321,10 +389,10 @@ export const MediaPlayerProvider = ({ children }) => {
       if (wasPlaying) {
         // Wait for audio to be loaded before playing
         const tryPlay = () => {
-          if (audioRef.current && audioRef.current.readyState >= 2) {
-            audioRef.current.play().catch((err) => {
-              console.error("Failed to play next segment:", err);
-            });
+          if (howlRef.current && howlRef.current.state() === "loaded") {
+            howlRef.current.play();
+            isPlayingRef.current = true;
+            startTimeUpdateLoop();
           } else {
             setTimeout(tryPlay, 50);
           }
@@ -333,12 +401,19 @@ export const MediaPlayerProvider = ({ children }) => {
       }
     } else {
       // Playlist ended - stop playback
-      if (audioRef.current) {
-        audioRef.current.pause();
+      if (howlRef.current) {
+        howlRef.current.pause();
       }
+      stopTimeUpdateLoop();
       handlePlaylistEnd();
     }
-  }, [loadSegmentAudio, updateState, handlePlaylistEnd]);
+  }, [
+    loadSegmentAudio,
+    updateState,
+    handlePlaylistEnd,
+    startTimeUpdateLoop,
+    stopTimeUpdateLoop,
+  ]);
 
   // Load playlist with options
   const loadPlaylist = useCallback(
@@ -350,41 +425,66 @@ export const MediaPlayerProvider = ({ children }) => {
         position = "end",
       } = options;
 
+      // Increment playlist ID to invalidate any pending loads
+      const thisPlaylistId = ++playlistIdRef.current;
+
+      // Note: We allow concurrent loads - the playlist ID mechanism handles
+      // invalidating stale loads. This allows a more complete playlist to
+      // replace a partial one that's still loading.
+
       if (!playlistData || !playlistData.length) {
         // Clear the current playlist
-        if (audioRef.current) {
-          audioRef.current.pause();
+        if (howlRef.current) {
+          howlRef.current.pause();
+          howlRef.current.unload();
+          howlRef.current = null;
         }
+        if (nextHowlRef.current) {
+          nextHowlRef.current.unload();
+          nextHowlRef.current = null;
+        }
+        stopTimeUpdateLoop();
+        isPlayingRef.current = false;
+        isLoadingPlaylistRef.current = false;
+
         updateState({
-          currentPlaylist: [],
-          currentSegmentIndex: -1,
-          queue: [],
+          currentPlaylist: null,
+          currentSegmentIndex: 0,
+          isPlaying: false,
+          queue: clearQueue ? [] : state.queue,
         });
         return;
       }
 
       if (mode === "queue") {
         // Add to queue
-        const newQueue = clearQueue ? [playlistData] : [...queueRef.current];
-
-        if (position === "start") {
-          newQueue.unshift(playlistData);
-        } else if (typeof position === "number") {
-          newQueue.splice(position, 0, playlistData);
-        } else {
-          newQueue.push(playlistData);
-        }
+        const newQueue =
+          position === "next"
+            ? [playlistData, ...state.queue]
+            : [...state.queue, playlistData];
 
         updateState({ queue: newQueue });
       } else {
         // Replace mode
-        if (audioRef.current) {
-          audioRef.current.pause();
+        isLoadingPlaylistRef.current = true;
+
+        // Stop any existing playback first
+        if (howlRef.current) {
+          howlRef.current.pause();
+          howlRef.current.unload();
+          howlRef.current = null;
         }
+        if (nextHowlRef.current) {
+          nextHowlRef.current.unload();
+          nextHowlRef.current = null;
+        }
+        stopTimeUpdateLoop();
+        isPlayingRef.current = false;
 
         const segmentMap = buildSegmentMap(playlistData);
         segmentMapRef.current = segmentMap;
 
+        // Calculate total duration
         const totalDuration =
           segmentMap.length > 0
             ? segmentMap[segmentMap.length - 1].virtualEnd
@@ -404,76 +504,109 @@ export const MediaPlayerProvider = ({ children }) => {
 
         // Load first segment
         if (segmentMap.length > 0) {
-          loadSegmentAudio(0);
+          loadSegmentAudio(segmentMap[0]);
 
           if (autoPlay) {
-            setTimeout(() => {
-              play();
-            }, 100);
+            // Auto-play after loading with retry logic
+            const tryPlay = (attempts = 0) => {
+              // Check if playlist changed
+              if (playlistIdRef.current !== thisPlaylistId) {
+                isLoadingPlaylistRef.current = false;
+                return;
+              }
+
+              if (howlRef.current && howlRef.current.state() === "loaded") {
+                howlRef.current.play();
+                isPlayingRef.current = true;
+                isLoadingPlaylistRef.current = false;
+                startTimeUpdateLoop();
+                updateState({ isPlaying: true, isPaused: false });
+              } else if (attempts < 50) {
+                // Retry for up to 5 seconds (50 * 100ms)
+                setTimeout(() => tryPlay(attempts + 1), 100);
+              } else {
+                console.error("Timeout waiting for audio to load");
+                isLoadingPlaylistRef.current = false;
+                updateState({ error: "Timeout waiting for audio to load" });
+              }
+            };
+            setTimeout(() => tryPlay(0), 100);
+          } else {
+            isLoadingPlaylistRef.current = false;
           }
+        } else {
+          isLoadingPlaylistRef.current = false;
         }
       }
     },
-    [state.queue, loadSegmentAudio, updateState, buildSegmentMap],
+    [
+      state.queue,
+      buildSegmentMap,
+      loadSegmentAudio,
+      updateState,
+      stopTimeUpdateLoop,
+      startTimeUpdateLoop,
+    ],
   );
 
-  // Play
   const play = useCallback(() => {
-    if (!audioRef.current) return;
+    if (!howlRef.current) return;
 
-    const audio = audioRef.current;
-    audio
-      .play()
-      .then(() => {
-        isPlayingRef.current = true;
-        updateState({
-          isPlaying: true,
-          isPaused: false,
-          error: null,
-        });
-      })
-      .catch((err) => {
-        updateState({
-          error: "Failed to play audio",
-        });
-      });
-  }, [updateState]);
+    howlRef.current.play();
+    isPlayingRef.current = true;
+    startTimeUpdateLoop();
 
-  // Pause
+    updateState({
+      isPlaying: true,
+      isPaused: false,
+      error: null,
+    });
+  }, [updateState, startTimeUpdateLoop]);
+
   const pause = useCallback(() => {
-    if (!audioRef.current) return;
+    if (!howlRef.current) return;
 
-    audioRef.current.pause();
+    howlRef.current.pause();
     isPlayingRef.current = false;
+    stopTimeUpdateLoop();
+
     updateState({
       isPlaying: false,
       isPaused: true,
     });
-  }, [updateState]);
+  }, [updateState, stopTimeUpdateLoop]);
 
-  // Stop
   const stop = useCallback(() => {
-    if (!audioRef.current) return;
-
-    audioRef.current.pause();
-    isPlayingRef.current = false;
-
-    // Reset to first segment
-    const segmentMap = segmentMapRef.current;
-    if (segmentMap.length > 0) {
-      loadSegmentAudio(0);
+    if (howlRef.current) {
+      howlRef.current.stop();
+      howlRef.current.unload();
+      howlRef.current = null;
+    }
+    if (nextHowlRef.current) {
+      nextHowlRef.current.unload();
+      nextHowlRef.current = null;
     }
 
+    isPlayingRef.current = false;
+    stopTimeUpdateLoop();
+    segmentMapRef.current = [];
+
+    // Full reset to initial state
     updateState({
+      currentPlaylist: null,
+      queue: [],
       isPlaying: false,
       isPaused: false,
       currentSegmentIndex: 0,
       currentTime: 0,
       virtualTime: 0,
+      totalDuration: 0,
+      isMinimized: false,
+      currentStoryId: null,
+      currentStoryData: null,
     });
-  }, [updateState, loadSegmentAudio]);
+  }, [updateState, stopTimeUpdateLoop]);
 
-  // Toggle play/pause
   const togglePlayPause = useCallback(() => {
     if (state.isPlaying) {
       pause();
@@ -482,11 +615,8 @@ export const MediaPlayerProvider = ({ children }) => {
     }
   }, [state.isPlaying, play, pause]);
 
-  // Seek to virtual time in playlist
   const seekTo = useCallback(
     (virtualTime) => {
-      if (!audioRef.current) return;
-
       const segmentMap = segmentMapRef.current;
       if (!segmentMap.length) return;
 
@@ -494,7 +624,7 @@ export const MediaPlayerProvider = ({ children }) => {
 
       // Find which segment contains this virtual time
       let targetSegment = null;
-      let targetIndex = 0;
+      let targetIndex = -1;
 
       for (let i = 0; i < segmentMap.length; i++) {
         const segment = segmentMap[i];
@@ -508,7 +638,7 @@ export const MediaPlayerProvider = ({ children }) => {
         }
       }
 
-      // If not found, clamp to boundaries
+      // If not found, seek to start of last segment
       if (!targetSegment) {
         if (virtualTime < 0) {
           targetSegment = segmentMap[0];
@@ -528,107 +658,101 @@ export const MediaPlayerProvider = ({ children }) => {
       isSeekingRef.current = true;
 
       if (needsSegmentChange) {
-        // Pause current audio before switching segments
-        if (audioRef.current) {
-          audioRef.current.pause();
+        // Need to load a different segment
+        if (howlRef.current) {
+          howlRef.current.pause();
         }
+        stopTimeUpdateLoop();
 
-        updateState({
-          currentSegmentIndex: targetIndex,
-          virtualTime: virtualTime,
-        });
+        updateState({ currentSegmentIndex: targetIndex, virtualTime });
         loadSegmentAudio(targetIndex, offsetInSegment);
 
-        // Resume playback if it was playing
         if (wasPlaying) {
           const tryPlay = () => {
-            if (audioRef.current && audioRef.current.readyState >= 2) {
-              audioRef.current.play().catch((err) => {
-                console.error("Failed to resume after seek:", err);
-              });
+            if (howlRef.current && howlRef.current.state() === "loaded") {
+              howlRef.current.play();
+              isPlayingRef.current = true;
+              startTimeUpdateLoop();
+              isSeekingRef.current = false;
             } else {
               setTimeout(tryPlay, 50);
             }
           };
-          setTimeout(tryPlay, 100);
+          setTimeout(tryPlay, 50);
+        } else {
+          isSeekingRef.current = false;
         }
       } else {
-        // Same segment, just seek
+        // Same segment, just seek within it
         const realTime = targetSegment.startTimestamp + offsetInSegment;
-        audioRef.current.currentTime = realTime;
-
-        // Update virtual time immediately for paused state
-        updateState({ virtualTime: virtualTime });
-        virtualTimeRef.current = virtualTime;
-
-        // Resume playback if it was playing
-        if (wasPlaying && audioRef.current.paused) {
-          audioRef.current.play().catch((err) => {
-            console.error("Failed to resume after seek:", err);
-          });
+        if (howlRef.current) {
+          howlRef.current.seek(realTime);
         }
+
+        updateState({
+          virtualTime: virtualTime,
+        });
+
+        setTimeout(() => {
+          isSeekingRef.current = false;
+        }, 100);
       }
+    },
+    [loadSegmentAudio, updateState, stopTimeUpdateLoop, startTimeUpdateLoop],
+  );
+
+  const playSegment = useCallback(
+    (segmentIndex) => {
+      const segmentMap = segmentMapRef.current;
+      if (!segmentMap.length || segmentIndex >= segmentMap.length) return;
+
+      updateState({ currentSegmentIndex: segmentIndex });
+      loadSegmentAudio(segmentIndex);
 
       setTimeout(() => {
-        isSeekingRef.current = false;
-      }, 200);
+        if (howlRef.current && howlRef.current.state() === "loaded") {
+          howlRef.current.play();
+          isPlayingRef.current = true;
+          startTimeUpdateLoop();
+          updateState({ isPlaying: true, isPaused: false });
+        }
+      }, 100);
     },
-    [updateState, loadSegmentAudio],
+    [loadSegmentAudio, updateState, startTimeUpdateLoop],
   );
 
-  // Jump to specific segment
-  const playSegment = useCallback(
-    (index) => {
-      const segmentMap = segmentMapRef.current;
-      if (!segmentMap || index < 0 || index >= segmentMap.length) return;
-
-      updateState({ currentSegmentIndex: index });
-      loadSegmentAudio(index);
-
-      if (state.isPlaying) {
-        setTimeout(() => {
-          play();
-        }, 50);
-      }
-    },
-    [state.isPlaying, loadSegmentAudio, play, updateState],
-  );
-
-  // Next segment
   const nextSegment = useCallback(() => {
-    const playlist = state.currentPlaylist;
-    const nextIndex = state.currentSegmentIndex + 1;
+    const playlist = playlistRef.current;
+    const nextIndex = currentSegmentRef.current + 1;
+    if (playlist && nextIndex < playlist.length) {
+      playSegment(nextIndex);
+    }
+  }, [playSegment]);
 
-    if (!playlist || nextIndex >= playlist.length) return;
-
-    playSegment(nextIndex);
-  }, [state.currentPlaylist, state.currentSegmentIndex, playSegment]);
-
-  // Previous segment
   const previousSegment = useCallback(() => {
-    const prevIndex = state.currentSegmentIndex - 1;
+    const prevIndex = currentSegmentRef.current - 1;
+    if (prevIndex >= 0) {
+      playSegment(prevIndex);
+    }
+  }, [playSegment]);
 
-    if (prevIndex < 0) return;
-
-    playSegment(prevIndex);
-  }, [state.currentSegmentIndex, playSegment]);
-
-  // Set playback rate
   const setPlaybackRate = useCallback(
     (rate) => {
-      if (rate < 0.25 || rate > 2.0) return;
+      if (howlRef.current) {
+        howlRef.current.rate(rate);
+      }
 
-      updateState({ playbackRate: rate });
+      updateState({
+        playbackRate: rate,
+      });
     },
     [updateState],
   );
 
-  // Clear queue
   const clearQueue = useCallback(() => {
     updateState({ queue: [] });
   }, [updateState]);
 
-  // Remove from queue
   const removeFromQueue = useCallback(
     (index) => {
       const newQueue = [...state.queue];
@@ -638,7 +762,6 @@ export const MediaPlayerProvider = ({ children }) => {
     [state.queue, updateState],
   );
 
-  // Get current segment (enhanced with virtual timeline info)
   const getCurrentSegment = useCallback(() => {
     const segmentMap = segmentMapRef.current;
     const currentIndex = currentSegmentRef.current;
@@ -646,87 +769,98 @@ export const MediaPlayerProvider = ({ children }) => {
     if (!segmentMap.length || currentIndex >= segmentMap.length) {
       return null;
     }
+
     return segmentMap[currentIndex];
   }, []);
 
-  // Get the full segment map (for displaying markers, etc.)
   const getSegmentMap = useCallback(() => {
     return segmentMapRef.current;
   }, []);
 
-  // Get current verse playing based on timing data (uses REAL audio time)
   const getCurrentVerse = useCallback(() => {
     const segment = getCurrentSegment();
-    if (!segment || !segment.timingData || !segment.timingData.timestamps) {
-      return null;
-    }
+    if (!segment) return null;
 
-    const timestamps = segment.timingData.timestamps;
-    const currentTime = audioRef.current?.currentTime || 0;
+    const timestamps = segment.timingData?.timestamps || [];
+    const currentTime = howlRef.current ? howlRef.current.seek() : 0;
 
-    // Parse the reference to get book, chapter, and verse info
-    const refMatch = segment.reference.match(/^([A-Z0-9]+)\s+(\d+):(.+)$/i);
+    // Parse the reference to extract book, chapter, verse info
+    const refMatch = segment.reference?.match(/^([A-Z0-9]+)\s+(\d+):(.+)$/i);
     if (!refMatch) return null;
 
     const book = refMatch[1];
     const chapter = refMatch[2];
     const verseSpec = refMatch[3];
 
-    // Parse verse specification (e.g., "1-2" or "1,3,5" or "1")
+    // Parse verse specification (can be "1-3", "4", "5-7,9-11", etc.)
     let verses = [];
-    if (verseSpec.includes(",")) {
-      // Multiple non-contiguous verses: "1,3,5"
-      const parts = verseSpec.split(",");
-      parts.forEach((part) => {
-        if (part.includes("-")) {
-          const [start, end] = part.trim().split("-").map(Number);
-          for (let v = start; v <= end; v++) {
-            verses.push(v);
-          }
-        } else {
-          verses.push(Number(part.trim()));
+    const parts = verseSpec.split(",");
+
+    for (const part of parts) {
+      const rangeParts = part.trim().split("-");
+      if (rangeParts.length === 2) {
+        const start = parseInt(rangeParts[0]);
+        const end = parseInt(rangeParts[1]);
+        for (let v = start; v <= end; v++) {
+          verses.push(v);
         }
-      });
-    } else if (verseSpec.includes("-")) {
-      // Range: "1-2"
-      const [start, end] = verseSpec.split("-").map(Number);
-      for (let v = start; v <= end; v++) {
-        verses.push(v);
-      }
-    } else {
-      // Single verse: "1"
-      verses.push(Number(verseSpec));
-    }
-
-    // Find which verse is currently playing
-    // timestamps array has start time for each verse, plus one final end time
-    for (let i = 0; i < verses.length; i++) {
-      const verseStart = timestamps[i];
-      const verseEnd = timestamps[i + 1] || Infinity;
-
-      if (currentTime >= verseStart && currentTime < verseEnd) {
-        return `${book} ${chapter}:${verses[i]}`;
+      } else if (rangeParts.length === 1) {
+        const start = parseInt(rangeParts[0]);
+        const end = parseInt(rangeParts[0]);
+        for (let v = start; v <= end; v++) {
+          verses.push(v);
+        }
       }
     }
 
-    // Default to first verse if before all timestamps
-    if (currentTime < timestamps[0]) {
-      return `${book} ${chapter}:${verses[0]}`;
+    if (!verses.length || !timestamps.length) return null;
+
+    // Find which verse we're currently at based on timestamp
+    let currentVerseIndex = 0;
+    for (let i = 0; i < timestamps.length - 1; i++) {
+      if (
+        typeof currentTime === "number" &&
+        currentTime >= timestamps[i] &&
+        currentTime < timestamps[i + 1]
+      ) {
+        currentVerseIndex = i;
+        break;
+      }
     }
 
-    // Default to last verse if after all timestamps
-    return `${book} ${chapter}:${verses[verses.length - 1]}`;
+    const verseStart = verses[0];
+    const verseEnd = verses[verses.length - 1];
+
+    return {
+      book,
+      chapter: parseInt(chapter),
+      verse: verses[currentVerseIndex] || verseStart,
+      verseStart,
+      verseEnd,
+    };
   }, [getCurrentSegment]);
 
-  // Toggle minimized state
   const toggleMinimized = useCallback(() => {
     updateState({ isMinimized: !state.isMinimized });
   }, [state.isMinimized, updateState]);
 
-  // Set minimized state
   const setMinimized = useCallback(
     (minimized) => {
       updateState({ isMinimized: minimized });
+    },
+    [updateState],
+  );
+
+  const setAudioLanguage = useCallback(
+    (langCode) => {
+      updateState({ audioLanguage: langCode });
+    },
+    [updateState],
+  );
+
+  const setCurrentStoryId = useCallback(
+    (storyId, storyData = null) => {
+      updateState({ currentStoryId: storyId, currentStoryData: storyData });
     },
     [updateState],
   );
@@ -746,10 +880,12 @@ export const MediaPlayerProvider = ({ children }) => {
     clearQueue,
     removeFromQueue,
     getCurrentSegment,
-    getCurrentVerse,
     getSegmentMap,
+    getCurrentVerse,
     toggleMinimized,
     setMinimized,
+    setAudioLanguage,
+    setCurrentStoryId,
   };
 
   return (

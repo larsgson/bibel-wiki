@@ -139,11 +139,47 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+/* Individual language section - matches StorySection styling */
+.full-playing-pane-language-section {
+    position: relative;
+    padding: 4px 0;
+    background-color: transparent;
+}
+
+/* Missing text warning line */
+.full-playing-pane-missing-warning {
+    color: #856404;
+    font-size: 1.1rem;
+    font-family: monospace;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+}
+
+/* Language code - positioned to the right like in StorySection */
+.full-playing-pane-language-code {
+    position: absolute;
+    top: 4px;
+    right: 0;
+    font-weight: 400;
+    color: rgba(0, 0, 0, 0.12);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    font-family: monospace;
+}
+
+/* Text content */
+.full-playing-pane-section-text {
+    margin-top: 0;
+    line-height: 1.6;
+    color: #333333;
+    padding-right: 30px;
+}
+
 .full-playing-pane-paragraph {
-    margin: 0 0 12px 0;
+    margin: 0 0 0.5rem 0;
     line-height: 1.6;
     color: #333;
-    font-size: 16px;
+    font-size: 0.9rem;
 }
 
 .full-playing-pane-paragraph:last-child {

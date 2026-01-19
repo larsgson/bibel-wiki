@@ -54,6 +54,7 @@ export const en = {
   availabilityBadge: {
     fullTooltip: "Text available for all required testaments",
     emptyTooltip: "Text not available for required testaments",
+    missingTooltip: "Story content not yet added to collection",
   },
 };
 
