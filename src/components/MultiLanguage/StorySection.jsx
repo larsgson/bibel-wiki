@@ -147,6 +147,9 @@ function StorySection({
 
             const hasBSBData = langCode === "eng" && langSection.bsbData;
 
+            // Check if this language should use RTL (hardcoded for now, will be in language data later)
+            const isRTL = langCode === "heb";
+
             return (
               <div key={langCode} className="story-language-section">
                 {/* Warning line when showing fallback text due to missing primary */}
@@ -175,7 +178,9 @@ function StorySection({
                 )}
 
                 {/* Text content - use BSBText for English with BSB data */}
-                <div className="story-section-text">
+                <div
+                  className={`story-section-text ${isRTL ? "story-section-text-rtl" : ""}`}
+                >
                   {hasBSBData ? (
                     <BSBText
                       bsbData={langSection.bsbData}

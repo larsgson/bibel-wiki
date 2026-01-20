@@ -129,6 +129,14 @@
     padding-right: 30px;
 }
 
+/* RTL text support (e.g., Hebrew) */
+.story-section-text-rtl {
+    direction: rtl;
+    text-align: right;
+    padding-right: 0;
+    padding-left: 30px;
+}
+
 /* ========================
    BSB Display Mode Indicator
    ======================== */
