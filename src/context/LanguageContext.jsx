@@ -729,6 +729,7 @@ const LanguageProvider = ({
 
   // Scan markdown files to build story testament metadata
   // Optimized: fetches in parallel batches and updates state progressively
+  // Only fetches files that exist in manifest.json to avoid 404 errors
   const preloadBibleReferences = useCallback(async () => {
     // Prevent multiple preload attempts
     if (preloadStartedRef.current) {
@@ -767,6 +768,21 @@ const LanguageProvider = ({
     ];
 
     try {
+      // First, load manifest.json to get list of files that actually exist
+      const manifestResponse = await fetch("/templates/OBS/manifest.json");
+      if (!manifestResponse.ok) {
+        throw new Error("Could not load OBS manifest");
+      }
+      const manifest = await manifestResponse.json();
+
+      // Build set of existing markdown files (lowercase for case-insensitive matching)
+      const existingFiles = new Set(
+        manifest.files
+          .map((f) => f.path)
+          .filter((p) => p.endsWith(".md"))
+          .map((p) => p.toLowerCase()),
+      );
+
       // Get list of all categories from main index
       const indexResponse = await fetch("/templates/OBS/index.toml");
       if (!indexResponse.ok) {
@@ -801,8 +817,13 @@ const LanguageProvider = ({
       const storyArrays = await Promise.all(categoryPromises);
       const allStories = storyArrays.flat();
 
-      // Fetch all markdown files in parallel (batch of all at once - they're small)
-      const storyPromises = allStories.map(async ({ path, storyId }) => {
+      // Filter to only stories that exist in manifest
+      const existingStories = allStories.filter((story) =>
+        existingFiles.has(story.path.toLowerCase()),
+      );
+
+      // Fetch only markdown files that exist (to avoid 404 errors)
+      const storyPromises = existingStories.map(async ({ path, storyId }) => {
         try {
           const mdResponse = await fetch(`/templates/OBS/${path}`);
           if (mdResponse.ok) {
