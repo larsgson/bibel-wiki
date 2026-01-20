@@ -1,4 +1,4 @@
-# Bible Compass
+# Bibel Wiki
 
 A React + Vite application for exploring Bible translations across languages and regions.
 
@@ -47,7 +47,7 @@ pnpm preview
 ## Project Structure
 
 ```
-bible-compass/
+bibel-wiki/
 ├── public/
 │   ├── ALL-langs-mini.json        # Language codes
 │   ├── ALL-langs-data/
