@@ -1,7 +1,6 @@
 // French UI strings
 export const fr = {
   app: {
-    title: "Boussole Biblique",
     selectLanguage: "Sélectionner la langue",
     changeLanguage: "Changer de langue",
   },

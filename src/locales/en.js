@@ -1,7 +1,6 @@
 // English UI strings
 export const en = {
   app: {
-    title: "Bibel Wiki",
     selectLanguage: "Select Language",
     changeLanguage: "Change language",
   },

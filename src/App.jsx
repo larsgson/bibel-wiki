@@ -95,7 +95,7 @@ function AppContentInner({
     <div className="app">
       <header className="app-header">
         <div className="header-content">
-          <h1 className="app-title">{t("app.title")}</h1>
+          <h1 className="app-title">Bibel Wiki</h1>
           <div className="language-buttons-container">
             <button
               className="language-button"
