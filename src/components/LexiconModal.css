@@ -1,0 +1,265 @@
+/* LexiconModal component styles */
+
+/* Overlay */
+.lexicon-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0);
+  z-index: 999;
+  pointer-events: none;
+  transition: background-color 0.3s ease;
+}
+
+.lexicon-overlay-visible {
+  background-color: rgba(0, 0, 0, 0.4);
+  pointer-events: auto;
+}
+
+/* Bottom Sheet Modal */
+.lexicon-modal {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ffffff;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  max-height: 70vh;
+  z-index: 1000;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.lexicon-modal-visible {
+  transform: translateY(0);
+}
+
+/* Handle bar for drag indication */
+.lexicon-handle {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 8px;
+  flex-shrink: 0;
+}
+
+.lexicon-handle-bar {
+  width: 36px;
+  height: 4px;
+  background-color: #e0e0e0;
+  border-radius: 2px;
+}
+
+/* Content area */
+.lexicon-content {
+  padding: 0 20px 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Header */
+.lexicon-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+/* Language badge */
+.lexicon-badge {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.lexicon-badge-hebrew {
+  background-color: #c22839;
+}
+
+.lexicon-badge-greek {
+  background-color: #5983f0;
+}
+
+/* Strong's code */
+.lexicon-strongs-code {
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
+  font-family: monospace;
+}
+
+/* Close button */
+.lexicon-close-btn {
+  margin-left: auto;
+  padding: 4px 8px;
+  font-size: 24px;
+  line-height: 1;
+  color: #999;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.lexicon-close-btn:hover {
+  color: #333;
+}
+
+/* Original word */
+.lexicon-word {
+  font-size: 28px;
+  font-weight: 600;
+  color: #4a90e2;
+  margin-bottom: 4px;
+}
+
+.lexicon-underline {
+  width: 35px;
+  height: 3px;
+  background-color: #4a90e2;
+  margin-bottom: 10px;
+  border-radius: 2px;
+}
+
+/* Transliteration */
+.lexicon-translit {
+  font-size: 16px;
+  color: #666;
+  font-style: italic;
+}
+
+/* Pronunciation */
+.lexicon-pron {
+  font-size: 14px;
+  color: #888;
+  margin-bottom: 12px;
+}
+
+/* Sections */
+.lexicon-section {
+  margin-top: 12px;
+}
+
+.lexicon-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+}
+
+.lexicon-gloss {
+  font-size: 16px;
+  font-weight: 600;
+  color: #4a90e2;
+}
+
+.lexicon-def {
+  font-size: 15px;
+  color: #333;
+  line-height: 1.5;
+}
+
+.lexicon-full-def {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.lexicon-kjv {
+  font-size: 14px;
+  color: #666;
+  font-style: italic;
+}
+
+/* Loading state */
+.lexicon-loading {
+  padding: 40px 0;
+  text-align: center;
+  color: #888;
+  font-size: 14px;
+}
+
+/* Error state */
+.lexicon-error {
+  padding: 40px 0;
+  text-align: center;
+  color: #c22839;
+  font-size: 14px;
+}
+
+/* Action buttons */
+.lexicon-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.lexicon-action-btn {
+  flex: 1;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4a90e2;
+  background-color: rgba(74, 144, 226, 0.1);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.lexicon-action-btn:hover {
+  background-color: rgba(74, 144, 226, 0.2);
+}
+
+.lexicon-action-btn:active {
+  background-color: rgba(74, 144, 226, 0.3);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .lexicon-modal {
+    max-height: 80vh;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+  }
+
+  .lexicon-content {
+    padding: 0 16px 16px;
+  }
+
+  .lexicon-word {
+    font-size: 24px;
+  }
+
+  .lexicon-def,
+  .lexicon-gloss {
+    font-size: 14px;
+  }
+}
+
+/* Desktop: center modal like a card */
+@media (min-width: 769px) {
+  .lexicon-modal {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%) translateY(100%);
+    width: 480px;
+    max-width: 90vw;
+    border-radius: 16px;
+    bottom: 20px;
+  }
+
+  .lexicon-modal-visible {
+    transform: translateX(-50%) translateY(0);
+  }
+}

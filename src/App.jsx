@@ -166,7 +166,7 @@ function AppContentInner({
           selectedLanguage={secondaryLanguage}
           onSelect={handleSecondaryLanguageSelect}
           onClose={handleCloseSecondaryLanguageSelector}
-          excludeLanguages={[selectedLanguage?.code, "eng"]}
+          excludeLanguages={[selectedLanguage?.code]}
           title="Select Secondary Language"
           allowNone={true}
         />

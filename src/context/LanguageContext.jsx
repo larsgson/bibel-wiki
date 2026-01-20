@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { parseReference, getTestament } from "../utils/bibleUtils";
+import { loadBSBChapter } from "../helpers/bsbDataApi";
 
 const LanguageContext = React.createContext([{}, () => {}]);
 
@@ -32,8 +33,13 @@ const LanguageProvider = ({
   initialSecondaryLanguage = null,
 }) => {
   // Helper function to compute active languages array (ensures no duplicates)
+  // Returns { languages: [...], engIsExplicit: boolean }
+  // engIsExplicit is true if English was explicitly selected (not just auto-added as fallback)
   const getActiveLanguages = (primary, secondary) => {
     const languages = new Set();
+
+    // Track if English is explicitly selected (primary or secondary)
+    const engIsExplicit = primary === "eng" || secondary === "eng";
 
     // Always add primary first
     languages.add(primary);
@@ -43,10 +49,10 @@ const LanguageProvider = ({
       languages.add(secondary);
     }
 
-    // Always include English if not already present
+    // Always include English if not already present (as fallback)
     languages.add("eng");
 
-    return Array.from(languages);
+    return { languages: Array.from(languages), engIsExplicit };
   };
   // Helper function to parse TOML files
   const parseToml = (text) => {
@@ -146,13 +152,15 @@ const LanguageProvider = ({
     return result;
   };
 
+  const initialActive = getActiveLanguages(
+    initialLanguage,
+    initialSecondaryLanguage,
+  );
   const [state, setState] = useState({
     selectedLanguage: initialLanguage, // Primary language (for backward compatibility)
     secondaryLanguage: initialSecondaryLanguage, // Secondary language
-    selectedLanguages: getActiveLanguages(
-      initialLanguage,
-      initialSecondaryLanguage,
-    ), // Array of all active languages
+    selectedLanguages: initialActive.languages, // Array of all active languages
+    engIsExplicit: initialActive.engIsExplicit, // True if English was explicitly selected (not just fallback)
     availableLanguages: [],
     languageData: {}, // Bible data for each language: { langCode: { ot: {...}, nt: {...} } }
     languageNames: {}, // Language display names: { langCode: { english: "...", vernacular: "..." } }
@@ -172,9 +180,7 @@ const LanguageProvider = ({
   const chapterTextRef = useRef({});
   const selectedLanguageRef = useRef(initialLanguage);
   const secondaryLanguageRef = useRef(initialSecondaryLanguage);
-  const selectedLanguagesRef = useRef(
-    getActiveLanguages(initialLanguage, initialSecondaryLanguage),
-  );
+  const selectedLanguagesRef = useRef(initialActive.languages);
   const languageDataRef = useRef({});
   const loadingAudioRef = useRef({}); // Track loading audio URLs
   const audioUrlsRef = useRef({}); // Track cached audio URLs
@@ -592,7 +598,7 @@ const LanguageProvider = ({
     [state.languageData, probeFilesets],
   );
 
-  // Load a specific chapter text using DBT API proxy
+  // Load a specific chapter text using DBT API proxy (or BSB for English)
   const loadChapter = useCallback(
     async (bookId, chapterNum, testament = "ot", language = null) => {
       // Use provided language or fall back to primary language
@@ -615,69 +621,81 @@ const LanguageProvider = ({
         return chapterTextRef.current[chapterKey];
       }
 
-      const languageData = languageDataRef.current;
-
-      // Load language data if not already loaded
-      if (!languageData[langCode]) {
-        await loadLanguageData(langCode);
-      }
-
-      if (!languageData[langCode]) {
-        return null;
-      }
-
-      // Use provided testament, default to OT for Genesis
-      const testamentToUse = testament;
-
-      // Early detection: check if testament data exists
-      const langData = languageData[langCode][testamentToUse];
-      if (!langData) {
-        return null;
-      }
-
-      // Check if this is audio-only (no text fileset available)
-      // Both "audio-with-timecode" and "audio-only" categories mean no text exists
-      if (
-        (langData.audioCategory === "audio-with-timecode" ||
-          langData.audioCategory === "audio-only") &&
-        !langData.filesetId
-      ) {
-        // No text available for this testament - return empty
-        return null;
-      }
-
       // Mark as loading
       loadingChaptersRef.current[chapterKey] = true;
       updateState({ isLoadingChapter: true });
 
       try {
-        let verseArray = [];
+        let result = null;
 
-        // Load text from DBT API
-        const filesetId = langData.filesetId || langData.distinctId;
-
-        if (!filesetId) {
-          throw new Error(`No fileset ID for ${testamentToUse} in ${langCode}`);
+        // For English, use BSB data instead of DBT API
+        if (langCode === "eng") {
+          const bsbData = await loadBSBChapter(bookId, chapterNum);
+          if (bsbData) {
+            result = bsbData; // BSB format: { isBSB: true, book, chapter, verses }
+          }
         }
 
-        const url = `/.netlify/functions/dbt-proxy?type=text&fileset_id=${filesetId}&book_id=${bookId}&chapter_id=${chapterNum}`;
-        // Use low priority for background loading to avoid interfering with audio playback
-        const response = await fetch(url, {
-          priority: "low", // Chrome/Edge - deprioritize this request
-        });
+        // If not English or BSB failed, fall back to DBT API
+        if (!result) {
+          const languageData = languageDataRef.current;
 
-        if (!response.ok) {
-          throw new Error(`API request failed: ${response.status}`);
-        }
+          // Load language data if not already loaded
+          if (!languageData[langCode]) {
+            await loadLanguageData(langCode);
+          }
 
-        const data = await response.json();
+          if (!languageData[langCode]) {
+            throw new Error(`No language data for ${langCode}`);
+          }
 
-        // Extract verse array from API response
-        if (data.data && Array.isArray(data.data)) {
-          verseArray = data.data.map((verse) => ({
-            num: parseInt(verse.verse_start, 10),
-            text: verse.verse_text,
-          }));
+          // Use provided testament, default to OT for Genesis
+          const testamentToUse = testament;
+
+          // Early detection: check if testament data exists
+          const langData = languageData[langCode][testamentToUse];
+          if (!langData) {
+            throw new Error(`No ${testamentToUse} data for ${langCode}`);
+          }
+
+          // Check if this is audio-only (no text fileset available)
+          if (
+            (langData.audioCategory === "audio-with-timecode" ||
+              langData.audioCategory === "audio-only") &&
+            !langData.filesetId
+          ) {
+            throw new Error(
+              `No text available for ${testamentToUse} in ${langCode}`,
+            );
+          }
+
+          // Load text from DBT API
+          const filesetId = langData.filesetId || langData.distinctId;
+
+          if (!filesetId) {
+            throw new Error(
+              `No fileset ID for ${testamentToUse} in ${langCode}`,
+            );
+          }
+
+          const url = `/.netlify/functions/dbt-proxy?type=text&fileset_id=${filesetId}&book_id=${bookId}&chapter_id=${chapterNum}`;
+          const response = await fetch(url, {
+            priority: "low",
+          });
+
+          if (!response.ok) {
+            throw new Error(`API request failed: ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          // Extract verse array from API response (DBT format)
+          if (data.data && Array.isArray(data.data)) {
+            result = data.data.map((verse) => ({
+              num: parseInt(verse.verse_start, 10),
+              text: verse.verse_text,
+            }));
+          }
         }
 
         // Update state with loaded chapter - immutably
@@ -685,7 +703,7 @@ const LanguageProvider = ({
 
         const newChapterText = {
           ...chapterTextRef.current,
-          [chapterKey]: verseArray,
+          [chapterKey]: result,
         };
         chapterTextRef.current = newChapterText;
 
@@ -694,8 +712,9 @@ const LanguageProvider = ({
           isLoadingChapter: false,
         });
 
-        return verseArray;
+        return result;
       } catch (error) {
+        console.warn(`Failed to load chapter ${chapterKey}:`, error.message);
         delete loadingChaptersRef.current[chapterKey];
 
         setState((prevState) => ({
@@ -1054,8 +1073,15 @@ const LanguageProvider = ({
           const { book, chapter } = parsed;
           const testament = getTestament(book);
 
-          // Add for each selected language
+          // Add for each selected language (only if language has data for this testament)
           languages.forEach((langCode) => {
+            // Skip if language doesn't have data for this testament
+            const langData = state.languageData[langCode];
+            if (langData && !langData[testament]) {
+              // Language exists but doesn't have this testament - skip silently
+              return;
+            }
+
             const chapterKey = `${langCode}-${book}.${chapter}`;
             if (!chaptersToLoad.has(chapterKey)) {
               chaptersToLoad.set(chapterKey, {
@@ -1089,7 +1115,7 @@ const LanguageProvider = ({
         await new Promise((resolve) => setTimeout(resolve, 50));
       }
     },
-    [loadChapter],
+    [loadChapter, state.languageData],
   );
 
   // Clean up cached data for a deselected language
@@ -1135,14 +1161,11 @@ const LanguageProvider = ({
     async (primaryLangCode, secondaryLangCode = null) => {
       // Compute old and new active languages
       const oldActiveLanguages = selectedLanguagesRef.current;
-      const newActiveLanguages = getActiveLanguages(
-        primaryLangCode,
-        secondaryLangCode,
-      );
+      const newActive = getActiveLanguages(primaryLangCode, secondaryLangCode);
 
       // Find languages that were deselected
       const deselectedLanguages = oldActiveLanguages.filter(
-        (lang) => !newActiveLanguages.includes(lang),
+        (lang) => !newActive.languages.includes(lang),
       );
 
       // Clean up deselected languages
@@ -1154,12 +1177,13 @@ const LanguageProvider = ({
       timingFileCacheRef.current = {};
       selectedLanguageRef.current = primaryLangCode;
       secondaryLanguageRef.current = secondaryLangCode;
-      selectedLanguagesRef.current = newActiveLanguages;
+      selectedLanguagesRef.current = newActive.languages;
 
       updateState({
         selectedLanguage: primaryLangCode,
         secondaryLanguage: secondaryLangCode,
-        selectedLanguages: newActiveLanguages,
+        selectedLanguages: newActive.languages,
+        engIsExplicit: newActive.engIsExplicit,
         timingFileCache: {},
       });
 
@@ -1281,7 +1305,7 @@ const LanguageProvider = ({
 
     if (needsUpdate) {
       // Recompute active languages
-      const newActiveLanguages = getActiveLanguages(
+      const newActive = getActiveLanguages(
         initialLanguage,
         initialSecondaryLanguage,
       );
@@ -1289,7 +1313,7 @@ const LanguageProvider = ({
       // Update refs
       selectedLanguageRef.current = initialLanguage;
       secondaryLanguageRef.current = initialSecondaryLanguage;
-      selectedLanguagesRef.current = newActiveLanguages;
+      selectedLanguagesRef.current = newActive.languages;
 
       // Clear caches when languages change (immutably)
       const newChapterText = {};
@@ -1303,7 +1327,7 @@ const LanguageProvider = ({
       preloadStartedRef.current = false; // Reset preload flag to allow reloading
 
       // Load language data for ALL active languages
-      const loadPromises = newActiveLanguages.map((langCode) => {
+      const loadPromises = newActive.languages.map((langCode) => {
         if (!languageDataRef.current[langCode]) {
           return loadLanguageData(langCode);
         }
@@ -1315,7 +1339,8 @@ const LanguageProvider = ({
         updateState({
           selectedLanguage: initialLanguage,
           secondaryLanguage: initialSecondaryLanguage,
-          selectedLanguages: newActiveLanguages,
+          selectedLanguages: newActive.languages,
+          engIsExplicit: newActive.engIsExplicit,
           languageData: { ...languageDataRef.current },
           chapterText: newChapterText,
           audioUrls: newAudioUrls,
@@ -1324,9 +1349,9 @@ const LanguageProvider = ({
 
         // Log language info with details
         console.log(
-          `Languages changed to: ${newActiveLanguages.join(", ").toUpperCase()}`,
+          `Languages changed to: ${newActive.languages.join(", ").toUpperCase()}`,
         );
-        for (const langCode of newActiveLanguages) {
+        for (const langCode of newActive.languages) {
           const langData = languageDataRef.current[langCode];
           if (langData) {
             const otTextCat = langData.ot?.category || "N/A";

@@ -1,0 +1,299 @@
+/* BSBText component styles */
+
+.bsb-text {
+    line-height: 1.6;
+    color: #333333;
+}
+
+.bsb-text-interlinear {
+    line-height: 1.4;
+}
+
+.bsb-verse {
+    /* Verses flow inline */
+}
+
+.bsb-verse + .bsb-verse::before {
+    content: " ";
+}
+
+/* ========================
+   ENG Mode (Plain Text)
+   ======================== */
+
+.bsb-clickable-word {
+    cursor: pointer;
+    border-radius: 2px;
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease;
+    text-decoration-line: underline;
+    text-decoration-style: dotted;
+    text-decoration-color: rgba(74, 144, 226, 0.4);
+    text-underline-offset: 2px;
+}
+
+.bsb-clickable-word:hover {
+    background-color: rgba(74, 144, 226, 0.15);
+    text-decoration-color: rgba(74, 144, 226, 0.8);
+}
+
+.bsb-clickable-word:active {
+    background-color: rgba(74, 144, 226, 0.25);
+}
+
+.bsb-clickable-word:focus {
+    outline: 2px solid rgba(74, 144, 226, 0.5);
+    outline-offset: 1px;
+}
+
+/* ========================
+   Strong's Mode
+   ======================== */
+
+.bsb-verse-strongs {
+    line-height: 1.9;
+}
+
+.bsb-strongs-word {
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background-color 0.15s ease;
+}
+
+.bsb-strongs-word:hover {
+    background-color: rgba(74, 144, 226, 0.15);
+}
+
+.bsb-strongs-text {
+    /* Text portion */
+}
+
+.bsb-strongs-badge {
+    display: inline;
+    padding: 1px 4px;
+    margin-left: 1px;
+    margin-right: 2px;
+    font-size: 9px;
+    font-weight: 600;
+    color: #4a90e2;
+    background-color: rgba(74, 144, 226, 0.12);
+    border-radius: 3px;
+    vertical-align: super;
+    transition:
+        background-color 0.15s,
+        color 0.15s;
+}
+
+.bsb-strongs-word:hover .bsb-strongs-badge {
+    background-color: #4a90e2;
+    color: #fff;
+}
+
+/* ========================
+   Interlinear Modes
+   ======================== */
+
+.bsb-verse-interlinear {
+    display: flex;
+    margin-bottom: 12px;
+    align-items: flex-start;
+}
+
+.bsb-verse-number {
+    width: 24px;
+    min-width: 24px;
+    font-size: 11px;
+    color: #888;
+    font-weight: 600;
+    padding-top: 4px;
+}
+
+.bsb-interlinear-words {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    flex: 1;
+}
+
+/* RTL word order for Hebrew (OT) */
+.bsb-interlinear-words-rtl {
+    direction: rtl;
+}
+
+.bsb-interlinear-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 8px;
+    background-color: rgba(74, 144, 226, 0.1);
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition:
+        background-color 0.15s,
+        transform 0.1s;
+    font-family: inherit;
+}
+
+.bsb-interlinear-card:hover {
+    background-color: rgba(74, 144, 226, 0.25);
+}
+
+.bsb-interlinear-card:active {
+    transform: scale(0.98);
+}
+
+.bsb-interlinear-card-compact {
+    padding: 3px 6px;
+}
+
+.bsb-interlinear-strongs {
+    font-size: 9px;
+    color: #888;
+    font-weight: 600;
+    margin-bottom: 1px;
+}
+
+.bsb-interlinear-original {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.bsb-interlinear-hebrew {
+    color: #1a1a2e;
+    direction: rtl;
+}
+
+.bsb-interlinear-greek {
+    color: #1a1a2e;
+}
+
+.bsb-interlinear-english {
+    font-size: 12px;
+    color: #4a90e2;
+    font-weight: 500;
+}
+
+.bsb-interlinear-card-compact .bsb-interlinear-original {
+    font-size: 14px;
+}
+
+.bsb-interlinear-card-compact .bsb-interlinear-english {
+    font-size: 11px;
+}
+
+/* ========================
+   Cross-references
+   ======================== */
+
+.bsb-cross-refs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #ddd;
+    width: 100%;
+}
+
+.bsb-cross-ref-btn {
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #1a73e8;
+    background: rgba(26, 115, 232, 0.08);
+    border: 1px solid rgba(26, 115, 232, 0.2);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+}
+
+.bsb-cross-ref-btn:hover {
+    background: rgba(26, 115, 232, 0.15);
+    border-color: rgba(26, 115, 232, 0.4);
+}
+
+.bsb-cross-ref-btn:active {
+    background: rgba(26, 115, 232, 0.25);
+}
+
+.bsb-cross-ref-more {
+    padding: 3px 6px;
+    font-size: 11px;
+    color: #888;
+    font-weight: 500;
+}
+
+/* ========================
+   Touch device optimizations
+   ======================== */
+
+@media (hover: none) {
+    .bsb-clickable-word {
+        text-decoration-color: rgba(74, 144, 226, 0.5);
+    }
+
+    .bsb-clickable-word:active {
+        background-color: rgba(74, 144, 226, 0.2);
+    }
+
+    .bsb-interlinear-card:active {
+        background-color: rgba(74, 144, 226, 0.3);
+    }
+}
+
+/* ========================
+   Mobile responsiveness
+   ======================== */
+
+@media (max-width: 768px) {
+    .bsb-text {
+        font-size: 0.9rem;
+    }
+
+    .bsb-clickable-word {
+        padding: 1px 0;
+    }
+
+    .bsb-strongs-badge {
+        font-size: 8px;
+        padding: 0px 3px;
+    }
+
+    .bsb-verse-number {
+        width: 20px;
+        min-width: 20px;
+        font-size: 10px;
+    }
+
+    .bsb-interlinear-card {
+        padding: 3px 6px;
+    }
+
+    .bsb-interlinear-card-compact {
+        padding: 2px 4px;
+    }
+
+    .bsb-interlinear-strongs {
+        font-size: 8px;
+    }
+
+    .bsb-interlinear-original {
+        font-size: 14px;
+    }
+
+    .bsb-interlinear-english {
+        font-size: 11px;
+    }
+
+    .bsb-interlinear-card-compact .bsb-interlinear-original {
+        font-size: 12px;
+    }
+
+    .bsb-interlinear-card-compact .bsb-interlinear-english {
+        font-size: 10px;
+    }
+}

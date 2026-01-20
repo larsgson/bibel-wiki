@@ -114,36 +114,74 @@ export const parseReference = (reference) => {
 };
 
 /**
- * Extract specific verses from chapter verse array
- * @param {Array|string} verseArray - Array of verse objects with num and text, or string (old format)
+ * Extract specific verses from chapter data
+ * Supports three formats:
+ * 1. String (legacy) - returns as-is
+ * 2. DBT API format - Array of { num, text }
+ * 3. BSB format - { isBSB: true, verses: [{ v, w: [[text, strongs], ...] }] }
+ *
+ * @param {Array|string|Object} chapterData - Chapter data in any supported format
  * @param {number} verseStart - Start verse number (if range)
  * @param {number} verseEnd - End verse number (if range)
  * @param {Array} verses - Array of specific verse numbers (if comma-separated)
- * @returns {string|null} Extracted verse text or null
+ * @returns {string|Object|null} Extracted verse text (string) or BSB data (object) or null
  */
 export const extractVerses = (
-  verseArray,
+  chapterData,
   verseStart,
   verseEnd,
   verses = null,
 ) => {
-  if (!verseArray) return null;
+  if (!chapterData) return null;
 
   // If it's a string (old format), return it as-is
-  if (typeof verseArray === "string") {
-    return verseArray;
+  if (typeof chapterData === "string") {
+    return chapterData;
   }
 
-  // If it's an array (new format from DBT API)
-  if (Array.isArray(verseArray)) {
+  // If it's BSB format
+  if (chapterData.isBSB && chapterData.verses) {
     let selectedVerses;
 
     // Handle comma-separated verses (specific verse numbers)
     if (verses && Array.isArray(verses)) {
-      selectedVerses = verseArray.filter((v) => verses.includes(v.num));
+      selectedVerses = chapterData.verses.filter((v) => verses.includes(v.v));
+    } else if (verseStart && verseEnd) {
+      // Handle range
+      selectedVerses = chapterData.verses.filter(
+        (v) => v.v >= verseStart && v.v <= verseEnd,
+      );
+    } else if (verseStart) {
+      // Single verse
+      selectedVerses = chapterData.verses.filter((v) => v.v === verseStart);
+    } else {
+      // No verse filter - return all
+      selectedVerses = chapterData.verses;
+    }
+
+    if (selectedVerses.length === 0) {
+      return null;
+    }
+
+    // Return BSB structure for rendering with clickable words
+    return {
+      isBSB: true,
+      book: chapterData.book,
+      chapter: chapterData.chapter,
+      verses: selectedVerses,
+    };
+  }
+
+  // If it's an array (DBT API format)
+  if (Array.isArray(chapterData)) {
+    let selectedVerses;
+
+    // Handle comma-separated verses (specific verse numbers)
+    if (verses && Array.isArray(verses)) {
+      selectedVerses = chapterData.filter((v) => verses.includes(v.num));
     } else {
       // Handle range
-      selectedVerses = verseArray.filter(
+      selectedVerses = chapterData.filter(
         (v) => v.num >= verseStart && v.num <= verseEnd,
       );
     }
@@ -152,7 +190,7 @@ export const extractVerses = (
       return null;
     }
 
-    // Format without verse numbers
+    // Format without verse numbers - return plain text
     return selectedVerses
       .map((v) => v.text)
       .join(" ")
@@ -160,6 +198,27 @@ export const extractVerses = (
   }
 
   return null;
+};
+
+/**
+ * Convert BSB verse data to plain text
+ * @param {Object} bsbData - BSB verse data with { isBSB: true, verses: [...] }
+ * @returns {string} Plain text of verses
+ */
+export const bsbToPlainText = (bsbData) => {
+  if (!bsbData || !bsbData.isBSB || !bsbData.verses) {
+    return typeof bsbData === "string" ? bsbData : "";
+  }
+
+  return bsbData.verses
+    .map((verse) => {
+      return verse.w
+        .map(([text]) => text)
+        .join("")
+        .trim();
+    })
+    .join(" ")
+    .trim();
 };
 
 /**
@@ -208,7 +267,7 @@ export const splitReference = (reference) => {
  * Handles both single references (e.g., "MAT 1:18-19") and multi-references (e.g., "MAT 3:4,LUK 3:2-4")
  * @param {string} reference - Bible reference (e.g., "MAT 1:18-19" or "MAT 3:4,LUK 3:2-4")
  * @param {Object} chapterText - Cache of loaded chapters
- * @returns {string|null} Extracted text or null
+ * @returns {string|Object|null} Extracted text (string), BSB data (object with combined verses), or null
  */
 export const getTextForReference = (reference, chapterText) => {
   if (!reference || !chapterText) return null;
@@ -218,6 +277,8 @@ export const getTextForReference = (reference, chapterText) => {
   if (refs.length === 0) return null;
 
   const textParts = [];
+  const bsbVerses = []; // Collect all BSB verses for combined result
+  let hasBSBData = false;
 
   for (const ref of refs) {
     const parsed = parseReference(ref);
@@ -238,8 +299,26 @@ export const getTextForReference = (reference, chapterText) => {
     );
 
     if (extractedVerses) {
-      textParts.push(extractedVerses);
+      // Check if this is BSB format
+      if (typeof extractedVerses === "object" && extractedVerses.isBSB) {
+        hasBSBData = true;
+        // Collect all verses from this BSB result
+        if (extractedVerses.verses && Array.isArray(extractedVerses.verses)) {
+          bsbVerses.push(...extractedVerses.verses);
+        }
+      } else {
+        // Plain text result
+        textParts.push(extractedVerses);
+      }
     }
+  }
+
+  // If we have BSB data, return combined BSB object with all verses
+  if (hasBSBData && bsbVerses.length > 0) {
+    return {
+      isBSB: true,
+      verses: bsbVerses,
+    };
   }
 
   return textParts.length > 0 ? textParts.join(" ") : null;

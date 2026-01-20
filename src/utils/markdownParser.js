@@ -1,8 +1,9 @@
-import { getTextForReference } from "./bibleUtils";
+import { getTextForReference, bsbToPlainText } from "./bibleUtils";
 
 /**
  * Replace <<<REF>>> markers in text with actual Bible verses from cache
  * Supports multi-reference strings like "HEB 9:11-14,JOH 1:29, 1PE 1:18-19"
+ * For BSB data, converts to plain text for inline replacement
  */
 const replaceBibleReferences = (text, chapterText) => {
   if (!text || !chapterText) return text;
@@ -19,7 +20,12 @@ const replaceBibleReferences = (text, chapterText) => {
     // Use getTextForReference which handles multi-reference strings
     const extractedText = getTextForReference(reference, chapterText);
     if (extractedText) {
-      result = result.replace(fullMatch, extractedText);
+      // If BSB format, convert to plain text for inline replacement
+      const plainText =
+        typeof extractedText === "object" && extractedText.isBSB
+          ? bsbToPlainText(extractedText)
+          : extractedText;
+      result = result.replace(fullMatch, plainText);
     }
   }
 
@@ -102,7 +108,13 @@ export const parseMarkdownIntoSections = (markdown, chapterText = {}) => {
     if (section.reference && (!section.text || section.text.trim() === "")) {
       const extractedText = getTextForReference(section.reference, chapterText);
       if (extractedText) {
-        section.text = extractedText;
+        // Check if it's BSB format - store both BSB data and plain text
+        if (typeof extractedText === "object" && extractedText.isBSB) {
+          section.bsbData = extractedText;
+          section.text = bsbToPlainText(extractedText);
+        } else {
+          section.text = extractedText;
+        }
       }
     }
   });

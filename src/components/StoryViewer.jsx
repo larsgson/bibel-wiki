@@ -19,6 +19,7 @@ import useTranslation from "../hooks/useTranslation";
 import AudioPlayer from "./AudioPlayer";
 import FullPlayingPane from "./FullPlayingPane";
 import StorySection from "./MultiLanguage/StorySection";
+import BSBModeDialog, { DISPLAY_MODES } from "./BSBModeDialog";
 
 /**
  * Extract raw timing data for a specific reference
@@ -58,6 +59,7 @@ function StoryViewer({ storyData, onBack }) {
     selectedLanguage,
     secondaryLanguage,
     selectedLanguages,
+    engIsExplicit,
     languageData,
     getStoryMetadata,
     loadChaptersForStory,
@@ -90,6 +92,11 @@ function StoryViewer({ storyData, onBack }) {
   const [contentByLanguage, setContentByLanguage] = useState({});
   const [isChaptersLoading, setIsChaptersLoading] = useState(true);
   const [requiredChapters, setRequiredChapters] = useState(new Set());
+
+  // Global BSB display mode state
+  const [bsbDisplayMode, setBsbDisplayMode] = useState(DISPLAY_MODES.ENG);
+  const [useHebrewOrder, setUseHebrewOrder] = useState(true);
+  const [showModeDialog, setShowModeDialog] = useState(false);
 
   // Refs to prevent duplicate operations
   const playlistLoadedRef = useRef(false);
@@ -683,7 +690,39 @@ function StoryViewer({ storyData, onBack }) {
       playlistLoadedCountRef.current = audioPlaylistData.length;
       // Set the current story ID and data before loading the playlist
       setCurrentStoryId(storyId, storyData);
-      loadPlaylist(audioPlaylistData, { mode: "replace", autoPlay: true });
+
+      // Check if fallback language is being used (compute inline to avoid ordering issues)
+      // Only consider it fallback if English was NOT explicitly selected by the user
+      let usingFallback = false;
+      if (selectedLanguages.length > 1 && !engIsExplicit) {
+        const fallbackLang = selectedLanguages[selectedLanguages.length - 1];
+        const fallbackSections = contentByLanguage[fallbackLang]?.sections;
+        if (fallbackSections) {
+          for (let i = 0; i < fallbackSections.length; i++) {
+            const fallbackHasText = fallbackSections[i]?.text?.trim();
+            const nonFallbackHasText = selectedLanguages
+              .slice(0, -1)
+              .some((lang) => {
+                return contentByLanguage[lang]?.sections?.[i]?.text?.trim();
+              });
+            if (!nonFallbackHasText && fallbackHasText) {
+              usingFallback = true;
+              break;
+            }
+          }
+        }
+      }
+
+      // Don't auto-play if fallback language is being used
+      loadPlaylist(audioPlaylistData, {
+        mode: "replace",
+        autoPlay: !usingFallback,
+      });
+
+      // When fallback is used, show minimized player instead of full mode
+      if (usingFallback) {
+        setMinimized(true);
+      }
     }
   }, [
     audioPlaylistData,
@@ -693,6 +732,9 @@ function StoryViewer({ storyData, onBack }) {
     isReturningToPlayingStory,
     storyId,
     setCurrentStoryId,
+    selectedLanguages,
+    contentByLanguage,
+    engIsExplicit,
   ]);
 
   // Separate effect to clear playlist when timecode becomes unavailable
@@ -837,6 +879,13 @@ function StoryViewer({ storyData, onBack }) {
                 sectionsMap={sectionsMap}
                 isPlaying={isPlaying}
                 audioFallback={isAudioFallback}
+                bsbDisplayMode={bsbDisplayMode}
+                useHebrewOrder={useHebrewOrder}
+                isOldTestament={
+                  storyCapabilities.usesOT && !storyCapabilities.usesNT
+                }
+                engIsExplicit={engIsExplicit}
+                onModeIndicatorClick={() => setShowModeDialog(true)}
                 onSectionClick={(sectionIdx) => {
                   // If this story's playlist is already loaded, just play the segment
                   if (
@@ -882,6 +931,17 @@ function StoryViewer({ storyData, onBack }) {
       {currentPlaylist && currentPlaylist.length > 0 && !isMinimized && (
         <AudioPlayer />
       )}
+
+      {/* BSB Mode Dialog */}
+      <BSBModeDialog
+        isOpen={showModeDialog}
+        onClose={() => setShowModeDialog(false)}
+        displayMode={bsbDisplayMode}
+        onModeChange={(mode) => setBsbDisplayMode(mode)}
+        useHebrewOrder={useHebrewOrder}
+        onHebrewOrderChange={(value) => setUseHebrewOrder(value)}
+        isOldTestament={storyCapabilities.usesOT && !storyCapabilities.usesNT}
+      />
     </div>
   );
 }
