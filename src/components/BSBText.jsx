@@ -404,26 +404,9 @@ function BSBText({
             {!isCompact && displayCrossRefs.length > 0 && (
               <div className="bsb-cross-refs">
                 {displayCrossRefs.map((ref, idx) => (
-                  <button
-                    key={idx}
-                    className="bsb-cross-ref-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onCrossRefClick) {
-                        // Parse reference like "MAT.1.5" to { book, chapter, verse }
-                        const match = ref.match(/^([A-Z0-9]+)\.(\d+)\.(\d+)$/);
-                        if (match) {
-                          onCrossRefClick(
-                            match[1],
-                            parseInt(match[2]),
-                            parseInt(match[3]),
-                          );
-                        }
-                      }
-                    }}
-                  >
+                  <span key={idx} className="bsb-cross-ref">
                     {ref.replace(/\./g, " ").replace(/(\d+) (\d+)$/, "$1:$2")}
-                  </button>
+                  </span>
                 ))}
                 {moreCrossRefs > 0 && (
                   <span className="bsb-cross-ref-more">+{moreCrossRefs}</span>

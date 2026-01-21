@@ -203,33 +203,14 @@
     width: 100%;
 }
 
-.bsb-cross-ref-btn {
-    padding: 3px 8px;
-    font-size: 11px;
-    font-weight: 500;
-    color: #1a73e8;
-    background: rgba(26, 115, 232, 0.08);
-    border: 1px solid rgba(26, 115, 232, 0.2);
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.15s;
-    font-family: inherit;
-}
-
-.bsb-cross-ref-btn:hover {
-    background: rgba(26, 115, 232, 0.15);
-    border-color: rgba(26, 115, 232, 0.4);
-}
-
-.bsb-cross-ref-btn:active {
-    background: rgba(26, 115, 232, 0.25);
+.bsb-cross-ref {
+    font-size: 9px;
+    color: #999;
 }
 
 .bsb-cross-ref-more {
-    padding: 3px 6px;
-    font-size: 11px;
-    color: #888;
-    font-weight: 500;
+    font-size: 9px;
+    color: #999;
 }
 
 /* ========================
