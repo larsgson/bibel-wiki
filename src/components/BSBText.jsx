@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getLexiconEntries } from "../helpers/strongsApi";
-import { getCrossReferences } from "../helpers/bsbDataApi";
+import { getCrossReferences, getVerseIndex } from "../helpers/bsbDataApi";
 import "./BSBText.css";
 
 /**
@@ -17,6 +17,7 @@ function BSBText({
 }) {
   const [lexiconCache, setLexiconCache] = useState({});
   const [crossRefsCache, setCrossRefsCache] = useState({});
+  const [morphOrderCache, setMorphOrderCache] = useState({});
 
   // Load lexicon entries for interlinear modes
   useEffect(() => {
@@ -78,6 +79,46 @@ function BSBText({
     loadCrossRefs();
   }, [bsbData, displayMode]);
 
+  // Load morphology order data for Hebrew word ordering in interlinear modes
+  useEffect(() => {
+    const isInterlinear =
+      displayMode === "interlinear-compact" ||
+      displayMode === "interlinear-full";
+
+    if (
+      !isInterlinear ||
+      !useHebrewOrder ||
+      !bsbData?.verses ||
+      !bsbData.book
+    ) {
+      return;
+    }
+
+    // Load morph order for each verse (to get Hebrew word order)
+    const loadMorphOrder = async () => {
+      const newMorphOrder = {};
+      for (const verse of bsbData.verses) {
+        const verseKey = `${bsbData.book}.${bsbData.chapter}.${verse.v}`;
+        if (!morphOrderCache[verseKey]) {
+          const indexEntry = await getVerseIndex(
+            bsbData.book,
+            bsbData.chapter,
+            verse.v,
+          );
+          if (indexEntry?.m) {
+            // Extract Strong's number order from morphology data
+            newMorphOrder[verseKey] = indexEntry.m.map((m) => m.s);
+          }
+        }
+      }
+      if (Object.keys(newMorphOrder).length > 0) {
+        setMorphOrderCache((prev) => ({ ...prev, ...newMorphOrder }));
+      }
+    };
+
+    loadMorphOrder();
+  }, [bsbData, displayMode, useHebrewOrder]);
+
   if (!bsbData || !bsbData.verses || bsbData.verses.length === 0) {
     return null;
   }
@@ -129,6 +170,20 @@ function BSBText({
    */
   const isHebrew = (strongs) => {
     return strongs && strongs.toUpperCase().startsWith("H");
+  };
+
+  /**
+   * Check if verse data contains Hebrew content (based on Strong's numbers)
+   */
+  const verseIsHebrew = (verse) => {
+    if (!verse || !verse.w) return false;
+    // Check first word with a Strong's number
+    for (const [, strongs] of verse.w) {
+      if (strongs) {
+        return isHebrew(strongs);
+      }
+    }
+    return false;
   };
 
   /**
@@ -245,8 +300,9 @@ function BSBText({
     const isCompact = displayMode === "interlinear-compact";
 
     if (isInterlinear) {
-      // Apply RTL class when Hebrew order is enabled
-      const wordsClassName = `bsb-interlinear-words ${useHebrewOrder ? "bsb-interlinear-words-rtl" : ""}`;
+      // Check if verse contains Hebrew content
+      const isVerseHebrew = verseIsHebrew(verse);
+      const shouldUseHebrewOrder = useHebrewOrder && isVerseHebrew;
 
       // Get cross-references for full mode
       const verseKey = bsbData.book
@@ -257,11 +313,44 @@ function BSBText({
       const displayCrossRefs = crossRefs.slice(0, 3);
       const moreCrossRefs = crossRefs.length > 3 ? crossRefs.length - 3 : 0;
 
+      // Get morphology order for Hebrew word sorting
+      const morphOrder = verseKey ? morphOrderCache[verseKey] : null;
+
+      // Build word list, filtering out punctuation/whitespace
+      const wordTiles = verse.w
+        .map(([text, strongs], wordIndex) => ({ text, strongs, wordIndex }))
+        .filter(
+          ({ strongs, text }) =>
+            strongs && !/^[\s.,;:!?'"()\[\]\-—]+$/.test(text),
+        );
+
+      // Sort by Hebrew word order if enabled and morph data available
+      let orderedWords = wordTiles;
+
+      if (shouldUseHebrewOrder && morphOrder && morphOrder.length > 0) {
+        orderedWords = wordTiles.slice().sort((a, b) => {
+          // Get original positions in morphOrder
+          const aOrigIdx = morphOrder.indexOf(a.strongs);
+          const bOrigIdx = morphOrder.indexOf(b.strongs);
+
+          // If not found, keep original order relative to each other
+          if (aOrigIdx === -1 && bOrigIdx === -1)
+            return a.wordIndex - b.wordIndex;
+          if (aOrigIdx === -1) return 1; // a goes after
+          if (bOrigIdx === -1) return -1; // b goes after
+
+          return aOrigIdx - bOrigIdx;
+        });
+      }
+
+      // Apply RTL class when Hebrew order is enabled AND verse contains Hebrew content
+      const wordsClassName = `bsb-interlinear-words ${shouldUseHebrewOrder ? "bsb-interlinear-words-rtl" : ""}`;
+
       return (
         <div key={verseIndex} className="bsb-verse-interlinear">
           <span className="bsb-verse-number">{verse.v}</span>
           <div className={wordsClassName}>
-            {verse.w.map(([text, strongs], wordIndex) =>
+            {orderedWords.map(({ text, strongs, wordIndex }) =>
               renderInterlinearWord(
                 text,
                 strongs,

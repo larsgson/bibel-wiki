@@ -185,7 +185,7 @@ function StorySection({
                     <BSBText
                       bsbData={langSection.bsbData}
                       displayMode={bsbDisplayMode}
-                      useHebrewOrder={useHebrewOrder && isOldTestament}
+                      useHebrewOrder={useHebrewOrder}
                       onWordClick={handleWordClick}
                       onCrossRefClick={(bookCode, chapter, verse) => {
                         // For now, log the cross-reference click

@@ -279,6 +279,8 @@ export const getTextForReference = (reference, chapterText) => {
   const textParts = [];
   const bsbVerses = []; // Collect all BSB verses for combined result
   let hasBSBData = false;
+  let bsbBook = null;
+  let bsbChapter = null;
 
   for (const ref of refs) {
     const parsed = parseReference(ref);
@@ -302,6 +304,11 @@ export const getTextForReference = (reference, chapterText) => {
       // Check if this is BSB format
       if (typeof extractedVerses === "object" && extractedVerses.isBSB) {
         hasBSBData = true;
+        // Store book/chapter from first BSB result (or from extractedVerses if available)
+        if (!bsbBook) {
+          bsbBook = extractedVerses.book || book;
+          bsbChapter = extractedVerses.chapter || chapter;
+        }
         // Collect all verses from this BSB result
         if (extractedVerses.verses && Array.isArray(extractedVerses.verses)) {
           bsbVerses.push(...extractedVerses.verses);
@@ -317,6 +324,8 @@ export const getTextForReference = (reference, chapterText) => {
   if (hasBSBData && bsbVerses.length > 0) {
     return {
       isBSB: true,
+      book: bsbBook,
+      chapter: bsbChapter,
       verses: bsbVerses,
     };
   }
