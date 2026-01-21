@@ -109,11 +109,16 @@
     padding-top: 4px;
 }
 
+.bsb-interlinear-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
 .bsb-interlinear-words {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-    flex: 1;
 }
 
 /* RTL word order for Hebrew (OT) */

@@ -1,11 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { getLexiconEntries } from "../helpers/strongsApi";
-import { getCrossReferences, getVerseIndex } from "../helpers/bsbDataApi";
+import { getCrossReferences } from "../helpers/bsbDataApi";
 import "./BSBText.css";
 
 /**
  * BSBText component - renders BSB verse data with clickable words
  * Supports 4 display modes: eng (plain text), strongs, interlinear-compact, interlinear-full
+ *
+ * New data format (2024):
+ * - verse.w = English words array [[text, strongs], ...]
+ * - verse.heb = Hebrew words array (OT only) - already in Hebrew word order
+ * - verse.grk = Greek words array (NT only) - already in Greek word order
  */
 function BSBText({
   bsbData,
@@ -17,7 +22,6 @@ function BSBText({
 }) {
   const [lexiconCache, setLexiconCache] = useState({});
   const [crossRefsCache, setCrossRefsCache] = useState({});
-  const [morphOrderCache, setMorphOrderCache] = useState({});
 
   // Load lexicon entries for interlinear modes
   useEffect(() => {
@@ -79,46 +83,6 @@ function BSBText({
     loadCrossRefs();
   }, [bsbData, displayMode]);
 
-  // Load morphology order data for Hebrew word ordering in interlinear modes
-  useEffect(() => {
-    const isInterlinear =
-      displayMode === "interlinear-compact" ||
-      displayMode === "interlinear-full";
-
-    if (
-      !isInterlinear ||
-      !useHebrewOrder ||
-      !bsbData?.verses ||
-      !bsbData.book
-    ) {
-      return;
-    }
-
-    // Load morph order for each verse (to get Hebrew word order)
-    const loadMorphOrder = async () => {
-      const newMorphOrder = {};
-      for (const verse of bsbData.verses) {
-        const verseKey = `${bsbData.book}.${bsbData.chapter}.${verse.v}`;
-        if (!morphOrderCache[verseKey]) {
-          const indexEntry = await getVerseIndex(
-            bsbData.book,
-            bsbData.chapter,
-            verse.v,
-          );
-          if (indexEntry?.m) {
-            // Extract Strong's number order from morphology data
-            newMorphOrder[verseKey] = indexEntry.m.map((m) => m.s);
-          }
-        }
-      }
-      if (Object.keys(newMorphOrder).length > 0) {
-        setMorphOrderCache((prev) => ({ ...prev, ...newMorphOrder }));
-      }
-    };
-
-    loadMorphOrder();
-  }, [bsbData, displayMode, useHebrewOrder]);
-
   if (!bsbData || !bsbData.verses || bsbData.verses.length === 0) {
     return null;
   }
@@ -127,7 +91,7 @@ function BSBText({
    * Check if text is just punctuation or whitespace
    */
   const isPunctuation = (text) => {
-    return /^[\s.,;:!?'"()\[\]\-—–]+$/.test(text);
+    return /^[\s.,;:!?'"()\[\]\-—–׃׀]+$/.test(text);
   };
 
   /**
@@ -157,15 +121,6 @@ function BSBText({
   };
 
   /**
-   * Get original Hebrew/Greek word from lexicon cache
-   */
-  const getOriginalWord = (strongs) => {
-    if (!strongs) return null;
-    const entry = lexiconCache[strongs.toUpperCase()];
-    return entry?.word || null;
-  };
-
-  /**
    * Check if Strong's number is Hebrew (OT)
    */
   const isHebrew = (strongs) => {
@@ -173,17 +128,27 @@ function BSBText({
   };
 
   /**
-   * Check if verse data contains Hebrew content (based on Strong's numbers)
+   * Check if verse data contains Hebrew content (based on Strong's numbers or heb array)
    */
   const verseIsHebrew = (verse) => {
-    if (!verse || !verse.w) return false;
-    // Check first word with a Strong's number
+    // First check if verse has Hebrew data array
+    if (verse.heb) return true;
+    if (verse.grk) return false;
+    // Fallback: check first word with a Strong's number
+    if (!verse.w) return false;
     for (const [, strongs] of verse.w) {
       if (strongs) {
         return isHebrew(strongs);
       }
     }
     return false;
+  };
+
+  /**
+   * Check if verse data contains Greek content
+   */
+  const verseIsGreek = (verse) => {
+    return !!verse.grk;
   };
 
   /**
@@ -253,21 +218,25 @@ function BSBText({
   };
 
   /**
-   * Render word in Interlinear mode (card with original word, Strong's number, and English)
+   * Render interlinear word card
+   * @param {string} originalText - Original language word (Hebrew/Greek)
+   * @param {string} englishText - English translation
+   * @param {string} strongs - Strong's number
+   * @param {string} index - Unique key
+   * @param {boolean} isCompact - Compact mode flag
+   * @param {boolean} isHebrewWord - Whether this is a Hebrew word
    */
-  const renderInterlinearWord = (text, strongs, index, isCompact) => {
-    if (shouldSkipWord(text, strongs)) {
-      return null;
-    }
+  const renderInterlinearCard = (
+    originalText,
+    englishText,
+    strongs,
+    index,
+    isCompact,
+    isHebrewWord,
+  ) => {
+    if (!strongs) return null;
 
-    // Skip punctuation and whitespace in interlinear mode
-    if (!strongs || isPunctuation(text)) {
-      return null;
-    }
-
-    const displayText = cleanText(text);
-    const originalWord = getOriginalWord(strongs);
-    const isHebrewWord = isHebrew(strongs);
+    const displayEnglish = cleanText(englishText);
 
     return (
       <button
@@ -278,16 +247,111 @@ function BSBText({
         {!isCompact && (
           <span className="bsb-interlinear-strongs">{strongs}</span>
         )}
-        {originalWord && (
+        {originalText && (
           <span
             className={`bsb-interlinear-original ${isHebrewWord ? "bsb-interlinear-hebrew" : "bsb-interlinear-greek"}`}
           >
-            {originalWord}
+            {originalText}
           </span>
         )}
-        <span className="bsb-interlinear-english">{displayText}</span>
+        <span className="bsb-interlinear-english">{displayEnglish}</span>
       </button>
     );
+  };
+
+  /**
+   * Build interlinear word pairs by matching Strong's numbers
+   * between English and original language arrays
+   */
+  const buildInterlinearPairs = (verse, useOriginalOrder) => {
+    const isVerseHebrew = verseIsHebrew(verse);
+    const originalLangKey = isVerseHebrew ? "heb" : "grk";
+    const originalWords = verse[originalLangKey] || [];
+
+    // Build a map of Strong's -> original word for lookup
+    const strongsToOriginal = new Map();
+    originalWords.forEach(([text, strongs]) => {
+      if (strongs && !isPunctuation(text)) {
+        // If same Strong's appears multiple times, store as array
+        if (strongsToOriginal.has(strongs)) {
+          const existing = strongsToOriginal.get(strongs);
+          if (Array.isArray(existing)) {
+            existing.push(text);
+          } else {
+            strongsToOriginal.set(strongs, [existing, text]);
+          }
+        } else {
+          strongsToOriginal.set(strongs, text);
+        }
+      }
+    });
+
+    // Track which original words we've used (for duplicates)
+    const usedOriginalIndices = new Map();
+
+    if (useOriginalOrder && originalWords.length > 0) {
+      // Use original language word order (Hebrew/Greek)
+      // Build pairs based on original word array order
+      const pairs = [];
+      const usedEnglishIndices = new Set();
+
+      originalWords.forEach(([origText, origStrongs], origIdx) => {
+        if (!origStrongs || isPunctuation(origText)) return;
+
+        // Find matching English word
+        let englishText = "";
+        for (let i = 0; i < verse.w.length; i++) {
+          const [engText, engStrongs] = verse.w[i];
+          if (engStrongs === origStrongs && !usedEnglishIndices.has(i)) {
+            englishText = engText;
+            usedEnglishIndices.add(i);
+            break;
+          }
+        }
+
+        pairs.push({
+          original: origText,
+          english: englishText || "",
+          strongs: origStrongs,
+          index: origIdx,
+          isHebrew: isVerseHebrew,
+        });
+      });
+
+      return pairs;
+    } else {
+      // Use English word order
+      const pairs = [];
+
+      verse.w.forEach(([engText, engStrongs], engIdx) => {
+        if (!engStrongs || isPunctuation(engText)) return;
+        if (shouldSkipWord(engText, engStrongs)) return;
+
+        // Get original word from map
+        let originalText = "";
+        const origValue = strongsToOriginal.get(engStrongs);
+        if (origValue) {
+          if (Array.isArray(origValue)) {
+            // Multiple originals with same Strong's - use next unused one
+            const usedCount = usedOriginalIndices.get(engStrongs) || 0;
+            originalText = origValue[usedCount] || origValue[0];
+            usedOriginalIndices.set(engStrongs, usedCount + 1);
+          } else {
+            originalText = origValue;
+          }
+        }
+
+        pairs.push({
+          original: originalText,
+          english: engText,
+          strongs: engStrongs,
+          index: engIdx,
+          isHebrew: isVerseHebrew,
+        });
+      });
+
+      return pairs;
+    }
   };
 
   /**
@@ -302,7 +366,8 @@ function BSBText({
     if (isInterlinear) {
       // Check if verse contains Hebrew content
       const isVerseHebrew = verseIsHebrew(verse);
-      const shouldUseHebrewOrder = useHebrewOrder && isVerseHebrew;
+      const shouldUseOriginalOrder =
+        useHebrewOrder && (isVerseHebrew || verseIsGreek(verse));
 
       // Get cross-references for full mode
       const verseKey = bsbData.book
@@ -313,82 +378,59 @@ function BSBText({
       const displayCrossRefs = crossRefs.slice(0, 3);
       const moreCrossRefs = crossRefs.length > 3 ? crossRefs.length - 3 : 0;
 
-      // Get morphology order for Hebrew word sorting
-      const morphOrder = verseKey ? morphOrderCache[verseKey] : null;
+      // Build interlinear word pairs
+      const wordPairs = buildInterlinearPairs(verse, shouldUseOriginalOrder);
 
-      // Build word list, filtering out punctuation/whitespace
-      const wordTiles = verse.w
-        .map(([text, strongs], wordIndex) => ({ text, strongs, wordIndex }))
-        .filter(
-          ({ strongs, text }) =>
-            strongs && !/^[\s.,;:!?'"()\[\]\-—]+$/.test(text),
-        );
-
-      // Sort by Hebrew word order if enabled and morph data available
-      let orderedWords = wordTiles;
-
-      if (shouldUseHebrewOrder && morphOrder && morphOrder.length > 0) {
-        orderedWords = wordTiles.slice().sort((a, b) => {
-          // Get original positions in morphOrder
-          const aOrigIdx = morphOrder.indexOf(a.strongs);
-          const bOrigIdx = morphOrder.indexOf(b.strongs);
-
-          // If not found, keep original order relative to each other
-          if (aOrigIdx === -1 && bOrigIdx === -1)
-            return a.wordIndex - b.wordIndex;
-          if (aOrigIdx === -1) return 1; // a goes after
-          if (bOrigIdx === -1) return -1; // b goes after
-
-          return aOrigIdx - bOrigIdx;
-        });
-      }
-
-      // Apply RTL class when Hebrew order is enabled AND verse contains Hebrew content
-      const wordsClassName = `bsb-interlinear-words ${shouldUseHebrewOrder ? "bsb-interlinear-words-rtl" : ""}`;
+      // Apply RTL class when using Hebrew order
+      const wordsClassName = `bsb-interlinear-words ${shouldUseOriginalOrder && isVerseHebrew ? "bsb-interlinear-words-rtl" : ""}`;
 
       return (
         <div key={verseIndex} className="bsb-verse-interlinear">
           <span className="bsb-verse-number">{verse.v}</span>
-          <div className={wordsClassName}>
-            {orderedWords.map(({ text, strongs, wordIndex }) =>
-              renderInterlinearWord(
-                text,
-                strongs,
-                `${verseIndex}-${wordIndex}`,
-                isCompact,
-              ),
-            )}
-          </div>
-          {/* Cross-references in full mode */}
-          {!isCompact && displayCrossRefs.length > 0 && (
-            <div className="bsb-cross-refs">
-              {displayCrossRefs.map((ref, idx) => (
-                <button
-                  key={idx}
-                  className="bsb-cross-ref-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (onCrossRefClick) {
-                      // Parse reference like "MAT.1.5" to { book, chapter, verse }
-                      const match = ref.match(/^([A-Z0-9]+)\.(\d+)\.(\d+)$/);
-                      if (match) {
-                        onCrossRefClick(
-                          match[1],
-                          parseInt(match[2]),
-                          parseInt(match[3]),
-                        );
-                      }
-                    }
-                  }}
-                >
-                  {ref.replace(/\./g, " ").replace(/(\d+) (\d+)$/, "$1:$2")}
-                </button>
-              ))}
-              {moreCrossRefs > 0 && (
-                <span className="bsb-cross-ref-more">+{moreCrossRefs}</span>
+          <div className="bsb-interlinear-content">
+            <div className={wordsClassName}>
+              {wordPairs.map((pair) =>
+                renderInterlinearCard(
+                  pair.original,
+                  pair.english,
+                  pair.strongs,
+                  `${verseIndex}-${pair.index}`,
+                  isCompact,
+                  pair.isHebrew,
+                ),
               )}
             </div>
-          )}
+            {/* Cross-references in full mode */}
+            {!isCompact && displayCrossRefs.length > 0 && (
+              <div className="bsb-cross-refs">
+                {displayCrossRefs.map((ref, idx) => (
+                  <button
+                    key={idx}
+                    className="bsb-cross-ref-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onCrossRefClick) {
+                        // Parse reference like "MAT.1.5" to { book, chapter, verse }
+                        const match = ref.match(/^([A-Z0-9]+)\.(\d+)\.(\d+)$/);
+                        if (match) {
+                          onCrossRefClick(
+                            match[1],
+                            parseInt(match[2]),
+                            parseInt(match[3]),
+                          );
+                        }
+                      }
+                    }}
+                  >
+                    {ref.replace(/\./g, " ").replace(/(\d+) (\d+)$/, "$1:$2")}
+                  </button>
+                ))}
+                {moreCrossRefs > 0 && (
+                  <span className="bsb-cross-ref-more">+{moreCrossRefs}</span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       );
     }

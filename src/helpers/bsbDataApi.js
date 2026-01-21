@@ -1,5 +1,10 @@
 // BSB Data API - loads pre-generated BSB Bible data with Strong's numbers
 // Data source: /public/bsb-data/base/
+//
+// New data structure (2024):
+// - display/{BOOK}/{BOOK}{CHAPTER}.json - chapter data with eng/heb/grk arrays
+// - index-cc-by/{BOOK}/{BOOK}{CHAPTER}.jsonl - per-verse index with cross-refs, morphology
+// - concordance/strongs-to-verses.jsonl - pre-built Strong's number lookup
 
 // Book code mapping (book number to 3-letter code)
 const BOOK_CODES = {
@@ -159,12 +164,14 @@ const BOOK_ALIASES = {
   REV: "REV",
 };
 
-// Cache for loaded book data
-const bookCache = new Map();
+// Cache for loaded chapter data (display files)
+const chapterCache = new Map();
 
-// Cache for bible index (concordance/cross-refs)
-const indexCache = new Map();
-let indexLoaded = false;
+// Cache for chapter index data (index files)
+const chapterIndexCache = new Map();
+
+// Cache for concordance data
+let concordanceCache = null;
 
 const BSB_DATA_BASE = "/bsb-data/base";
 
@@ -209,64 +216,74 @@ export function isOldTestament(book) {
 }
 
 /**
- * Load all verses for a book from JSONL file
- * @param {string} bookCode - 3-letter book code
- * @returns {Promise<Array>} - Array of verse objects
- */
-async function loadBookData(bookCode) {
-  const normalized = normalizeBookCode(bookCode);
-  if (!normalized) return [];
-
-  if (bookCache.has(normalized)) {
-    return bookCache.get(normalized);
-  }
-
-  try {
-    const response = await fetch(
-      `${BSB_DATA_BASE}/display/${normalized}.jsonl`,
-    );
-    if (!response.ok) {
-      console.error(
-        `Failed to load BSB book ${normalized}: ${response.status}`,
-      );
-      return [];
-    }
-
-    const text = await response.text();
-    const verses = text
-      .trim()
-      .split("\n")
-      .map((line) => JSON.parse(line));
-
-    bookCache.set(normalized, verses);
-    return verses;
-  } catch (error) {
-    console.error(`Error loading BSB book ${normalized}:`, error);
-    return [];
-  }
-}
-
-/**
- * Load a specific chapter from BSB data
+ * Load a specific chapter from BSB display data
+ * New format: /display/{BOOK}/{BOOK}{CHAPTER}.json
+ * Contains { eng: { "1": [...], "2": [...] }, heb/grk: { "1": [...], ... } }
  * @param {string} bookCode - 3-letter book code (e.g., 'GEN', 'MAT')
  * @param {number} chapter - Chapter number
  * @returns {Promise<Object|null>} - BSB chapter data or null if not found
  */
 export async function loadBSBChapter(bookCode, chapter) {
-  const bookData = await loadBookData(bookCode);
-  if (!bookData.length) return null;
+  const normalized = normalizeBookCode(bookCode);
+  if (!normalized) return null;
 
   const chapterNum = parseInt(chapter, 10);
-  const chapterVerses = bookData.filter((v) => v.c === chapterNum);
+  const cacheKey = `${normalized}.${chapterNum}`;
 
-  if (chapterVerses.length === 0) return null;
+  if (chapterCache.has(cacheKey)) {
+    return chapterCache.get(cacheKey);
+  }
 
-  return {
-    isBSB: true,
-    book: normalizeBookCode(bookCode),
-    chapter: chapterNum,
-    verses: chapterVerses,
-  };
+  try {
+    const response = await fetch(
+      `${BSB_DATA_BASE}/display/${normalized}/${normalized}${chapterNum}.json`,
+    );
+    if (!response.ok) {
+      console.error(
+        `Failed to load BSB chapter ${normalized} ${chapterNum}: ${response.status}`,
+      );
+      return null;
+    }
+
+    const data = await response.json();
+
+    // Convert new format to expected verse format
+    // New format: { eng: { "1": [[word, strongs], ...], "2": [...] }, heb/grk: {...} }
+    // Expected format: { isBSB: true, book, chapter, verses: [{ v, w, heb/grk }, ...] }
+    const verses = [];
+    const isOT = isOldTestament(normalized);
+    const originalLangKey = isOT ? "heb" : "grk";
+
+    for (const verseNum of Object.keys(data.eng).sort(
+      (a, b) => parseInt(a) - parseInt(b),
+    )) {
+      const verse = {
+        v: parseInt(verseNum),
+        w: data.eng[verseNum],
+      };
+      // Add Hebrew or Greek data if available
+      if (data[originalLangKey] && data[originalLangKey][verseNum]) {
+        verse[originalLangKey] = data[originalLangKey][verseNum];
+      }
+      verses.push(verse);
+    }
+
+    const result = {
+      isBSB: true,
+      book: normalized,
+      chapter: chapterNum,
+      verses,
+    };
+
+    chapterCache.set(cacheKey, result);
+    return result;
+  } catch (error) {
+    console.error(
+      `Error loading BSB chapter ${normalized} ${chapterNum}:`,
+      error,
+    );
+    return null;
+  }
 }
 
 /**
@@ -325,7 +342,7 @@ export function bsbToPlainText(bsbData) {
     .map((verse) => {
       return verse.w
         .map(([text]) => text)
-        .join("")
+        .join(" ")
         .trim();
     })
     .join(" ")
@@ -333,73 +350,125 @@ export function bsbToPlainText(bsbData) {
 }
 
 /**
- * Clear the book cache (useful for testing or memory management)
+ * Clear all caches (useful for testing or memory management)
  */
 export function clearBSBCache() {
-  bookCache.clear();
-  indexCache.clear();
-  indexLoaded = false;
+  chapterCache.clear();
+  chapterIndexCache.clear();
+  concordanceCache = null;
 }
 
 /**
- * Load the Bible index (for concordance and cross-references)
- * @returns {Promise<void>}
+ * Load chapter index data (cross-refs, morphology, etc.)
+ * New format: /index-cc-by/{BOOK}/{BOOK}{CHAPTER}.jsonl
+ * @param {string} bookCode - Book code
+ * @param {number} chapter - Chapter number
+ * @returns {Promise<Map|null>} - Map of verse number to index entry
  */
-async function loadIndex() {
-  if (indexLoaded) return;
+async function loadChapterIndex(bookCode, chapter) {
+  const normalized = normalizeBookCode(bookCode);
+  if (!normalized) return null;
+
+  const chapterNum = parseInt(chapter, 10);
+  const cacheKey = `${normalized}.${chapterNum}`;
+
+  if (chapterIndexCache.has(cacheKey)) {
+    return chapterIndexCache.get(cacheKey);
+  }
 
   try {
     const response = await fetch(
-      `${BSB_DATA_BASE}/index-cc-by/bible-index.jsonl`,
+      `${BSB_DATA_BASE}/index-cc-by/${normalized}/${normalized}${chapterNum}.jsonl`,
     );
     if (!response.ok) {
-      console.error("Failed to load Bible index:", response.status);
-      return;
+      console.error(
+        `Failed to load index for ${normalized} ${chapterNum}: ${response.status}`,
+      );
+      return null;
     }
 
     const text = await response.text();
+    const entries = new Map();
+    const lines = text.trim().split("\n");
+
+    lines.forEach((line, index) => {
+      const entry = JSON.parse(line);
+      // Verse number is line index + 1 (first line is verse 1)
+      entries.set(index + 1, entry);
+    });
+
+    chapterIndexCache.set(cacheKey, entries);
+    return entries;
+  } catch (error) {
+    console.error(
+      `Error loading index for ${normalized} ${chapterNum}:`,
+      error,
+    );
+    return null;
+  }
+}
+
+/**
+ * Load concordance data (Strong's number to verse references)
+ * New format: /concordance/strongs-to-verses.jsonl
+ * @returns {Promise<Map|null>} - Map of Strong's number to verse references
+ */
+async function loadConcordance() {
+  if (concordanceCache) return concordanceCache;
+
+  try {
+    const response = await fetch(
+      `${BSB_DATA_BASE}/concordance/strongs-to-verses.jsonl`,
+    );
+    if (!response.ok) {
+      console.error("Failed to load concordance:", response.status);
+      return null;
+    }
+
+    const text = await response.text();
+    concordanceCache = new Map();
+
     for (const line of text.trim().split("\n")) {
       const entry = JSON.parse(line);
-      indexCache.set(entry.id, entry);
+      concordanceCache.set(entry.strongs, entry.verses);
     }
-    indexLoaded = true;
+
+    return concordanceCache;
   } catch (error) {
-    console.error("Error loading Bible index:", error);
+    console.error("Error loading concordance:", error);
+    return null;
   }
 }
 
 /**
  * Search concordance for all verses containing a Strong's number
+ * Uses pre-built concordance lookup file
  * @param {string} strongsNumber - Strong's number (e.g., 'H430', 'G2316')
  * @returns {Promise<Array>} - Array of concordance results
  */
 export async function searchConcordance(strongsNumber) {
-  await loadIndex();
+  const concordance = await loadConcordance();
+  if (!concordance) return [];
 
   const normalized = strongsNumber.toUpperCase();
-  const isHebrew = normalized.startsWith("H");
-  const results = [];
+  const verseRefs = concordance.get(normalized);
 
-  indexCache.forEach((entry) => {
-    const bookNum = BOOK_NUMBERS[entry.b] || 0;
-    const isOT = bookNum >= 1 && bookNum <= 39;
+  if (!verseRefs || verseRefs.length === 0) return [];
 
-    // Hebrew Strong's only in OT, Greek only in NT
-    if (isHebrew !== isOT) return;
-
-    if (entry.s && entry.s.includes(normalized)) {
-      results.push({
-        id: entry.id,
-        bookCode: entry.b,
-        bookNumber: bookNum,
-        chapter: entry.c,
-        verse: entry.v,
-        text: entry.t,
-      });
-    }
+  // Convert verse references to result objects
+  // Reference format: "GEN.1.1"
+  const results = verseRefs.map((ref) => {
+    const [bookCode, chapter, verse] = ref.split(".");
+    return {
+      id: ref,
+      bookCode,
+      bookNumber: BOOK_NUMBERS[bookCode] || 0,
+      chapter: parseInt(chapter),
+      verse: parseInt(verse),
+    };
   });
 
-  // Sort by book, chapter, verse
+  // Already sorted in the concordance file, but ensure sort order
   return results.sort(
     (a, b) =>
       a.bookNumber - b.bookNumber || a.chapter - b.chapter || a.verse - b.verse,
@@ -414,14 +483,10 @@ export async function searchConcordance(strongsNumber) {
  * @returns {Promise<Array>} - Array of cross-reference strings
  */
 export async function getCrossReferences(bookCode, chapter, verse) {
-  await loadIndex();
+  const entries = await loadChapterIndex(bookCode, chapter);
+  if (!entries) return [];
 
-  const normalized = normalizeBookCode(bookCode);
-  if (!normalized) return [];
-
-  const verseId = `${normalized}.${chapter}.${verse}`;
-  const entry = indexCache.get(verseId);
-
+  const entry = entries.get(parseInt(verse));
   return entry?.x || [];
 }
 
@@ -433,11 +498,8 @@ export async function getCrossReferences(bookCode, chapter, verse) {
  * @returns {Promise<Object|null>} - Index entry or null
  */
 export async function getVerseIndex(bookCode, chapter, verse) {
-  await loadIndex();
+  const entries = await loadChapterIndex(bookCode, chapter);
+  if (!entries) return null;
 
-  const normalized = normalizeBookCode(bookCode);
-  if (!normalized) return null;
-
-  const verseId = `${normalized}.${chapter}.${verse}`;
-  return indexCache.get(verseId) || null;
+  return entries.get(parseInt(verse)) || null;
 }

@@ -44,15 +44,6 @@ function ConcordanceScreen({ strongsNumber, onBack, onVerseClick }) {
   const isHebrew = language === "Hebrew";
 
   /**
-   * Truncate text to specified length
-   */
-  const truncateText = (text, maxLength = 80) => {
-    if (!text) return "";
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + "...";
-  };
-
-  /**
    * Format reference display
    */
   const formatReference = (bookCode, chapter, verse) => {
@@ -123,9 +114,6 @@ function ConcordanceScreen({ strongsNumber, onBack, onVerseClick }) {
                     result.chapter,
                     result.verse,
                   )}
-                </span>
-                <span className="concordance-result-text">
-                  {truncateText(result.text)}
                 </span>
               </button>
             ))}

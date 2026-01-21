@@ -2,72 +2,138 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/bsb-data/schema/display.schema.json",
   "title": "BSB Display Verse",
-  "description": "Compact verse format for web rendering with Strong's numbers",
+  "description": "Verse format with English text and original language (Hebrew/Greek) for web rendering.",
   "type": "object",
   "required": [
-    "b",
-    "c",
-    "v",
-    "w"
+    "eng"
   ],
   "properties": {
-    "b": {
-      "type": "string",
-      "description": "Book code (3-letter identifier)",
-      "pattern": "^[A-Z0-9]{3}$",
-      "examples": [
-        "GEN",
-        "EXO",
-        "MAT",
-        "1CO"
-      ]
-    },
-    "c": {
-      "type": "integer",
-      "description": "Chapter number",
-      "minimum": 1
-    },
-    "v": {
-      "type": "integer",
-      "description": "Verse number",
-      "minimum": 1
-    },
-    "w": {
-      "type": "array",
-      "description": "Word pairs: [text, strongs|null]",
-      "items": {
-        "type": "array",
-        "minItems": 2,
-        "maxItems": 2,
-        "items": [
-          {
-            "type": "string",
-            "description": "Text content (word or punctuation)"
-          },
-          {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "Strong's number (H1234 or G1234) or null",
-            "pattern": "^[HG]\\d{1,4}[a-z]?$"
+    "eng": {
+      "type": "object",
+      "description": "English text in BSB word order",
+      "patternProperties": {
+        "^\\d+$": {
+          "type": "array",
+          "description": "Word pairs: [text, strongs|null]",
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": [
+              {
+                "type": "string",
+                "description": "Text content (word or punctuation)"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Strong's number (H1234 or G1234) or null",
+                "pattern": "^[HG]\\d{1,4}[a-z]?$"
+              }
+            ]
           }
-        ]
-      }
-    },
-    "citations": {
-      "type": "array",
-      "description": "Scripture citations from footnotes (e.g., references to parallel passages)",
-      "items": {
-        "type": "string"
+        }
       },
-      "examples": [
-        [
-          "2CO 4:6",
-          "HEB 11:3"
-        ]
-      ]
+      "additionalProperties": false
+    },
+    "heb": {
+      "type": "object",
+      "description": "Hebrew text in Hebrew word order (OT only)",
+      "patternProperties": {
+        "^\\d+$": {
+          "type": "array",
+          "description": "Word pairs: [text, strongs|null]",
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": [
+              {
+                "type": "string",
+                "description": "Text content (word or punctuation)"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Strong's number (H1234 or G1234) or null",
+                "pattern": "^[HG]\\d{1,4}[a-z]?$"
+              }
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "grk": {
+      "type": "object",
+      "description": "Greek text in Greek word order (NT only)",
+      "patternProperties": {
+        "^\\d+$": {
+          "type": "array",
+          "description": "Word pairs: [text, strongs|null]",
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": [
+              {
+                "type": "string",
+                "description": "Text content (word or punctuation)"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Strong's number (H1234 or G1234) or null",
+                "pattern": "^[HG]\\d{1,4}[a-z]?$"
+              }
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
     }
   },
-  "additionalProperties": true
+  "additionalProperties": false,
+  "examples": [
+    {
+      "eng": {
+        "1": [
+          [
+            "In the beginning",
+            "H7225"
+          ],
+          [
+            "God",
+            "H430"
+          ],
+          [
+            "created",
+            "H1254"
+          ]
+        ]
+      },
+      "heb": {
+        "1": [
+          [
+            "בְּרֵאשִׁ֖ית",
+            "H7225"
+          ],
+          [
+            "בָּרָ֣א",
+            "H1254"
+          ],
+          [
+            "אֱלֹהִ֑ים",
+            "H430"
+          ]
+        ]
+      }
+    }
+  ]
 }
