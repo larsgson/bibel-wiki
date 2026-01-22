@@ -379,20 +379,148 @@ const LanguageProvider = ({
         const langData = {};
         const testaments = ["ot", "nt"];
 
-        for (const testament of testaments) {
-          // Check each category in manifest for this language
-          // Load both text and audio filesets separately
-          if (manifest.files?.[testament]) {
-            const allCategories = Object.keys(manifest.files[testament]);
+        // Helper function to parse text fileset ID from data.json
+        const parseTextFilesetId = (textValue, distinctId) => {
+          if (!textValue) return null;
+          if (textValue.endsWith(".txt")) {
+            const suffix = textValue.replace(".txt", "");
+            // Full IDs are 6+ chars, suffixes are shorter
+            return suffix.length >= 6 ? suffix : distinctId + suffix;
+          }
+          return textValue;
+        };
 
-            // Text priority order
+        // Helper function to parse audio fileset ID from data.json
+        const parseAudioFilesetId = (audioValue, distinctId) => {
+          if (!audioValue) return null;
+          if (audioValue.endsWith(".mp3")) {
+            const suffix = audioValue.replace(".mp3", "");
+            // Full IDs are 10+ chars, suffixes are shorter
+            return suffix.length >= 10 ? suffix : distinctId + suffix;
+          }
+          return audioValue;
+        };
+
+        for (const testament of testaments) {
+          if (!manifest.files?.[testament]) continue;
+
+          const allCategories = Object.keys(manifest.files[testament]);
+
+          const testamentData = {
+            category: null,
+            distinctId: null,
+            filesetId: null,
+            basePath: null,
+            audioFilesetId: null,
+            audioCategory: null,
+            audioDistinctId: null, // NEW: For timing file lookup when different from distinctId
+          };
+
+          // =======================================================
+          // PHASE 1: Find a unified distinctId with BOTH text AND audio (with timecode)
+          // =======================================================
+          // Only check "with-timecode" - syncable doesn't have timecode so can't be used as unified source
+          const unifiedPriorityOrder = ["with-timecode"];
+          let foundUnified = false;
+
+          for (const category of unifiedPriorityOrder) {
+            if (foundUnified) break;
+            if (!allCategories.includes(category)) continue;
+
+            const langList = manifest.files[testament][category];
+            if (!langList || !langList[langCode]) continue;
+
+            // Get all distinctIds for this language/category
+            const distinctIds = langList[langCode];
+            const distinctIdArray = Array.isArray(distinctIds)
+              ? distinctIds
+              : [distinctIds];
+
+            // Check each distinctId for both text AND audio
+            for (const distinctId of distinctIdArray) {
+              try {
+                const dataPath = `/ALL-langs-data/${testament}/${category}/${langCode}/${distinctId}/data.json`;
+                const dataResponse = await fetch(dataPath);
+
+                if (dataResponse.ok) {
+                  const filesetData = await dataResponse.json();
+
+                  const filesetId = parseTextFilesetId(
+                    filesetData.t,
+                    distinctId,
+                  );
+                  const audioFilesetId = parseAudioFilesetId(
+                    filesetData.a,
+                    distinctId,
+                  );
+
+                  // Check if this distinctId has BOTH text AND audio
+                  if (filesetId && audioFilesetId) {
+                    testamentData.category = category;
+                    testamentData.distinctId = distinctId;
+                    testamentData.filesetId = filesetId;
+                    testamentData.audioFilesetId = audioFilesetId;
+                    testamentData.audioCategory = category;
+                    // audioDistinctId not needed - same as distinctId
+                    foundUnified = true;
+                    break;
+                  }
+                }
+              } catch (err) {
+                continue;
+              }
+            }
+          }
+
+          // =======================================================
+          // PHASE 2: Fallback - load text and audio from separate sources
+          // =======================================================
+          if (!foundUnified) {
+            // Phase 2a: Find text fileset
             const textPriorityOrder = [
               "with-timecode",
               "syncable",
               "text-only",
             ];
 
-            // Audio priority order (with-timecode is highest priority!)
+            for (const category of textPriorityOrder) {
+              if (testamentData.filesetId) break;
+              if (!allCategories.includes(category)) continue;
+
+              const langList = manifest.files[testament][category];
+              if (!langList || !langList[langCode]) continue;
+
+              const distinctIds = langList[langCode];
+              const distinctIdArray = Array.isArray(distinctIds)
+                ? distinctIds
+                : [distinctIds];
+
+              for (const distinctId of distinctIdArray) {
+                try {
+                  const dataPath = `/ALL-langs-data/${testament}/${category}/${langCode}/${distinctId}/data.json`;
+                  const dataResponse = await fetch(dataPath);
+
+                  if (dataResponse.ok) {
+                    const filesetData = await dataResponse.json();
+                    const filesetId = parseTextFilesetId(
+                      filesetData.t,
+                      distinctId,
+                    );
+
+                    if (filesetId) {
+                      testamentData.category = category;
+                      testamentData.distinctId = distinctId;
+                      testamentData.filesetId = filesetId;
+                      break;
+                    }
+                  }
+                } catch (err) {
+                  continue;
+                }
+              }
+            }
+
+            // Phase 2b: Find audio fileset (separate from text)
             const audioPriorityOrder = [
               "with-timecode",
               "audio-with-timecode",
@@ -401,135 +529,48 @@ const LanguageProvider = ({
               "audio-only",
             ];
 
-            const testamentData = {
-              category: null,
-              distinctId: null,
-              filesetId: null,
-              basePath: null,
-              audioFilesetId: null,
-              audioCategory: null,
-            };
-
-            // First, try to find text fileset
-            for (const category of textPriorityOrder) {
-              if (allCategories.includes(category)) {
-                const langList = manifest.files[testament][category];
-                if (langList && langList[langCode]) {
-                  const distinctIds = langList[langCode];
-                  const distinctId = Array.isArray(distinctIds)
-                    ? distinctIds[0]
-                    : distinctIds;
-
-                  try {
-                    const dataPath = `/ALL-langs-data/${testament}/${category}/${langCode}/${distinctId}/data.json`;
-                    const dataResponse = await fetch(dataPath);
-
-                    if (dataResponse.ok) {
-                      const filesetData = await dataResponse.json();
-                      let filesetId = null;
-
-                      if (filesetData.t) {
-                        const textValue = filesetData.t;
-
-                        // Check if it's a suffix (ends with .txt) or full ID
-                        if (textValue.endsWith(".txt")) {
-                          const suffix = textValue.replace(".txt", "");
-
-                          // Determine if it's a full ID or a suffix based on length
-                          // Full text IDs are typically 6+ characters, suffixes are shorter (like "N_ET", ".txt")
-                          if (suffix.length >= 6) {
-                            // It's a full fileset ID
-                            filesetId = suffix;
-                          } else {
-                            // It's a suffix - concatenate with distinctId
-                            filesetId = distinctId + suffix;
-                          }
-                        } else {
-                          // It's a full fileset ID - use as is
-                          filesetId = textValue;
-                        }
-                      }
-
-                      // Only set text data if we actually found a text fileset
-                      if (filesetId) {
-                        testamentData.category = category;
-                        testamentData.distinctId = distinctId;
-                        testamentData.filesetId = filesetId;
-                      }
-                      // basePath is NOT set - no local chapter JSON files exist, text loads from API
-                      if (filesetId) {
-                        break; // Found text data
-                      }
-                    }
-                  } catch (err) {
-                    continue;
-                  }
-                }
-              }
-            }
-
-            // Second, try to find audio fileset (separate from text)
             for (const category of audioPriorityOrder) {
-              if (allCategories.includes(category)) {
-                const langList = manifest.files[testament][category];
-                if (langList && langList[langCode]) {
-                  const distinctIds = langList[langCode];
-                  const distinctId = Array.isArray(distinctIds)
-                    ? distinctIds[0]
-                    : distinctIds;
+              if (testamentData.audioFilesetId) break;
+              if (!allCategories.includes(category)) continue;
 
-                  try {
-                    const dataPath = `/ALL-langs-data/${testament}/${category}/${langCode}/${distinctId}/data.json`;
-                    const dataResponse = await fetch(dataPath);
+              const langList = manifest.files[testament][category];
+              if (!langList || !langList[langCode]) continue;
 
-                    if (dataResponse.ok) {
-                      const filesetData = await dataResponse.json();
-                      // Audio fileset is in 'a' field
-                      let audioFilesetId = null;
+              const distinctIds = langList[langCode];
+              const distinctIdArray = Array.isArray(distinctIds)
+                ? distinctIds
+                : [distinctIds];
 
-                      if (filesetData.a) {
-                        const audioValue = filesetData.a;
+              for (const distinctId of distinctIdArray) {
+                try {
+                  const dataPath = `/ALL-langs-data/${testament}/${category}/${langCode}/${distinctId}/data.json`;
+                  const dataResponse = await fetch(dataPath);
 
-                        // Check if it's a suffix (ends with .mp3) or full ID
-                        if (audioValue.endsWith(".mp3")) {
-                          const suffix = audioValue.replace(".mp3", "");
+                  if (dataResponse.ok) {
+                    const filesetData = await dataResponse.json();
+                    const audioFilesetId = parseAudioFilesetId(
+                      filesetData.a,
+                      distinctId,
+                    );
 
-                          // Determine if it's a full ID or a suffix based on length
-                          // Full audio IDs are typically 10+ characters, suffixes are shorter (like "N1DA", "N2DA")
-                          if (suffix.length >= 10) {
-                            // It's a full fileset ID
-                            audioFilesetId = suffix;
-                          } else {
-                            // It's a suffix - concatenate with distinctId
-                            audioFilesetId = distinctId + suffix;
-                          }
-                        } else {
-                          // It's a full fileset ID - use as is
-                          audioFilesetId = audioValue;
-                        }
-                      }
-
-                      if (audioFilesetId) {
-                        testamentData.audioFilesetId = audioFilesetId;
-                        testamentData.audioCategory = category;
-                        // Save distinctId for timing file lookup
-                        if (!testamentData.distinctId) {
-                          testamentData.distinctId = distinctId;
-                        }
-                        break; // Found audio data
-                      }
+                    if (audioFilesetId) {
+                      testamentData.audioFilesetId = audioFilesetId;
+                      testamentData.audioCategory = category;
+                      // Store audioDistinctId for timing lookup (different from text distinctId)
+                      testamentData.audioDistinctId = distinctId;
+                      break;
                     }
-                  } catch (err) {
-                    continue;
                   }
+                } catch (err) {
+                  continue;
                 }
               }
             }
+          }
 
-            // Store testament data if we found either text or audio
-            if (testamentData.filesetId || testamentData.audioFilesetId) {
-              langData[testament] = testamentData;
-            }
+          // Store testament data if we found either text or audio
+          if (testamentData.filesetId || testamentData.audioFilesetId) {
+            langData[testament] = testamentData;
           }
         }
 
@@ -621,6 +662,23 @@ const LanguageProvider = ({
         return chapterTextRef.current[chapterKey];
       }
 
+      // Early check: For non-English languages, verify text is available before loading
+      if (langCode !== "eng") {
+        const languageData = languageDataRef.current;
+
+        // Load language data if not already loaded
+        if (!languageData[langCode]) {
+          await loadLanguageData(langCode);
+        }
+
+        const langData = languageData[langCode]?.[testament];
+
+        // Silent return if no text data available for this language/testament
+        if (!langData || !langData.filesetId) {
+          return null;
+        }
+      }
+
       // Mark as loading
       loadingChaptersRef.current[chapterKey] = true;
       updateState({ isLoadingChapter: true });
@@ -639,38 +697,10 @@ const LanguageProvider = ({
         // If not English or BSB failed, fall back to DBT API
         if (!result) {
           const languageData = languageDataRef.current;
-
-          // Load language data if not already loaded
-          if (!languageData[langCode]) {
-            await loadLanguageData(langCode);
-          }
-
-          if (!languageData[langCode]) {
-            throw new Error(`No language data for ${langCode}`);
-          }
-
-          // Use provided testament, default to OT for Genesis
-          const testamentToUse = testament;
-
-          // Early detection: check if testament data exists
-          const langData = languageData[langCode][testamentToUse];
-          if (!langData) {
-            throw new Error(`No ${testamentToUse} data for ${langCode}`);
-          }
-
-          // Check if this is audio-only (no text fileset available)
-          if (
-            (langData.audioCategory === "audio-with-timecode" ||
-              langData.audioCategory === "audio-only") &&
-            !langData.filesetId
-          ) {
-            throw new Error(
-              `No text available for ${testamentToUse} in ${langCode}`,
-            );
-          }
+          const langData = languageData[langCode][testament];
 
           // Load text from DBT API
-          const filesetId = langData.filesetId || langData.distinctId;
+          const filesetId = langData.filesetId;
 
           if (!filesetId) {
             throw new Error(
@@ -979,7 +1009,11 @@ const LanguageProvider = ({
             // Load and cache the whole timing file
             try {
               const audioCategory = langData.audioCategory;
-              const distinctId = langData.distinctId || targetLanguage;
+              // Use audioDistinctId if available (Phase 2 case), else distinctId (Phase 1 case)
+              const distinctId =
+                langData.audioDistinctId ||
+                langData.distinctId ||
+                targetLanguage;
               const langCode = targetLanguage;
 
               // Try timing file with audio category first, then fallback to with-timecode

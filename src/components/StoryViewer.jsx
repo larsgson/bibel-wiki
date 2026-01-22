@@ -615,6 +615,14 @@ function StoryViewer({ storyData, onBack }) {
     }
   }, [parsedData, selectedLanguage, languageData, analyzeStoryCapabilities]);
 
+  // Clear audioLanguage if it's no longer in selectedLanguages
+  useEffect(() => {
+    if (audioLanguage && !selectedLanguages.includes(audioLanguage)) {
+      setAudioLanguage(null);
+      lastCollectedLangRef.current = null;
+    }
+  }, [audioLanguage, selectedLanguages, setAudioLanguage]);
+
   // Initialize audioLanguage when story capabilities are determined
   useEffect(() => {
     if (storyCapabilities.hasTimecode && !audioLanguage) {
