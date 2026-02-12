@@ -21,8 +21,37 @@ import FullPlayingPane from "./FullPlayingPane";
 import StorySection from "./MultiLanguage/StorySection";
 import BSBModeDialog, { DISPLAY_MODES } from "./BSBModeDialog";
 
+/** Parse locale TOML files (flat sections like [01], [01.01], etc.) */
+const parseLocaleToml = (text) => {
+  const result = {};
+  let currentSection = null;
+  for (const line of text.split("\n")) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("#") || trimmed === "") continue;
+    const sectionMatch = trimmed.match(/^\[([^\]]+)\]$/);
+    if (sectionMatch) {
+      currentSection = sectionMatch[1];
+      if (!result[currentSection]) result[currentSection] = {};
+      continue;
+    }
+    const kvMatch = trimmed.match(/^(\w+)\s*=\s*"((?:[^"\\]|\\.)*)"/);
+    if (kvMatch) {
+      const value = kvMatch[2].replace(/\\"/g, '"');
+      if (currentSection) {
+        result[currentSection][kvMatch[1]] = value;
+      } else {
+        result[kvMatch[1]] = value;
+      }
+    }
+  }
+  return result;
+};
+
 /**
- * Extract raw timing data for a specific reference
+ * Extract raw timing data for a specific reference.
+ * Supports two formats:
+ *   1. DBT timing.json: { filesetId: { storyNum: { "BOOK#:SPEC": [ts...] } } }
+ *   2. Direct-audio CSV: { "BOOK #": { verseTimestamps: { "1": ts, ... } } }
  */
 const extractRawTimingData = (
   timingData,
@@ -31,9 +60,44 @@ const extractRawTimingData = (
   chapterNum,
   verseSpec,
 ) => {
-  if (!timingData || !audioFilesetId || !timingData[audioFilesetId]) {
-    return null;
+  if (!timingData) return null;
+
+  // Detect direct-audio format: key is "BOOK CHAPTER" with verseTimestamps inside
+  const directKey = `${bookId} ${chapterNum}`;
+  if (timingData[directKey]?.verseTimestamps) {
+    const vts = timingData[directKey].verseTimestamps;
+    // Parse verseSpec (e.g. "1-5", "11", "1,3-5") into sorted verse numbers
+    const verses = [];
+    for (const part of verseSpec.split(",")) {
+      const range = part.split("-").map(Number);
+      if (range.length === 2) {
+        for (let v = range[0]; v <= range[1]; v++) verses.push(v);
+      } else {
+        verses.push(range[0]);
+      }
+    }
+    // Collect timestamps for requested verses, plus next verse as end boundary
+    const timestamps = verses
+      .map((v) => vts[String(v)])
+      .filter((t) => t != null);
+    if (timestamps.length === 0) return null;
+    // Add end boundary: next verse after last, or last + small offset
+    const lastVerse = verses[verses.length - 1];
+    const endTs = vts[String(lastVerse + 1)];
+    if (endTs != null) {
+      timestamps.push(endTs);
+    } else {
+      // No next verse — estimate end as last timestamp + 10s
+      timestamps.push(timestamps[timestamps.length - 1] + 10);
+    }
+    return {
+      reference: `${bookId}${chapterNum}:${verseSpec}`,
+      timestamps,
+    };
   }
+
+  // DBT timing.json format
+  if (!audioFilesetId || !timingData[audioFilesetId]) return null;
 
   const filesetData = timingData[audioFilesetId];
   const searchRef = `${bookId}${chapterNum}:${verseSpec}`;
@@ -93,6 +157,8 @@ function StoryViewer({ storyData, onBack }) {
   const [isChaptersLoading, setIsChaptersLoading] = useState(true);
   const [requiredChapters, setRequiredChapters] = useState(new Set());
 
+  const [localeData, setLocaleData] = useState(null);
+
   // Global BSB display mode state
   const [bsbDisplayMode, setBsbDisplayMode] = useState(DISPLAY_MODES.ENG);
   const [useHebrewOrder, setUseHebrewOrder] = useState(true);
@@ -118,6 +184,55 @@ function StoryViewer({ storyData, onBack }) {
       currentPlaylist.length > 0
     );
   }, [currentStoryId, storyId, currentPlaylist]);
+
+  // Load locale data for [[t:...]] resolution (English base + selected language overlay)
+  useEffect(() => {
+    const loadLocale = async () => {
+      const templateId = storyData?.storySetId;
+      if (!templateId) return;
+
+      const fetchLoc = async (lang) => {
+        try {
+          const resp = await fetch(
+            `/templates/${templateId}/locales/${lang}.toml`,
+          );
+          if (resp.ok) return parseLocaleToml(await resp.text());
+        } catch {
+          /* not available */
+        }
+        return null;
+      };
+
+      const engLocale = await fetchLoc("eng");
+      if (!selectedLanguage || selectedLanguage === "eng") {
+        setLocaleData(engLocale || {});
+        return;
+      }
+      const langLocale = await fetchLoc(selectedLanguage);
+      if (!engLocale) {
+        setLocaleData(langLocale || {});
+        return;
+      }
+      if (!langLocale) {
+        setLocaleData(engLocale);
+        return;
+      }
+      // Merge: English base with selected language overlay
+      const merged = { ...engLocale };
+      for (const key of Object.keys(langLocale)) {
+        if (
+          typeof langLocale[key] === "object" &&
+          typeof engLocale[key] === "object"
+        ) {
+          merged[key] = { ...engLocale[key], ...langLocale[key] };
+        } else {
+          merged[key] = langLocale[key];
+        }
+      }
+      setLocaleData(merged);
+    };
+    loadLocale();
+  }, [storyData?.storySetId, selectedLanguage]);
 
   useEffect(() => {
     // If returning to the same story that's already playing, still load content but keep playlist
@@ -198,7 +313,11 @@ function StoryViewer({ storyData, onBack }) {
           }
         });
 
-        const parsed = parseMarkdownIntoSections(content, langChapterText);
+        const parsed = parseMarkdownIntoSections(
+          content,
+          langChapterText,
+          localeData,
+        );
         parsedByLanguage[langCode] = parsed;
 
         if (langCode === selectedLanguage) {
@@ -209,7 +328,32 @@ function StoryViewer({ storyData, onBack }) {
       setContentByLanguage({ ...parsedByLanguage });
       setChapterCount(newCount);
     }
-  }, [chapterText, content, selectedLanguage, selectedLanguages]);
+  }, [chapterText, content, selectedLanguage, selectedLanguages, localeData]);
+
+  // Reparse when localeData loads (resolves [[t:...]] markers)
+  useEffect(() => {
+    if (!localeData || !content) return;
+
+    const parsedByLanguage = {};
+    selectedLanguages.forEach((langCode) => {
+      const langChapterText = {};
+      Object.keys(chapterText).forEach((key) => {
+        if (key.startsWith(`${langCode}-`)) {
+          langChapterText[key.replace(/^[a-z]+-/, "")] = chapterText[key];
+        }
+      });
+      const parsed = parseMarkdownIntoSections(
+        content,
+        langChapterText,
+        localeData,
+      );
+      parsedByLanguage[langCode] = parsed;
+      if (langCode === selectedLanguage) {
+        setParsedData(parsed);
+      }
+    });
+    setContentByLanguage({ ...parsedByLanguage });
+  }, [localeData]);
 
   const loadStory = async () => {
     setLoading(true);
@@ -217,7 +361,9 @@ function StoryViewer({ storyData, onBack }) {
 
     try {
       // STEP 1: Fetch markdown ONCE (it's the same file for all languages)
-      const response = await fetch(`/templates/OBS/${storyData.path}`);
+      const response = await fetch(
+        `/templates/${storyData.storySetId}/${storyData.path}`,
+      );
 
       if (!response.ok) {
         throw new Error(`Story not found: ${response.status}`);
@@ -235,7 +381,7 @@ function StoryViewer({ storyData, onBack }) {
       setContent(markdown);
 
       // STEP 2: First parse - extract structure and references (no chapter text yet)
-      const initialParsed = parseMarkdownIntoSections(markdown, {});
+      const initialParsed = parseMarkdownIntoSections(markdown, {}, localeData);
       setParsedData(initialParsed);
 
       // Extract all references from the parsed sections
@@ -293,7 +439,11 @@ function StoryViewer({ storyData, onBack }) {
         });
 
         // Parse with chapter text for this language
-        const parsed = parseMarkdownIntoSections(markdown, langChapterText);
+        const parsed = parseMarkdownIntoSections(
+          markdown,
+          langChapterText,
+          localeData,
+        );
         parsedByLanguage[langCode] = parsed;
 
         if (langCode === selectedLanguage) {
@@ -303,6 +453,7 @@ function StoryViewer({ storyData, onBack }) {
 
       setContentByLanguage(parsedByLanguage);
       setChapterCount(Object.keys(freshChapterText).length);
+
       setIsChaptersLoading(false);
       setError(null);
     } catch (err) {
@@ -372,6 +523,7 @@ function StoryViewer({ storyData, onBack }) {
                 chapter,
                 testament,
                 forAudioLanguage,
+                storyData.storySetId,
               );
             } catch (err) {
               // Audio not available for this chapter
@@ -555,7 +707,15 @@ function StoryViewer({ storyData, onBack }) {
         for (const testament of testamentsToCheck) {
           const testamentData = checkLangData[testament];
 
-          if (!testamentData || !testamentData.audioFilesetId) {
+          if (!testamentData) {
+            langHasAllTestaments = false;
+            break;
+          }
+
+          // Direct audio counts as having audio with timecodes
+          if (testamentData.directAudio) continue;
+
+          if (!testamentData.audioFilesetId) {
             langHasAllTestaments = false;
             break;
           }
@@ -858,21 +1018,18 @@ function StoryViewer({ storyData, onBack }) {
           />
         </div>
       ) : (
-        // DEFAULT MODE - show all story sections with multi-language support
-        <div className="story-content story-sections-vertical">
+        // SECTION CARDS - default view, also used when audio is minimized
+        <div
+          className={`story-content story-sections-vertical${storyData.layoutTheme ? ` theme-${storyData.layoutTheme}` : ""}`}
+        >
           {parsedData.sections.map((section, index) => {
             const isPlaying =
               currentPlaylist &&
-              currentPlaylist.length > 0 &&
               currentSegmentIndex >= 0 &&
               currentPlaylist[currentSegmentIndex]?.sectionNum === index + 1;
 
-            // Skip if no sections available
-            if (Object.keys(sectionsMap).length === 0) {
-              return null;
-            }
+            if (Object.keys(sectionsMap).length === 0) return null;
 
-            // Check if audio fallback is being used (preferred audio language is not primary)
             const isAudioFallback =
               storyCapabilities.preferredAudioLanguage &&
               storyCapabilities.preferredAudioLanguage !== selectedLanguage;
@@ -895,7 +1052,6 @@ function StoryViewer({ storyData, onBack }) {
                 engIsExplicit={engIsExplicit}
                 onModeIndicatorClick={() => setShowModeDialog(true)}
                 onSectionClick={(sectionIdx) => {
-                  // If this story's playlist is already loaded, just play the segment
                   if (
                     currentStoryId === storyId &&
                     currentPlaylist &&
@@ -909,9 +1065,7 @@ function StoryViewer({ storyData, onBack }) {
                       playSegment(playlistIdx);
                     }
                   } else if (audioPlaylistData.length > 0) {
-                    // Another story is playing or no playlist loaded yet
-                    // Load this story's playlist and start at the clicked section
-                    suppressAutoplayRef.current = false; // Clear suppression on explicit click
+                    suppressAutoplayRef.current = false;
                     setCurrentStoryId(storyId, storyData);
                     const playlistIdx = audioPlaylistData.findIndex(
                       (entry) => entry.sectionNum === sectionIdx + 1,
@@ -921,7 +1075,6 @@ function StoryViewer({ storyData, onBack }) {
                       mode: "replace",
                       autoPlay: false,
                     });
-                    // Use setTimeout to ensure playlist is loaded before playing
                     setTimeout(() => {
                       setMinimized(false);
                       playSegment(startIndex);

@@ -46,6 +46,12 @@ function StorySection({
     return null;
   }
 
+  // Check if any language has visible text for this section
+  const hasVisibleText = selectedLanguages.some((langCode) => {
+    const langSection = sectionsMap[langCode]?.[sectionIndex];
+    return langSection?.text?.trim();
+  });
+
   const handleClick = () => {
     if (!isLoading && onSectionClick) {
       onSectionClick(sectionIndex);
@@ -112,7 +118,9 @@ function StorySection({
         </div>
 
         {/* Multi-language text sections */}
-        <div className="story-section-languages">
+        <div
+          className={`story-section-languages${!hasVisibleText ? " story-section-no-text" : ""}`}
+        >
           {selectedLanguages.map((langCode, langIndex) => {
             const isPrimary = langIndex === 0;
             // Only treat as fallback if English was NOT explicitly selected
@@ -154,9 +162,7 @@ function StorySection({
               <div key={langCode} className="story-language-section">
                 {/* Warning line when showing fallback text due to missing primary */}
                 {showingFallbackWarning && (
-                  <div className="story-section-missing-warning">
-                    ⚠ [...] ∅
-                  </div>
+                  <div className="story-section-missing-warning">⚠ [...] ∅</div>
                 )}
 
                 {/* Language code - shown to the right, only for non-primary without BSB */}

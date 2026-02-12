@@ -1,0 +1,31 @@
+level = "category"
+id = "03"
+beg = 9
+count = 6
+
+[image]
+filename = "00-02d.png"
+
+[[stories]]
+id = "09"
+image = "https://cdn.door43.org/obs/jpg/360px/obs-en-09-01.jpg"
+
+[[stories]]
+id = "10"
+image = "https://cdn.door43.org/obs/jpg/360px/obs-en-10-01.jpg"
+
+[[stories]]
+id = "11"
+image = "https://cdn.door43.org/obs/jpg/360px/obs-en-11-01.jpg"
+
+[[stories]]
+id = "12"
+image = "https://cdn.door43.org/obs/jpg/360px/obs-en-12-01.jpg"
+
+[[stories]]
+id = "13"
+image = "https://cdn.door43.org/obs/jpg/360px/obs-en-13-01.jpg"
+
+[[stories]]
+id = "14"
+image = "https://cdn.door43.org/obs/jpg/360px/obs-en-14-01.jpg"

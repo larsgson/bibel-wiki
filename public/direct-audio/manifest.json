@@ -1,0 +1,15 @@
+{
+  "languages": {
+    "deu": { "audio": true, "text": true, "timecodes": true },
+    "eng": { "audio": true },
+    "fra": { "audio": true },
+    "spa": { "audio": true },
+    "hun": { "audio": true },
+    "ron": { "audio": true },
+    "lub": { "audio": true },
+    "por": { "audio": true },
+    "swe": { "timecodes": true },
+    "nor": { "timecodes": true },
+    "heb": { "timecodes": true }
+  }
+}

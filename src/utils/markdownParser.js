@@ -1,15 +1,15 @@
 import { getTextForReference, bsbToPlainText } from "./bibleUtils";
 
 /**
- * Replace <<<REF>>> markers in text with actual Bible verses from cache
+ * Replace [[ref:...]] markers in text with actual Bible verses from cache
  * Supports multi-reference strings like "HEB 9:11-14,JOH 1:29, 1PE 1:18-19"
  * For BSB data, converts to plain text for inline replacement
  */
 const replaceBibleReferences = (text, chapterText) => {
   if (!text || !chapterText) return text;
 
-  // Find all <<<REF: ...>>> markers in the text
-  const refPattern = /<<<REF:\s*(.+?)>>>/g;
+  // Find all [[ref:...]] markers in the text
+  const refPattern = /\[\[ref:\s*(.+?)\]\]/g;
   let result = text;
   let match;
 
@@ -33,12 +33,37 @@ const replaceBibleReferences = (text, chapterText) => {
 };
 
 /**
+ * Replace [[t:...]] locale markers in text with resolved locale values.
+ * Key format: "09.13.p_hd" → localeData["09.13"]["p_hd"]
+ *             "09.title"   → localeData["09"]["title"]
+ * The last dot-separated segment is the key; everything before is the section.
+ */
+const replaceLocaleMarkers = (text, localeData) => {
+  if (!text || !localeData) return text;
+
+  return text.replace(/\[\[t:([^\]]+)\]\]/g, (fullMatch, keyPath) => {
+    const lastDot = keyPath.lastIndexOf(".");
+    if (lastDot === -1) return fullMatch;
+
+    const section = keyPath.substring(0, lastDot);
+    const key = keyPath.substring(lastDot + 1);
+    const value = localeData[section]?.[key];
+    return value || fullMatch;
+  });
+};
+
+/**
  * Parse markdown content into structured sections
  * Each section contains an image URL and associated text content
  * @param {string} markdown - The markdown content to parse
  * @param {object} chapterText - Optional cache of loaded Bible chapters
+ * @param {object} localeData - Optional locale data for resolving [[t:...]] markers
  */
-export const parseMarkdownIntoSections = (markdown, chapterText = {}) => {
+export const parseMarkdownIntoSections = (
+  markdown,
+  chapterText = {},
+  localeData = null,
+) => {
   if (!markdown) {
     return { title: "", sections: [] };
   }
@@ -57,14 +82,33 @@ export const parseMarkdownIntoSections = (markdown, chapterText = {}) => {
       continue;
     }
 
-    // Skip story markers
-    if (line.startsWith("<<<STORY:")) {
+    // Skip story/chapter markers
+    if (line.startsWith("[[story:") || line.startsWith("[[chapter:")) {
       continue;
     }
 
-    // Extract reference (<<<REF: GEN 1:1-2>>>)
-    if (line.startsWith("<<<REF:")) {
-      const refMatch = line.match(/<<<REF:\s*(.+?)>>>/);
+    // Resolve locale text interpolation markers
+    if (line.includes("[[t:")) {
+      const resolved = replaceLocaleMarkers(line, localeData);
+      // If fully resolved to empty or still just a marker, skip
+      if (!resolved.trim() || (resolved === line && !localeData)) continue;
+      // Re-process the resolved line (it may be a heading, text, etc.)
+      // Check if it's a heading that should become the story title
+      if (resolved.startsWith("# ") && !storyTitle) {
+        storyTitle = resolved.substring(2).trim();
+        continue;
+      }
+      // Add as text to current section
+      if (currentSection && resolved.trim()) {
+        currentSection.text +=
+          (currentSection.text ? "\n" : "") + resolved.trim();
+      }
+      continue;
+    }
+
+    // Extract reference ([[ref:GEN 1:1-2]])
+    if (line.startsWith("[[ref:")) {
+      const refMatch = line.match(/\[\[ref:\s*(.+?)\]\]/);
       if (refMatch && currentSection) {
         currentSection.reference = refMatch[1].trim();
       }
@@ -96,7 +140,7 @@ export const parseMarkdownIntoSections = (markdown, chapterText = {}) => {
     sections.push(currentSection);
   }
 
-  // Replace <<<REF>>> markers in section text with actual Bible verses
+  // Replace [[ref:...]] markers in section text with actual Bible verses
   sections.forEach((section) => {
     if (section.text) {
       section.text = replaceBibleReferences(section.text, chapterText);

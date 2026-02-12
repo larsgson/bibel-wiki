@@ -1,0 +1,19 @@
+level = "category"
+id = "05"
+beg = 20
+count = 3
+
+[image]
+filename = "000-06.png"
+
+[[stories]]
+id = "20"
+image = "https://cdn.door43.org/obs/jpg/360px/obs-en-20-01.jpg"
+
+[[stories]]
+id = "21"
+image = "https://cdn.door43.org/obs/jpg/360px/obs-en-21-01.jpg"
+
+[[stories]]
+id = "22"
+image = "https://cdn.door43.org/obs/jpg/360px/obs-en-22-01.jpg"

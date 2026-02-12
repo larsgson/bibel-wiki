@@ -1,0 +1,21 @@
+level = "chapter"
+id = "03"
+
+[image]
+filename = "/img/john-pics/VB-John18v24.jpg"
+
+[[stories]]
+id = "18"
+image = "/img/john-pics/VB-John18v24.jpg"
+
+[[stories]]
+id = "19"
+image = "/img/john-pics/VB-John19v10.jpg"
+
+[[stories]]
+id = "20"
+image = "/img/john-pics/VB-John20v17b.jpg"
+
+[[stories]]
+id = "21"
+image = "/img/john-pics/VB-John21v15b.jpg"

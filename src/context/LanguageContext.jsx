@@ -185,8 +185,10 @@ const LanguageProvider = ({
   const loadingAudioRef = useRef({}); // Track loading audio URLs
   const audioUrlsRef = useRef({}); // Track cached audio URLs
   const timingFileCacheRef = useRef({}); // Track cached timing files
-  const timingManifestRef = useRef(null); // Track loaded ALL-timings manifest
-  const preloadStartedRef = useRef(false);
+  const timingManifestRef = useRef({}); // Track loaded ALL-timings manifests per template
+  const preloadStartedRef = useRef(new Set());
+  const directAudioManifestRef = useRef(null);
+  const directAudioConfigRef = useRef({}); // Cached audio.json per language
   const initializationStartedRef = useRef(false);
 
   const updateState = (updates) => {
@@ -231,12 +233,24 @@ const LanguageProvider = ({
     updateState({ isLoadingSummary: true, summaryError: null });
 
     try {
-      const response = await fetch("/ALL-langs-data/summary.json");
+      // Load both summaries in parallel
+      const [response, directResponse] = await Promise.all([
+        fetch("/ALL-langs-data/summary.json"),
+        fetch("/direct-audio/manifest.json").catch(() => null),
+      ]);
       if (!response.ok) {
         throw new Error(`Failed to load summary.json: ${response.status}`);
       }
 
       const summaryData = await response.json();
+
+      // Load direct-audio manifest (optional — no error if missing)
+      let directAudioManifest = null;
+      if (directResponse && directResponse.ok) {
+        const directData = await directResponse.json();
+        directAudioManifest = directData.languages || null;
+      }
+      directAudioManifestRef.current = directAudioManifest;
 
       // Extract language list from nested structure
       // Structure: canons -> nt/ot -> category -> langCode
@@ -254,6 +268,13 @@ const LanguageProvider = ({
               }
             });
           }
+        });
+      }
+
+      // Merge languages from direct-audio manifest
+      if (directAudioManifest) {
+        Object.keys(directAudioManifest).forEach((langCode) => {
+          languages.add(langCode);
         });
       }
 
@@ -338,27 +359,98 @@ const LanguageProvider = ({
     [probeFileset],
   );
 
-  // Load ALL-timings manifest once and cache it
-  const loadTimingManifest = useCallback(async () => {
-    if (timingManifestRef.current) {
-      return timingManifestRef.current;
+  // Load ALL-timings manifest for a specific template, cached per template
+  const loadTimingManifest = useCallback(async (storySetId = "OBS") => {
+    if (timingManifestRef.current[storySetId]) {
+      return timingManifestRef.current[storySetId];
     }
 
     try {
-      const manifestPath = `/ALL-timings/manifest.json`;
+      const manifestPath = `/templates/${storySetId}/ALL-timings/manifest.json`;
       const manifestResponse = await fetch(manifestPath);
 
       if (!manifestResponse.ok) {
-        console.warn("Failed to load ALL-timings manifest.json");
+        console.warn(`Failed to load ALL-timings manifest for ${storySetId}`);
         return null;
       }
 
       const manifest = await manifestResponse.json();
-      timingManifestRef.current = manifest;
+      timingManifestRef.current[storySetId] = manifest;
       return manifest;
     } catch (error) {
-      console.warn("Error loading ALL-timings manifest:", error);
+      console.warn(
+        `Error loading ALL-timings manifest for ${storySetId}:`,
+        error,
+      );
       return null;
+    }
+  }, []);
+
+  // Build a direct audio URL from an audio.json config
+  const buildDirectAudioUrl = useCallback((audioConfig, bookId, chapter) => {
+    if (!audioConfig) return null;
+    if (audioConfig.type === "wordproject") {
+      const bookIdx = audioConfig.bookIndex?.[bookId];
+      if (!bookIdx) return null;
+      return `${audioConfig.baseUrl}${bookIdx}/${chapter}.mp3`;
+    }
+    if (audioConfig.type === "audiotreasure") {
+      const bookName = audioConfig.bookNames?.[bookId];
+      if (!bookName) return null;
+      return `${audioConfig.baseUrl}${bookName}_${chapter}.mp3`;
+    }
+    if (audioConfig.type === "sermon-online") {
+      const bookInfo = audioConfig.books?.[bookId];
+      if (!bookInfo) return null;
+      const padded2 = String(chapter).padStart(2, "0");
+      const padded3 = String(chapter).padStart(3, "0");
+      return `${audioConfig.baseUrl}${bookInfo.code}${padded2}-${bookInfo.title}_Kapitel-${padded3}.mp3`;
+    }
+    return null;
+  }, []);
+
+  // Attach direct-audio config to langData if available in manifest
+  const attachDirectAudioConfig = useCallback(async (langCode, langData) => {
+    const manifest = directAudioManifestRef.current;
+    if (!manifest?.[langCode]) return;
+
+    const langManifest = manifest[langCode];
+
+    // Load and cache audio.json if this language has audio
+    if (langManifest.audio) {
+      let audioConfig = directAudioConfigRef.current[langCode];
+      if (!audioConfig) {
+        try {
+          const resp = await fetch(`/direct-audio/${langCode}/audio.json`);
+          if (resp.ok) {
+            audioConfig = await resp.json();
+            directAudioConfigRef.current[langCode] = audioConfig;
+          }
+        } catch (e) {
+          console.warn(
+            `Failed to load direct-audio config for ${langCode}:`,
+            e,
+          );
+        }
+      }
+
+      if (audioConfig) {
+        // Ensure testament entries exist for direct-audio languages
+        for (const t of audioConfig.testaments || []) {
+          if (!langData[t]) {
+            langData[t] = {};
+          }
+          langData[t].directAudio = audioConfig;
+        }
+      }
+    }
+
+    // Mark direct text/timecodes availability on testament data
+    if (langManifest.text || langManifest.timecodes) {
+      // Default to nt if no testament data exists yet
+      if (!langData.nt) langData.nt = {};
+      if (langManifest.text) langData.nt.directText = true;
+      if (langManifest.timecodes) langData.nt.directTimecodes = true;
     }
   }, []);
 
@@ -574,6 +666,9 @@ const LanguageProvider = ({
           }
         }
 
+        // Attach direct-audio config if available for this language
+        await attachDirectAudioConfig(langCode, langData);
+
         if (Object.keys(langData).length > 0) {
           const newLanguageData = {
             ...languageDataRef.current,
@@ -673,8 +768,8 @@ const LanguageProvider = ({
 
         const langData = languageData[langCode]?.[testament];
 
-        // Silent return if no text data available for this language/testament
-        if (!langData || !langData.filesetId) {
+        // Silent return if no text data available (neither direct nor DBT)
+        if (!langData || (!langData.filesetId && !langData.directText)) {
           return null;
         }
       }
@@ -694,37 +789,54 @@ const LanguageProvider = ({
           }
         }
 
-        // If not English or BSB failed, fall back to DBT API
+        // Try direct text files (no proxy needed)
         if (!result) {
           const languageData = languageDataRef.current;
-          const langData = languageData[langCode][testament];
+          const langData = languageData[langCode]?.[testament];
 
-          // Load text from DBT API
-          const filesetId = langData.filesetId;
-
-          if (!filesetId) {
-            throw new Error(
-              `No fileset ID for ${testamentToUse} in ${langCode}`,
-            );
+          if (langData?.directText) {
+            try {
+              const textResp = await fetch(
+                `/direct-audio/${langCode}/text/${bookId}_${chapterNum}.txt`,
+              );
+              if (textResp.ok) {
+                const text = await textResp.text();
+                const lines = text.trim().split("\n");
+                result = lines.map((line, i) => ({
+                  num: i + 1,
+                  text: line.trim(),
+                }));
+              }
+            } catch (e) {
+              // Fall through to DBT
+            }
           }
+        }
 
-          const url = `/.netlify/functions/dbt-proxy?type=text&fileset_id=${filesetId}&book_id=${bookId}&chapter_id=${chapterNum}`;
-          const response = await fetch(url, {
-            priority: "low",
-          });
+        // Fall back to DBT API
+        if (!result) {
+          const languageData = languageDataRef.current;
+          const langData = languageData[langCode]?.[testament];
+          const filesetId = langData?.filesetId;
 
-          if (!response.ok) {
-            throw new Error(`API request failed: ${response.status}`);
-          }
+          if (filesetId) {
+            const url = `/.netlify/functions/dbt-proxy?type=text&fileset_id=${filesetId}&book_id=${bookId}&chapter_id=${chapterNum}`;
+            const response = await fetch(url, {
+              priority: "low",
+            });
 
-          const data = await response.json();
+            if (!response.ok) {
+              throw new Error(`API request failed: ${response.status}`);
+            }
 
-          // Extract verse array from API response (DBT format)
-          if (data.data && Array.isArray(data.data)) {
-            result = data.data.map((verse) => ({
-              num: parseInt(verse.verse_start, 10),
-              text: verse.verse_text,
-            }));
+            const data = await response.json();
+
+            if (data.data && Array.isArray(data.data)) {
+              result = data.data.map((verse) => ({
+                num: parseInt(verse.verse_start, 10),
+                text: verse.verse_text,
+              }));
+            }
           }
         }
 
@@ -760,12 +872,12 @@ const LanguageProvider = ({
   // Scan markdown files to build story testament metadata
   // Optimized: fetches in parallel batches and updates state progressively
   // Only fetches files that exist in manifest.json to avoid 404 errors
-  const preloadBibleReferences = useCallback(async () => {
-    // Prevent multiple preload attempts
-    if (preloadStartedRef.current) {
+  const preloadBibleReferences = useCallback(async (storySetId = "OBS") => {
+    // Prevent duplicate preload for the same storySetId
+    if (preloadStartedRef.current.has(storySetId)) {
       return;
     }
-    preloadStartedRef.current = true;
+    preloadStartedRef.current.add(storySetId);
 
     const ntBooks = [
       "MAT",
@@ -799,9 +911,11 @@ const LanguageProvider = ({
 
     try {
       // First, load manifest.json to get list of files that actually exist
-      const manifestResponse = await fetch("/templates/OBS/manifest.json");
+      const manifestResponse = await fetch(
+        `/templates/${storySetId}/manifest.json`,
+      );
       if (!manifestResponse.ok) {
-        throw new Error("Could not load OBS manifest");
+        throw new Error(`Could not load ${storySetId} manifest`);
       }
       const manifest = await manifestResponse.json();
 
@@ -814,28 +928,29 @@ const LanguageProvider = ({
       );
 
       // Get list of all categories from main index
-      const indexResponse = await fetch("/templates/OBS/index.toml");
+      const indexResponse = await fetch(`/templates/${storySetId}/index.toml`);
       if (!indexResponse.ok) {
-        throw new Error("Could not load OBS index");
+        throw new Error(`Could not load ${storySetId} index`);
       }
       const indexText = await indexResponse.text();
       const indexData = parseToml(indexText);
       const categories = indexData.categories || [];
 
       // Collect all story paths from all categories (fetch category indexes in parallel)
-      const categoryPromises = categories.map(async (categoryDir) => {
+      const categoryPromises = categories.map(async (cat) => {
+        const categoryDir = typeof cat === "string" ? cat : cat.id;
         try {
           const catResponse = await fetch(
-            `/templates/OBS/${categoryDir}/index.toml`,
+            `/templates/${storySetId}/${categoryDir}/index.toml`,
           );
           if (catResponse.ok) {
             const catText = await catResponse.text();
             const catData = parseToml(catText);
             if (catData.stories) {
-              return catData.stories.map((story) => ({
-                path: `${categoryDir}/${story.id}.md`,
-                storyId: story.id,
-              }));
+              return catData.stories.map((story) => {
+                const id = typeof story === "string" ? story : story.id;
+                return { path: `${categoryDir}/${id}.md`, storyId: id };
+              });
             }
           }
         } catch (err) {
@@ -855,13 +970,13 @@ const LanguageProvider = ({
       // Fetch only markdown files that exist (to avoid 404 errors)
       const storyPromises = existingStories.map(async ({ path, storyId }) => {
         try {
-          const mdResponse = await fetch(`/templates/OBS/${path}`);
+          const mdResponse = await fetch(`/templates/${storySetId}/${path}`);
           if (mdResponse.ok) {
             const content = await mdResponse.text();
             const testamentsUsed = { ot: false, nt: false };
 
             // Extract all references and determine testaments
-            const refMatches = content.matchAll(/<<<REF:\s*([^>]+)>>>/g);
+            const refMatches = content.matchAll(/\[\[ref:\s*([^\]]+)\]\]/g);
             for (const match of refMatches) {
               const ref = match[1].trim();
               const bookMatch = ref.match(/^([A-Z0-9]+)\s+/i);
@@ -911,13 +1026,19 @@ const LanguageProvider = ({
       }));
     } catch (error) {
       console.error("Error scanning story testament metadata:", error);
-      preloadStartedRef.current = false; // Reset on error so it can retry
+      preloadStartedRef.current.delete(storySetId); // Reset on error so it can retry
     }
   }, []);
 
   // Load audio URL for a specific chapter (cache only what's requested)
   const loadAudioUrl = useCallback(
-    async (bookId, chapterNum, testament = "ot", forLanguage = null) => {
+    async (
+      bookId,
+      chapterNum,
+      testament = "ot",
+      forLanguage = null,
+      storySetId = "OBS",
+    ) => {
       // Use provided language or fall back to selected language
       const targetLanguage = forLanguage || state.selectedLanguage;
       if (!targetLanguage) {
@@ -949,8 +1070,8 @@ const LanguageProvider = ({
         return null;
       }
 
-      // Check if this language/testament has audio using the audioFilesetId
-      if (!langData.audioFilesetId) {
+      // Check if this language/testament has audio (direct or DBT)
+      if (!langData.directAudio && !langData.audioFilesetId) {
         return null; // No audio available for this testament
       }
 
@@ -959,52 +1080,103 @@ const LanguageProvider = ({
       updateState({ isLoadingAudio: true });
 
       try {
-        // Get audio fileset ID - use the separate audioFilesetId
-        const audioFilesetId = langData.audioFilesetId;
-
-        if (!audioFilesetId) {
-          throw new Error(
-            `No audio fileset ID for ${testament} in ${targetLanguage}`,
-          );
-        }
-
-        // Fetch audio data from DBT API
-        const url = `/.netlify/functions/dbt-proxy?type=audio&fileset_id=${audioFilesetId}&book_id=${bookId}&chapter_id=${chapterNum}`;
-        const response = await fetch(url);
-
-        if (!response.ok) {
-          throw new Error(`Audio API request failed: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        // Extract audio URL from API response
-        // DBT API returns array with audio file path
         let audioUrl = null;
-        if (data.data && Array.isArray(data.data) && data.data.length > 0) {
-          audioUrl = data.data[0].path;
+        let hasTimecode = false;
+        let timingData = null;
+        let audioFilesetId = null;
+        let usedDirectAudio = false;
+
+        // Try direct audio first (no proxy needed)
+        if (langData.directAudio) {
+          audioUrl = buildDirectAudioUrl(
+            langData.directAudio,
+            bookId,
+            chapterNum,
+          );
+          if (audioUrl) {
+            usedDirectAudio = true;
+            // Check for direct timecodes
+            const manifest = directAudioManifestRef.current;
+            if (manifest?.[targetLanguage]?.timecodes) {
+              hasTimecode = true;
+              try {
+                const tcResp = await fetch(
+                  `/direct-audio/${targetLanguage}/timecodes/${bookId}_${chapterNum}.csv`,
+                );
+                if (tcResp.ok) {
+                  const csvText = await tcResp.text();
+                  // Parse CSV: each line is the END time of that verse
+                  // Verse 1 starts at 0, verse 2 starts at line 1's value, etc.
+                  const endTimes = csvText
+                    .trim()
+                    .split("\n")
+                    .map((line) => parseFloat(line.trim()))
+                    .filter((v) => !isNaN(v));
+                  const verseTimestamps = {};
+                  endTimes.forEach((ts, i) => {
+                    // Verse i+1 starts at previous verse's end (or 0 for first)
+                    verseTimestamps[String(i + 1)] =
+                      i === 0 ? 0 : endTimes[i - 1];
+                  });
+                  // Add final boundary (end of last verse)
+                  verseTimestamps[String(endTimes.length + 1)] =
+                    endTimes[endTimes.length - 1];
+                  // Wrap in structure compatible with existing timingData usage
+                  // timingData is keyed by "BOOK CHAPTER"
+                  timingData = {
+                    [`${bookId} ${chapterNum}`]: { verseTimestamps },
+                  };
+                }
+              } catch (e) {
+                // Continue without timecodes
+              }
+            }
+          }
+        }
+
+        // Fall back to DBT proxy if direct audio not available
+        if (!audioUrl && langData.audioFilesetId) {
+          audioFilesetId = langData.audioFilesetId;
+
+          const url = `/.netlify/functions/dbt-proxy?type=audio&fileset_id=${audioFilesetId}&book_id=${bookId}&chapter_id=${chapterNum}`;
+          const response = await fetch(url);
+
+          if (!response.ok) {
+            throw new Error(`Audio API request failed: ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+            audioUrl = data.data[0].path;
+          }
+
+          if (!audioUrl) {
+            throw new Error("No audio URL in response");
+          }
         }
 
         if (!audioUrl) {
-          throw new Error("No audio URL in response");
+          throw new Error("No audio URL available");
         }
 
-        // Check if this category has timecode data
-        const hasTimecode = ["with-timecode", "audio-with-timecode"].includes(
-          langData.audioCategory,
-        );
+        // Check if this category has timecode data (for DBT-sourced audio)
+        if (!usedDirectAudio) {
+          hasTimecode = ["with-timecode", "audio-with-timecode"].includes(
+            langData.audioCategory,
+          );
+        }
 
-        let timingData = null;
-
-        if (hasTimecode) {
-          const timingCacheKey = `${targetLanguage}-${testament}`;
+        // Load DBT-based timing data (skip if direct audio already loaded timecodes)
+        if (hasTimecode && !usedDirectAudio) {
+          const timingCacheKey = `${storySetId}-${targetLanguage}-${testament}`;
 
           // Check if timing file is already cached
           if (timingFileCacheRef.current[timingCacheKey]) {
             timingData = timingFileCacheRef.current[timingCacheKey];
           } else {
             // Load timing manifest to check if timing file exists before fetching
-            const timingManifest = await loadTimingManifest();
+            const timingManifest = await loadTimingManifest(storySetId);
 
             // Load and cache the whole timing file
             try {
@@ -1046,7 +1218,7 @@ const LanguageProvider = ({
                   }
                 }
 
-                const timingPath = `/ALL-timings/${testament}/${timingCategory}/${langCode}/${distinctId}/timing.json`;
+                const timingPath = `/templates/${storySetId}/ALL-timings/${testament}/${timingCategory}/${langCode}/${distinctId}/timing.json`;
 
                 try {
                   const timecodeResponse = await fetch(timingPath);
@@ -1109,7 +1281,7 @@ const LanguageProvider = ({
         return null;
       }
     },
-    [state, loadLanguageData],
+    [state, loadLanguageData, buildDirectAudioUrl],
   );
 
   // Load chapters on-demand for a specific story
@@ -1379,7 +1551,7 @@ const LanguageProvider = ({
       loadingChaptersRef.current = {};
       loadingAudioRef.current = {};
       timingFileCacheRef.current = newTimingFileCache;
-      preloadStartedRef.current = false; // Reset preload flag to allow reloading
+      preloadStartedRef.current = new Set(); // Reset preload flag to allow reloading
 
       // Load language data for ALL active languages
       const loadPromises = newActive.languages.map((langCode) => {

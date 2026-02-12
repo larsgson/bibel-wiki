@@ -3,9 +3,9 @@
  * Compares what stories SHOULD exist (from index.toml) vs what DOES exist (from manifest.json)
  */
 
-// Cache for missing stories to avoid repeated calculations
-let missingStoriesCache = null;
-let cacheTimestamp = null;
+// Cache for missing stories per template to avoid repeated calculations
+let missingStoriesCache = {};
+let cacheTimestamps = {};
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 /**
@@ -109,13 +109,13 @@ const parseToml = (text) => {
  * @returns {Promise<Object>} Object with missing stories by category and flat list
  */
 export const checkMissingStories = async (storySetId = "OBS") => {
-  // Check cache
+  // Check cache for this specific template
   if (
-    missingStoriesCache &&
-    cacheTimestamp &&
-    Date.now() - cacheTimestamp < CACHE_DURATION
+    missingStoriesCache[storySetId] &&
+    cacheTimestamps[storySetId] &&
+    Date.now() - cacheTimestamps[storySetId] < CACHE_DURATION
   ) {
-    return missingStoriesCache;
+    return missingStoriesCache[storySetId];
   }
 
   try {
@@ -145,7 +145,10 @@ export const checkMissingStories = async (storySetId = "OBS") => {
     const allExpectedStories = {};
 
     // For each category, load its index.toml and compare
-    for (const categoryDir of rootIndex.categories) {
+    const categories = (rootIndex.categories || []).map((cat) =>
+      typeof cat === "string" ? cat : cat.id,
+    );
+    for (const categoryDir of categories) {
       try {
         const categoryResponse = await fetch(
           `/templates/${storySetId}/${categoryDir}/index.toml`,
@@ -155,15 +158,16 @@ export const checkMissingStories = async (storySetId = "OBS") => {
 
         const categoryMissing = [];
 
-        for (const story of categoryData.stories || []) {
+        const stories = (categoryData.stories || []).map((s) =>
+          typeof s === "string" ? { id: s } : s,
+        );
+        for (const story of stories) {
           const storyFilePath = `${categoryDir}/${story.id}.md`.toLowerCase();
 
           // Store all expected stories
           allExpectedStories[story.id] = {
             id: story.id,
-            title: story.title,
             category: categoryDir,
-            categoryTitle: categoryData.title,
             image: story.image,
           };
 
@@ -171,7 +175,6 @@ export const checkMissingStories = async (storySetId = "OBS") => {
           if (!existingFiles.has(storyFilePath)) {
             categoryMissing.push({
               id: story.id,
-              title: story.title,
               expectedPath: storyFilePath,
             });
             missingStoryIds.add(story.id);
@@ -180,7 +183,7 @@ export const checkMissingStories = async (storySetId = "OBS") => {
 
         if (categoryMissing.length > 0) {
           missingByCategory[categoryDir] = {
-            categoryTitle: categoryData.title,
+            categoryId: categoryData.id || categoryDir,
             missing: categoryMissing,
             totalExpected: categoryData.stories?.length || 0,
             totalMissing: categoryMissing.length,
@@ -201,9 +204,9 @@ export const checkMissingStories = async (storySetId = "OBS") => {
       checkedAt: Date.now(),
     };
 
-    // Update cache
-    missingStoriesCache = result;
-    cacheTimestamp = Date.now();
+    // Update cache for this template
+    missingStoriesCache[storySetId] = result;
+    cacheTimestamps[storySetId] = Date.now();
 
     return result;
   } catch (error) {
@@ -236,21 +239,22 @@ export const isStoryMissing = (storyId, missingStoriesData) => {
  * Clear the missing stories cache (useful when content is updated)
  */
 export const clearMissingStoriesCache = () => {
-  missingStoriesCache = null;
-  cacheTimestamp = null;
+  missingStoriesCache = {};
+  cacheTimestamps = {};
 };
 
 /**
  * Get cached missing stories data without fetching
+ * @param {string} storySetId - The story set ID
  * @returns {Object|null} Cached data or null if not available
  */
-export const getCachedMissingStories = () => {
+export const getCachedMissingStories = (storySetId = "OBS") => {
   if (
-    missingStoriesCache &&
-    cacheTimestamp &&
-    Date.now() - cacheTimestamp < CACHE_DURATION
+    missingStoriesCache[storySetId] &&
+    cacheTimestamps[storySetId] &&
+    Date.now() - cacheTimestamps[storySetId] < CACHE_DURATION
   ) {
-    return missingStoriesCache;
+    return missingStoriesCache[storySetId];
   }
   return null;
 };

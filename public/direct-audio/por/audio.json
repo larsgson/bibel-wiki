@@ -1,0 +1,8 @@
+{
+  "type": "wordproject",
+  "baseUrl": "https://storage.googleapis.com/audio.bibel.wiki/wp/2_BR/",
+  "bookIndex": {
+    "JHN": 43
+  },
+  "testaments": ["nt"]
+}

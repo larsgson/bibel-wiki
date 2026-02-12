@@ -21,24 +21,29 @@
   targetPort = 3000
 
 # Cache headers for static template files
-# TOML index files - 1 week cache (indexes may change when new stories are added)
+# TOML index and locale files - 1 week cache (indexes may change when new content is added)
 [[headers]]
-  for = "/templates/OBS/*.toml"
+  for = "/templates/*/*.toml"
   [headers.values]
     Cache-Control = "public, max-age=604800"
 
 [[headers]]
-  for = "/templates/OBS/*/*.toml"
+  for = "/templates/*/*/*.toml"
   [headers.values]
     Cache-Control = "public, max-age=604800"
 
-# Markdown story files - 30 days cache (story content rarely changes)
 [[headers]]
-  for = "/templates/OBS/**/*.md"
+  for = "/templates/*/locales/*.toml"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+# Markdown content files - 30 days cache (content rarely changes)
+[[headers]]
+  for = "/templates/**/*.md"
   [headers.values]
     Cache-Control = "public, max-age=2592000"
 
-# All other template files - 30 days cache (images, assets, etc.)
+# All other template files - 30 days cache (images, manifests, etc.)
 [[headers]]
   for = "/templates/**/*"
   [headers.values]

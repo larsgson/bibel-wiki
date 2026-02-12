@@ -1,0 +1,11 @@
+{
+  "type": "sermon-online",
+  "baseUrl": "https://info2.sermon-online.com/german/DieBibelInDeutscherFassung/",
+  "books": {
+    "JHN": {
+      "code": "430",
+      "title": "Das_Evangelium_Nach_Johannes"
+    }
+  },
+  "testaments": ["nt"]
+}

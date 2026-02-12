@@ -26,6 +26,9 @@ const MinimizedAudioPlayer = ({ onNavigateToStory }) => {
     const langData = languageData[langCode];
     if (!langData) return false;
 
+    // Direct audio languages (no proxy needed)
+    if (langData.ot?.directAudio || langData.nt?.directAudio) return true;
+
     const hasOtTimecode =
       langData.ot?.audioFilesetId &&
       ["with-timecode", "audio-with-timecode"].includes(

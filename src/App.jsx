@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import "./App.css";
+import TemplateSelector from "./components/TemplateSelector";
 import NavigationGrid from "./components/NavigationGrid";
 import StoryViewer from "./components/StoryViewer";
 import LanguageSelector from "./components/LanguageSelector";
@@ -21,6 +22,7 @@ function AppContentInner({
   const [showLanguageSelector, setShowLanguageSelector] = useState(false);
   const [showSecondaryLanguageSelector, setShowSecondaryLanguageSelector] =
     useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [selectedStory, setSelectedStory] = useState(null);
   const [showEmptyContent, setShowEmptyContent] = useState(false);
 
@@ -56,6 +58,14 @@ function AppContentInner({
       setMinimized(true);
     }
     setSelectedStory(null);
+  };
+
+  const handleBackToTemplates = () => {
+    if (currentPlaylist && currentPlaylist.length > 0) {
+      setMinimized(true);
+    }
+    setSelectedStory(null);
+    setSelectedTemplate(null);
   };
 
   // Get display name for language button
@@ -142,9 +152,15 @@ function AppContentInner({
       </header>
 
       <main className="main-content">
-        {!selectedStory && (
+        {!selectedTemplate && (
+          <TemplateSelector onTemplateSelect={setSelectedTemplate} />
+        )}
+        {selectedTemplate && !selectedStory && (
           <NavigationGrid
+            storySetId={selectedTemplate.id}
+            layoutTheme={selectedTemplate.layoutTheme}
             onStorySelect={setSelectedStory}
+            onBack={handleBackToTemplates}
             showEmptyContent={showEmptyContent}
             onToggleEmptyContent={() => setShowEmptyContent(!showEmptyContent)}
           />
