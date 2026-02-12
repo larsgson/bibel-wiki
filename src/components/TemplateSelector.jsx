@@ -41,6 +41,8 @@ function TemplateSelector({ onTemplateSelect }) {
       if (kvMatch) {
         if (inImage) {
           result.image[kvMatch[1]] = kvMatch[2];
+        } else if (kvMatch[1] === "image" && typeof result.image === "object") {
+          // Don't overwrite [image] section with a plain key-value
         } else {
           result[kvMatch[1]] = kvMatch[2];
         }
