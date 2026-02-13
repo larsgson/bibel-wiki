@@ -3,7 +3,7 @@ import { pickGapWords, shuffleArray } from "../../utils/exerciseUtils";
 import useTranslation from "../../hooks/useTranslation";
 import "./ListenFillGap.css";
 
-function ListenFillGap({ primaryWords, playVerse, layoutTheme }) {
+function ListenFillGap({ primaryWords, playVerse, isRTL, layoutTheme }) {
   const { t } = useTranslation();
   const [filledGaps, setFilledGaps] = useState({});
   const [checked, setChecked] = useState(false);
@@ -23,13 +23,16 @@ function ListenFillGap({ primaryWords, playVerse, layoutTheme }) {
 
   const handleBankClick = useCallback(
     (word) => {
-      // Find the first unfilled gap
-      const nextGap = gapIndices.find((gi) => !filledGaps[gi]);
+      // Find the first unfilled gap (for RTL, start from the end since rightmost is first visually)
+      const unfilledGaps = gapIndices.filter((gi) => !filledGaps[gi]);
+      const nextGap = isRTL
+        ? unfilledGaps[unfilledGaps.length - 1]
+        : unfilledGaps[0];
       if (nextGap === undefined) return;
       setFilledGaps((prev) => ({ ...prev, [nextGap]: word }));
       setChecked(false);
     },
-    [gapIndices, filledGaps],
+    [gapIndices, filledGaps, isRTL],
   );
 
   const handleGapClick = useCallback((gapIndex) => {
@@ -66,7 +69,7 @@ function ListenFillGap({ primaryWords, playVerse, layoutTheme }) {
       </p>
 
       {/* Verse with gaps */}
-      <div className="listen-fill-verse">
+      <div className="listen-fill-verse" dir={isRTL ? "rtl" : undefined}>
         {primaryWords.map((word, i) => {
           if (gapIndices.includes(i)) {
             const filled = filledGaps[i];
@@ -91,7 +94,7 @@ function ListenFillGap({ primaryWords, playVerse, layoutTheme }) {
       </div>
 
       {/* Word bank */}
-      <div className="listen-fill-bank">
+      <div className="listen-fill-bank" dir={isRTL ? "rtl" : undefined}>
         {bankWords.map((word, i) => {
           const isUsed = usedWords.includes(word);
           return (

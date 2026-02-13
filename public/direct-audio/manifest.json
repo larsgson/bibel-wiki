@@ -8,8 +8,8 @@
     "ron": { "audio": true },
     "lub": { "audio": true },
     "por": { "audio": true },
-    "swe": { "timecodes": true },
     "nor": { "timecodes": true },
-    "heb": { "timecodes": true }
+    "heb": { "timecodes": true },
+    "swe": { "timecodes": true }
   }
 }

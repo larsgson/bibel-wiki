@@ -7,6 +7,7 @@ function ListenReveal({
   primaryWords,
   playVerse,
   isPlaying,
+  isRTL,
   layoutTheme,
 }) {
   const { t } = useTranslation();
@@ -28,7 +29,7 @@ function ListenReveal({
       className={`listen-reveal${layoutTheme ? ` theme-${layoutTheme}` : ""}`}
     >
       {/* Word display */}
-      <div className="listen-reveal-words">
+      <div className="listen-reveal-words" dir={isRTL ? "rtl" : undefined}>
         {primaryWords.map((word, i) => (
           <span
             key={i}

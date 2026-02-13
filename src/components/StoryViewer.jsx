@@ -515,20 +515,17 @@ function StoryViewer({ storyData, onBack, learnMode = false }) {
         for (const [audioKey, chapterInfo] of chaptersNeeded.entries()) {
           const { book, chapter, testament, refs } = chapterInfo;
 
-          let audioEntry = audioUrls[audioKey];
-
-          if (!audioEntry) {
-            try {
-              audioEntry = await loadAudioUrl(
-                book,
-                chapter,
-                testament,
-                forAudioLanguage,
-                storyData.storySetId,
-              );
-            } catch (err) {
-              // Audio not available for this chapter
-            }
+          let audioEntry = null;
+          try {
+            audioEntry = await loadAudioUrl(
+              book,
+              chapter,
+              testament,
+              forAudioLanguage,
+              storyData.storySetId,
+            );
+          } catch (err) {
+            // Continue without this chapter's audio
           }
 
           if (audioEntry && audioEntry.url) {
@@ -618,7 +615,7 @@ function StoryViewer({ storyData, onBack, learnMode = false }) {
         }
       }
     },
-    [audioUrls, loadAudioUrl],
+    [loadAudioUrl],
   );
 
   // Memoized function to analyze story capabilities
@@ -701,7 +698,9 @@ function StoryViewer({ storyData, onBack, learnMode = false }) {
 
       for (const checkLang of selectedLanguages) {
         const checkLangData = languageData[checkLang];
-        if (!checkLangData) continue;
+        if (!checkLangData) {
+          continue;
+        }
 
         let langHasAllTestaments = true;
 
@@ -714,7 +713,9 @@ function StoryViewer({ storyData, onBack, learnMode = false }) {
           }
 
           // Direct audio counts as having audio with timecodes
-          if (testamentData.directAudio) continue;
+          if (testamentData.directAudio) {
+            continue;
+          }
 
           if (!testamentData.audioFilesetId) {
             langHasAllTestaments = false;
@@ -1056,6 +1057,7 @@ function StoryViewer({ storyData, onBack, learnMode = false }) {
           primaryLanguage={selectedLanguage}
           layoutTheme={storyData.layoutTheme}
           chapterTextSnapshot={getChapterTextSnapshot()}
+          storySetId={storyData.storySetId}
         />
       ) : !isMinimized && currentPlaylist && currentPlaylist.length > 0 ? (
         // FULL PLAYER MODE - show only playing pane (requires timecode to have playlist)

@@ -156,7 +156,8 @@ function StorySection({
             const hasBSBData = langCode === "eng" && langSection.bsbData;
 
             // Check if this language should use RTL (hardcoded for now, will be in language data later)
-            const isRTL = langCode === "heb";
+            const isRTL =
+              langCode === "heb" || langCode === "arb" || langCode === "ara";
 
             return (
               <div key={langCode} className="story-language-section">

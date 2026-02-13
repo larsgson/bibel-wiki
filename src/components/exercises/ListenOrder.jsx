@@ -3,7 +3,7 @@ import { shuffleArray } from "../../utils/exerciseUtils";
 import useTranslation from "../../hooks/useTranslation";
 import "./ListenOrder.css";
 
-function ListenOrder({ primaryWords, playVerse, layoutTheme }) {
+function ListenOrder({ primaryWords, playVerse, isRTL, layoutTheme }) {
   const { t } = useTranslation();
   // Pre-place the first half of words; user orders the rest
   const prefillCount = Math.floor(primaryWords.length / 2);
@@ -50,7 +50,7 @@ function ListenOrder({ primaryWords, playVerse, layoutTheme }) {
       </p>
 
       {/* Answer row */}
-      <div className="listen-order-answer">
+      <div className="listen-order-answer" dir={isRTL ? "rtl" : undefined}>
         {placedIds.length === 0 && (
           <span className="listen-order-placeholder-text">...</span>
         )}
@@ -74,7 +74,10 @@ function ListenOrder({ primaryWords, playVerse, layoutTheme }) {
       </div>
 
       {/* Word bank */}
-      <div className={`listen-order-bank${hasError ? " disabled" : ""}`}>
+      <div
+        className={`listen-order-bank${hasError ? " disabled" : ""}`}
+        dir={isRTL ? "rtl" : undefined}
+      >
         {remainingTiles.map((tile) => (
           <button
             key={tile.id}

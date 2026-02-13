@@ -6,13 +6,18 @@ import {
   useMemo,
   Suspense,
 } from "react";
-import { extractVerses, bsbToPlainText } from "../utils/bibleUtils";
+import {
+  extractVerses,
+  bsbToPlainText,
+  getTestament,
+} from "../utils/bibleUtils";
 import {
   getExerciseById,
   getDefaultExerciseId,
 } from "./exercises/ExerciseRegistry";
 import ExerciseTabBar from "./exercises/ExerciseTabBar";
 import TextPeek from "./exercises/TextPeek";
+import useLanguage from "../hooks/useLanguage";
 import "./LearnVerseView.css";
 import "./exercises/word-tile.css";
 
@@ -23,7 +28,12 @@ function LearnVerseView({
   primaryLanguage,
   layoutTheme,
   chapterTextSnapshot,
+  storySetId,
 }) {
+  const isRTL =
+    primaryLanguage === "heb" ||
+    primaryLanguage === "arb" ||
+    primaryLanguage === "ara";
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeExerciseId, setActiveExerciseId] = useState(
@@ -96,21 +106,146 @@ function LearnVerseView({
     }
   }, [isPlaying, playVerse]);
 
+  // Secondary language audio
+  const { loadAudioUrl } = useLanguage();
+  const secondaryAudioRef = useRef(new Audio());
+  const secondaryEndTimeRef = useRef(null);
+  const [isPlayingSecondary, setIsPlayingSecondary] = useState(false);
+  const [secondaryAudioInfo, setSecondaryAudioInfo] = useState(null);
+
+  const secondaryLanguage = useMemo(() => {
+    return selectedLanguages.find((l) => l !== primaryLanguage) || null;
+  }, [selectedLanguages, primaryLanguage]);
+
+  // Attach timeupdate listener for secondary audio once on mount
+  useEffect(() => {
+    const audio = secondaryAudioRef.current;
+    const handleTimeUpdate = () => {
+      if (secondaryEndTimeRef.current !== null) {
+        if (audio.currentTime >= secondaryEndTimeRef.current) {
+          audio.pause();
+          setIsPlayingSecondary(false);
+        }
+      }
+    };
+    const handleEnded = () => setIsPlayingSecondary(false);
+    audio.addEventListener("timeupdate", handleTimeUpdate);
+    audio.addEventListener("ended", handleEnded);
+    return () => {
+      audio.removeEventListener("timeupdate", handleTimeUpdate);
+      audio.removeEventListener("ended", handleEnded);
+      audio.pause();
+    };
+  }, []);
+
+  // Load secondary audio info when verse or secondary language changes
+  useEffect(() => {
+    if (!secondaryLanguage || !currentVerse) {
+      setSecondaryAudioInfo(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const testament = getTestament(currentVerse.book);
+        const entry = await loadAudioUrl(
+          currentVerse.book,
+          currentVerse.chapter,
+          testament,
+          secondaryLanguage,
+          storySetId,
+        );
+        if (
+          cancelled ||
+          !entry?.url ||
+          !entry.hasTimecode ||
+          !entry.timingData
+        ) {
+          if (!cancelled) setSecondaryAudioInfo(null);
+          return;
+        }
+        // Find verse timing
+        const verseSpec = String(currentVerse.verseNum);
+        const audioFilesetId =
+          entry.audioFilesetId || Object.keys(entry.timingData)[0];
+        // Check direct-audio format first
+        const directKey = `${currentVerse.book} ${currentVerse.chapter}`;
+        const vts = entry.timingData[directKey]?.verseTimestamps;
+        let startTime = null;
+        let endTime = null;
+        if (vts) {
+          startTime = vts[verseSpec];
+          const nextVerse = String(currentVerse.verseNum + 1);
+          endTime =
+            vts[nextVerse] ?? (startTime != null ? startTime + 10 : null);
+        } else if (audioFilesetId && entry.timingData[audioFilesetId]) {
+          // DBT format
+          const searchRef = `${currentVerse.book}${currentVerse.chapter}:${verseSpec}`;
+          for (const storyData of Object.values(
+            entry.timingData[audioFilesetId],
+          )) {
+            if (storyData[searchRef]) {
+              const ts = storyData[searchRef];
+              if (ts.length >= 2) {
+                startTime = ts[0];
+                endTime = ts[1];
+              }
+              break;
+            }
+          }
+        }
+        if (!cancelled && startTime != null) {
+          setSecondaryAudioInfo({ url: entry.url, startTime, endTime });
+        } else if (!cancelled) {
+          setSecondaryAudioInfo(null);
+        }
+      } catch {
+        if (!cancelled) setSecondaryAudioInfo(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [secondaryLanguage, currentVerse, loadAudioUrl, storySetId]);
+
+  const playSecondary = useCallback(() => {
+    if (!secondaryAudioInfo) return;
+    const audio = secondaryAudioRef.current;
+    secondaryEndTimeRef.current = secondaryAudioInfo.endTime;
+
+    const seekAndPlay = () => {
+      audio.currentTime = secondaryAudioInfo.startTime;
+      audio.play();
+      setIsPlayingSecondary(true);
+    };
+
+    if (
+      audio.src &&
+      audio.src.includes(secondaryAudioInfo.url.split("/").pop())
+    ) {
+      seekAndPlay();
+    } else {
+      audio.src = secondaryAudioInfo.url;
+      audio.addEventListener("loadeddata", seekAndPlay, { once: true });
+      audio.load();
+    }
+  }, [secondaryAudioInfo]);
+
   const goNext = useCallback(() => {
     if (currentIndex >= verses.length - 1) return;
-    if (audioRef.current) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    }
+    audioRef.current?.pause();
+    secondaryAudioRef.current?.pause();
+    setIsPlaying(false);
+    setIsPlayingSecondary(false);
     setCurrentIndex((i) => i + 1);
   }, [currentIndex, verses.length]);
 
   const goPrev = useCallback(() => {
     if (currentIndex <= 0) return;
-    if (audioRef.current) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    }
+    audioRef.current?.pause();
+    secondaryAudioRef.current?.pause();
+    setIsPlaying(false);
+    setIsPlayingSecondary(false);
     setCurrentIndex((i) => i - 1);
   }, [currentIndex]);
 
@@ -256,6 +391,17 @@ function LearnVerseView({
         {secondaryText && activeExerciseId !== "sentence-builder" && (
           <div className="learn-verse-lang-section secondary">
             <p className="learn-verse-content">{secondaryText}</p>
+            {secondaryAudioInfo && (
+              <div className="learn-verse-secondary-audio">
+                <button
+                  className={`learn-verse-secondary-play-btn${isPlayingSecondary ? " playing" : ""}`}
+                  onClick={playSecondary}
+                  aria-label="Play secondary language audio"
+                >
+                  {isPlayingSecondary ? "⏸" : "▶"}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -275,6 +421,7 @@ function LearnVerseView({
                 playVerse={playVerse}
                 audioRef={audioRef}
                 isPlaying={isPlaying}
+                isRTL={isRTL}
                 currentIndex={currentIndex}
                 layoutTheme={layoutTheme}
                 onExerciseComplete={() => {}}

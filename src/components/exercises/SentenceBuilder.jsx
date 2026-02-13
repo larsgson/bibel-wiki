@@ -3,7 +3,7 @@ import { shuffleArray } from "../../utils/exerciseUtils";
 import useTranslation from "../../hooks/useTranslation";
 import "./SentenceBuilder.css";
 
-function SentenceBuilder({ primaryWords, secondaryText, layoutTheme }) {
+function SentenceBuilder({ primaryWords, secondaryText, isRTL, layoutTheme }) {
   const { t } = useTranslation();
   const [placedIds, setPlacedIds] = useState([]);
   const [checked, setChecked] = useState(false);
@@ -242,7 +242,7 @@ function SentenceBuilder({ primaryWords, secondaryText, layoutTheme }) {
       </div>
 
       {/* Answer row */}
-      <div className="sentence-builder-answer">
+      <div className="sentence-builder-answer" dir={isRTL ? "rtl" : undefined}>
         {!checked && placedIds.length === 0 && (
           <span className="sentence-builder-placeholder">...</span>
         )}
@@ -276,7 +276,7 @@ function SentenceBuilder({ primaryWords, secondaryText, layoutTheme }) {
 
       {/* Word bank */}
       {!checked && (
-        <div className="sentence-builder-bank">
+        <div className="sentence-builder-bank" dir={isRTL ? "rtl" : undefined}>
           {remainingTiles.map((tile) => (
             <button
               key={tile.id}

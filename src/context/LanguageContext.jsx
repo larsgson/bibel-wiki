@@ -1165,6 +1165,10 @@ const LanguageProvider = ({
           hasTimecode = ["with-timecode", "audio-with-timecode"].includes(
             langData.audioCategory,
           );
+          // Also consider direct timecodes available via CSV files
+          if (!hasTimecode && langData.directTimecodes) {
+            hasTimecode = true;
+          }
         }
 
         // Load DBT-based timing data (skip if direct audio already loaded timecodes)
@@ -1241,6 +1245,54 @@ const LanguageProvider = ({
               }
             } catch (timecodeError) {
               // Continue without timing data
+            }
+          }
+        }
+
+        // Fallback: if DBT timing data doesn't cover this chapter, try direct CSV timecodes
+        if (hasTimecode && !usedDirectAudio && langData.directTimecodes) {
+          // Check if DBT timing data actually has data for this chapter
+          let dbtHasChapter = false;
+          if (timingData && audioFilesetId && timingData[audioFilesetId]) {
+            const filesetData = timingData[audioFilesetId];
+            const searchPrefix = `${bookId}${chapterNum}:`;
+            for (const storyData of Object.values(filesetData)) {
+              if (
+                Object.keys(storyData).some((ref) =>
+                  ref.startsWith(searchPrefix),
+                )
+              ) {
+                dbtHasChapter = true;
+                break;
+              }
+            }
+          }
+
+          if (!dbtHasChapter) {
+            try {
+              const tcResp = await fetch(
+                `/direct-audio/${targetLanguage}/timecodes/${bookId}_${chapterNum}.csv`,
+              );
+              if (tcResp.ok) {
+                const csvText = await tcResp.text();
+                const endTimes = csvText
+                  .trim()
+                  .split("\n")
+                  .map((line) => parseFloat(line.trim()))
+                  .filter((v) => !isNaN(v));
+                const verseTimestamps = {};
+                endTimes.forEach((ts, i) => {
+                  verseTimestamps[String(i + 1)] =
+                    i === 0 ? 0 : endTimes[i - 1];
+                });
+                verseTimestamps[String(endTimes.length + 1)] =
+                  endTimes[endTimes.length - 1];
+                timingData = {
+                  [`${bookId} ${chapterNum}`]: { verseTimestamps },
+                };
+              }
+            } catch (e) {
+              // Continue without timecodes
             }
           }
         }
