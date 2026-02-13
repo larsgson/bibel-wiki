@@ -31,8 +31,8 @@ function LanguageSelector({
     const langData = languageData[primaryLangCode];
     if (!langData) return false;
     return (
-      langData.ot?.directAudio ||
-      langData.nt?.directAudio ||
+      langData.ot?.directTimecodes ||
+      langData.nt?.directTimecodes ||
       ["with-timecode", "audio-with-timecode"].includes(
         langData.ot?.audioCategory,
       ) ||
@@ -69,6 +69,13 @@ function LanguageSelector({
     // Toggle learn mode
     onLearnModeChange?.(!learnMode);
   };
+
+  // Auto-disable learn mode when audio is no longer available
+  useEffect(() => {
+    if (learnMode && !hasAudioTiming) {
+      onLearnModeChange?.(false);
+    }
+  }, [learnMode, hasAudioTiming, onLearnModeChange]);
 
   useEffect(() => {
     const loadLanguages = async () => {

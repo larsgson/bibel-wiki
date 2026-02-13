@@ -1160,19 +1160,23 @@ const LanguageProvider = ({
           throw new Error("No audio URL available");
         }
 
-        // Check if this category has timecode data (for DBT-sourced audio)
-        if (!usedDirectAudio) {
-          hasTimecode = ["with-timecode", "audio-with-timecode"].includes(
-            langData.audioCategory,
-          );
+        // Check if this category has timecode data
+        if (!hasTimecode) {
+          if (
+            ["with-timecode", "audio-with-timecode"].includes(
+              langData.audioCategory,
+            )
+          ) {
+            hasTimecode = true;
+          }
           // Also consider direct timecodes available via CSV files
           if (!hasTimecode && langData.directTimecodes) {
             hasTimecode = true;
           }
         }
 
-        // Load DBT-based timing data (skip if direct audio already loaded timecodes)
-        if (hasTimecode && !usedDirectAudio) {
+        // Load DBT-based timing data (skip if we already have timing from direct CSV)
+        if (hasTimecode && !timingData) {
           const timingCacheKey = `${storySetId}-${targetLanguage}-${testament}`;
 
           // Check if timing file is already cached
@@ -1250,7 +1254,7 @@ const LanguageProvider = ({
         }
 
         // Fallback: if DBT timing data doesn't cover this chapter, try direct CSV timecodes
-        if (hasTimecode && !usedDirectAudio && langData.directTimecodes) {
+        if (hasTimecode && langData.directTimecodes) {
           // Check if DBT timing data actually has data for this chapter
           let dbtHasChapter = false;
           if (timingData && audioFilesetId && timingData[audioFilesetId]) {

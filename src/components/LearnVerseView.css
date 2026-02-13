@@ -102,7 +102,7 @@
 }
 
 .learn-verse-lang-section.secondary {
-    background: #f8f9fa;
+    background: #ebecfa;
     border-left: 3px solid #6c757d;
 }
 
@@ -241,7 +241,7 @@
 }
 
 .theme-dark_media .learn-verse-lang-section.secondary {
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.08);
     border-left-color: rgba(255, 255, 255, 0.3);
 }
 

@@ -1,8 +1,0 @@
-{
-  "type": "audiotreasure",
-  "baseUrl": "https://audiotreasure.com/content/WEBD_AT/",
-  "bookNames": {
-    "JHN": "John"
-  },
-  "testaments": ["nt"]
-}

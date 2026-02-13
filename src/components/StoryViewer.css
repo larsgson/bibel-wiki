@@ -3,6 +3,8 @@
     max-width: 900px;
     margin: 0 auto;
     padding: 20px;
+    background: #ffffff;
+    min-height: 100vh;
 }
 
 /* Mobile - remove padding for full-width playing pane */

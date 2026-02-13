@@ -23,7 +23,7 @@ function ListenFillGap({ primaryWords, playVerse, isRTL, layoutTheme }) {
 
   const handleBankClick = useCallback(
     (word) => {
-      // Find the first unfilled gap (for RTL, start from the end since rightmost is first visually)
+      // For RTL, fill from highest index first (visually rightmost); for LTR, lowest index first
       const unfilledGaps = gapIndices.filter((gi) => !filledGaps[gi]);
       const nextGap = isRTL
         ? unfilledGaps[unfilledGaps.length - 1]

@@ -712,8 +712,8 @@ function StoryViewer({ storyData, onBack, learnMode = false }) {
             break;
           }
 
-          // Direct audio counts as having audio with timecodes
-          if (testamentData.directAudio) {
+          // Direct audio with timecodes
+          if (testamentData.directTimecodes) {
             continue;
           }
 
@@ -1047,7 +1047,11 @@ function StoryViewer({ storyData, onBack, learnMode = false }) {
         <button className="back-button" onClick={onBack}>
           ←
         </button>
-        <h1 className="story-title">{parsedData.title || storyData.title}</h1>
+        <h1 className="story-title">
+          {parsedData.title && !parsedData.title.includes("[[t:")
+            ? parsedData.title
+            : storyData.title}
+        </h1>
       </div>
 
       {/* Learn mode - single verse display */}

@@ -82,7 +82,11 @@ export const parseMarkdownIntoSections = (
 
     // Extract story title (H1)
     if (line.startsWith("# ") && !storyTitle) {
-      storyTitle = line.substring(2).trim();
+      let titleText = line.substring(2).trim();
+      if (titleText.includes("[[t:")) {
+        titleText = replaceLocaleMarkers(titleText, localeData);
+      }
+      storyTitle = titleText;
       continue;
     }
 
