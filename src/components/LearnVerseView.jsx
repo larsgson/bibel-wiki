@@ -478,44 +478,6 @@ function LearnVerseView({
         <div className="learn-verse-counter">
           {currentIndex + 1} / {verses.length}
         </div>
-
-        {/* Edge-anchored navigation arrows */}
-        {currentIndex > 0 && (
-          <button
-            className="learn-nav-edge learn-nav-prev"
-            onClick={goPrev}
-            aria-label="Previous verse"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </button>
-        )}
-        {currentIndex < verses.length - 1 && (
-          <button
-            className="learn-nav-edge learn-nav-next"
-            onClick={goNext}
-            aria-label="Next verse"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </button>
-        )}
       </div>
 
       {/* Mobile bottom tab bar */}
