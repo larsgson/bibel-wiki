@@ -3,8 +3,6 @@
     "deu": { "audio": true, "text": true, "timecodes": true },
     "hun": { "audio": true },
     "lub": { "audio": true },
-    "nor": { "timecodes": true },
-    "heb": { "timecodes": true },
-    "swe": { "timecodes": true }
+    "nor": { "timecodes": true }
   }
 }
