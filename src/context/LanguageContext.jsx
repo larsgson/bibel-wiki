@@ -1507,11 +1507,13 @@ const LanguageProvider = ({
           if (langData) {
             const otTextCat = langData.ot?.category || "N/A";
             const otAudioCat = langData.ot?.audioCategory || "N/A";
+            const otDirect = langData.ot?.directAudio ? "direct" : "";
             const ntTextCat = langData.nt?.category || "N/A";
             const ntAudioCat = langData.nt?.audioCategory || "N/A";
+            const ntDirect = langData.nt?.directAudio ? "direct" : "";
 
             console.log(
-              `  ${langCode.toUpperCase()} - OT: text(${otTextCat})/audio(${otAudioCat}), NT: text(${ntTextCat})/audio(${ntAudioCat})`,
+              `  ${langCode.toUpperCase()} - OT: text(${otTextCat})/audio(${otAudioCat})${otDirect ? `/${otDirect}` : ""}, NT: text(${ntTextCat})/audio(${ntAudioCat})${ntDirect ? `/${ntDirect}` : ""}`,
             );
           }
         }

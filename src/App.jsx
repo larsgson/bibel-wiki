@@ -15,6 +15,8 @@ function AppContentInner({
   secondaryLanguage,
   onLanguageSelect,
   onSecondaryLanguageSelect,
+  learnMode,
+  onLearnModeChange,
 }) {
   const { t } = useTranslation();
   const { currentPlaylist, setMinimized, isMinimized, currentStoryData } =
@@ -127,8 +129,8 @@ function AppContentInner({
               onClick={handleOpenSecondaryLanguageSelector}
               aria-label={
                 secondaryLanguage
-                  ? "Change secondary language"
-                  : "Add secondary language"
+                  ? t("app.changeSecondaryLanguage")
+                  : t("app.addSecondaryLanguage")
               }
             >
               {secondaryLanguage ? (
@@ -166,7 +168,11 @@ function AppContentInner({
           />
         )}
         {selectedStory && (
-          <StoryViewer storyData={selectedStory} onBack={handleBackToGrid} />
+          <StoryViewer
+            storyData={selectedStory}
+            onBack={handleBackToGrid}
+            learnMode={learnMode}
+          />
         )}
       </main>
 
@@ -175,6 +181,8 @@ function AppContentInner({
           selectedLanguage={selectedLanguage}
           onSelect={handleLanguageSelect}
           onClose={handleCloseLanguageSelector}
+          learnMode={learnMode}
+          onLearnModeChange={onLearnModeChange}
         />
       )}
       {showSecondaryLanguageSelector && (
@@ -183,22 +191,27 @@ function AppContentInner({
           onSelect={handleSecondaryLanguageSelect}
           onClose={handleCloseSecondaryLanguageSelector}
           excludeLanguages={[selectedLanguage?.code]}
-          title="Select Secondary Language"
+          title={t("app.selectSecondaryLanguage")}
           allowNone={true}
+          learnMode={learnMode}
+          onLearnModeChange={onLearnModeChange}
         />
       )}
 
-      {/* Global minimized audio player - shows when playlist is active and minimized */}
-      {isMinimized && currentPlaylist && currentPlaylist.length > 0 && (
-        <MinimizedAudioPlayer
-          onNavigateToStory={() => {
-            if (currentStoryData) {
-              setSelectedStory(currentStoryData);
-              setMinimized(false);
-            }
-          }}
-        />
-      )}
+      {/* Global minimized audio player - shows when playlist is active and minimized (hidden in learn mode) */}
+      {!learnMode &&
+        isMinimized &&
+        currentPlaylist &&
+        currentPlaylist.length > 0 && (
+          <MinimizedAudioPlayer
+            onNavigateToStory={() => {
+              if (currentStoryData) {
+                setSelectedStory(currentStoryData);
+                setMinimized(false);
+              }
+            }}
+          />
+        )}
     </div>
   );
 }
@@ -247,6 +260,14 @@ function App() {
     }
   }, [secondaryLanguage]);
 
+  const [learnMode, setLearnMode] = useState(() => {
+    return localStorage.getItem("learnMode") === "true";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("learnMode", String(learnMode));
+  }, [learnMode]);
+
   const languageCode = selectedLanguage?.code || "fra";
   const secondaryLanguageCode = secondaryLanguage?.code || null;
 
@@ -260,6 +281,8 @@ function App() {
         secondaryLanguage={secondaryLanguage}
         onLanguageSelect={setSelectedLanguage}
         onSecondaryLanguageSelect={setSecondaryLanguage}
+        learnMode={learnMode}
+        onLearnModeChange={setLearnMode}
       />
     </LanguageProvider>
   );

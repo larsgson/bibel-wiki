@@ -11,13 +11,24 @@ const FALLBACK_IMAGES = {
 };
 
 function TemplateSelector({ onTemplateSelect }) {
-  const { selectedLanguage } = useLanguage();
+  const { selectedLanguage, languageData } = useLanguage();
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Direct-audio-only languages only have John audio — hide OBS for them
+  const isDirectAudioOnly = (() => {
+    const langData = languageData[selectedLanguage];
+    if (!langData) return false;
+    return (
+      !!langData.nt?.directAudio &&
+      !langData.ot?.audioFilesetId &&
+      !langData.ot?.directAudio
+    );
+  })();
+
   useEffect(() => {
     loadTemplates();
-  }, [selectedLanguage]);
+  }, [selectedLanguage, isDirectAudioOnly]);
 
   const parseToml = (text) => {
     const result = {};
@@ -94,8 +105,11 @@ function TemplateSelector({ onTemplateSelect }) {
 
   const loadTemplates = async () => {
     const loaded = [];
+    const templateIds = isDirectAudioOnly
+      ? TEMPLATE_IDS.filter((id) => id !== "OBS")
+      : TEMPLATE_IDS;
 
-    for (const templateId of TEMPLATE_IDS) {
+    for (const templateId of templateIds) {
       try {
         const indexResponse = await fetch(
           `/templates/${templateId}/index.toml`,

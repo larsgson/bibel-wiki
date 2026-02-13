@@ -1,0 +1,189 @@
+.listen-order {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.listen-order-instruction {
+  font-size: 0.85rem;
+  color: #666;
+  margin: 0;
+  text-align: center;
+}
+
+/* Answer row */
+.listen-order-answer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 48px;
+  padding: 0.5rem;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  background: #fafafa;
+  align-items: center;
+}
+
+.listen-order-answer.correct {
+  border-color: #28a745;
+  background: #f0fff0;
+}
+
+.listen-order-answer.incorrect {
+  border-color: #dc3545;
+  background: #fff5f5;
+}
+
+.listen-order-placeholder-text {
+  color: #bbb;
+  font-size: 0.9rem;
+  padding: 4px 8px;
+}
+
+/* Word bank */
+.listen-order-bank {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0.5rem;
+  align-items: center;
+}
+
+/* Shared word tile */
+.word-tile {
+  display: inline-block;
+  padding: 6px 12px;
+  border: 1px solid #d0d8e8;
+  border-radius: 6px;
+  background: white;
+  color: #333;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.word-tile:hover {
+  background: #e8edf5;
+  border-color: #007bff;
+}
+
+.word-tile:active {
+  transform: scale(0.95);
+}
+
+.word-tile.placed {
+  background: #e8f0fe;
+  border-color: #007bff;
+}
+
+/* Actions */
+.listen-order-actions {
+  display: flex;
+  justify-content: center;
+  min-height: 40px;
+}
+
+.listen-order-check-btn {
+  padding: 8px 24px;
+  border: 2px solid #007bff;
+  background: #007bff;
+  color: white;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.listen-order-check-btn:hover {
+  background: #0056b3;
+}
+
+.listen-order-feedback {
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 6px 0;
+}
+
+.listen-order-feedback.correct {
+  color: #28a745;
+}
+
+.listen-order-feedback.incorrect {
+  color: #dc3545;
+}
+
+.listen-order-feedback-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.listen-order-reset-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #ddd;
+  border-radius: 50%;
+  background: #f8f9fa;
+  color: #666;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.listen-order-reset-btn:hover {
+  background: #e9ecef;
+}
+
+/* Dark theme */
+.listen-order.theme-dark_media .listen-order-instruction {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.listen-order.theme-dark_media .listen-order-answer {
+  border-color: #444;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.listen-order.theme-dark_media .listen-order-answer.correct {
+  border-color: #5cb85c;
+  background: rgba(92, 184, 92, 0.08);
+}
+
+.listen-order.theme-dark_media .listen-order-answer.incorrect {
+  border-color: #d9534f;
+  background: rgba(217, 83, 79, 0.08);
+}
+
+.listen-order.theme-dark_media .word-tile {
+  border-color: #444;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e0e0e0;
+}
+
+.listen-order.theme-dark_media .word-tile:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: #5b9bd5;
+}
+
+.listen-order.theme-dark_media .word-tile.placed {
+  background: rgba(91, 155, 213, 0.15);
+  border-color: #5b9bd5;
+}
+
+.listen-order.theme-dark_media .listen-order-check-btn {
+  background: #5b9bd5;
+  border-color: #5b9bd5;
+}
+
+.listen-order.theme-dark_media .listen-order-reset-btn {
+  border-color: #444;
+  background: rgba(255, 255, 255, 0.06);
+  color: #aaa;
+}

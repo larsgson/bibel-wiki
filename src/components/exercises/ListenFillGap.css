@@ -1,0 +1,181 @@
+.listen-fill-gap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.listen-fill-instruction {
+  font-size: 0.85rem;
+  color: #666;
+  margin: 0;
+  text-align: center;
+}
+
+/* Verse with inline gaps */
+.listen-fill-verse {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 0.75rem 1rem;
+  background: #f0f4ff;
+  border-radius: 6px;
+  border-left: 3px solid #007bff;
+  align-items: baseline;
+  line-height: 2;
+}
+
+.listen-fill-word {
+  font-size: 1rem;
+  color: #333;
+}
+
+.listen-fill-blank {
+  display: inline-block;
+  padding: 2px 10px;
+  border-bottom: 2px solid #007bff;
+  font-size: 1rem;
+  color: #007bff;
+  cursor: pointer;
+  min-width: 50px;
+  text-align: center;
+  transition: all 0.15s;
+  border-radius: 3px;
+}
+
+.listen-fill-blank.filled {
+  background: #e8f0fe;
+}
+
+.listen-fill-blank.correct {
+  border-bottom-color: #28a745;
+  color: #28a745;
+  background: #f0fff0;
+}
+
+.listen-fill-blank.incorrect {
+  border-bottom-color: #dc3545;
+  color: #dc3545;
+  background: #fff5f5;
+}
+
+/* Word bank */
+.listen-fill-bank {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0.5rem;
+  justify-content: center;
+}
+
+.listen-fill-bank .word-tile.used {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* Actions */
+.listen-fill-actions {
+  display: flex;
+  justify-content: center;
+  min-height: 40px;
+}
+
+.listen-fill-check-btn {
+  padding: 8px 24px;
+  border: 2px solid #007bff;
+  background: #007bff;
+  color: white;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.listen-fill-check-btn:hover {
+  background: #0056b3;
+}
+
+.listen-fill-feedback {
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 6px 0;
+}
+
+.listen-fill-feedback.correct {
+  color: #28a745;
+}
+
+.listen-fill-feedback.incorrect {
+  color: #dc3545;
+}
+
+.listen-fill-feedback-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.listen-fill-reset-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #ddd;
+  border-radius: 50%;
+  background: #f8f9fa;
+  color: #666;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.listen-fill-reset-btn:hover {
+  background: #e9ecef;
+}
+
+/* Dark theme */
+.listen-fill-gap.theme-dark_media .listen-fill-instruction {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.listen-fill-gap.theme-dark_media .listen-fill-verse {
+  background: rgba(255, 255, 255, 0.08);
+  border-left-color: #5b9bd5;
+}
+
+.listen-fill-gap.theme-dark_media .listen-fill-word {
+  color: #e0e0e0;
+}
+
+.listen-fill-gap.theme-dark_media .listen-fill-blank {
+  border-bottom-color: #5b9bd5;
+  color: #5b9bd5;
+}
+
+.listen-fill-gap.theme-dark_media .listen-fill-blank.filled {
+  background: rgba(91, 155, 213, 0.12);
+}
+
+.listen-fill-gap.theme-dark_media .listen-fill-blank.correct {
+  border-bottom-color: #5cb85c;
+  color: #5cb85c;
+  background: rgba(92, 184, 92, 0.08);
+}
+
+.listen-fill-gap.theme-dark_media .listen-fill-blank.incorrect {
+  border-bottom-color: #d9534f;
+  color: #d9534f;
+  background: rgba(217, 83, 79, 0.08);
+}
+
+.listen-fill-gap.theme-dark_media .listen-fill-check-btn {
+  background: #5b9bd5;
+  border-color: #5b9bd5;
+}
+
+.listen-fill-gap.theme-dark_media .listen-fill-reset-btn {
+  border-color: #444;
+  background: rgba(255, 255, 255, 0.06);
+  color: #aaa;
+}

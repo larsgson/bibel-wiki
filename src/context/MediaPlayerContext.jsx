@@ -292,7 +292,7 @@ export const MediaPlayerProvider = ({ children }) => {
             }
           },
           onloaderror: (id, error) => {
-            console.error("Failed to load audio:", error);
+            console.error("Failed to load audio:", segment.audioUrl, error);
             updateState({
               isLoading: false,
               error: `Failed to load audio: ${error}`,
@@ -515,7 +515,14 @@ export const MediaPlayerProvider = ({ children }) => {
                 return;
               }
 
-              if (howlRef.current && howlRef.current.state() === "loaded") {
+              if (!howlRef.current || howlRef.current.state() === "unloaded") {
+                // Audio failed to load or was unloaded
+                console.warn(
+                  "Audio not available for playback — load failed or was cancelled",
+                );
+                isLoadingPlaylistRef.current = false;
+                return;
+              } else if (howlRef.current.state() === "loaded") {
                 howlRef.current.play();
                 isPlayingRef.current = true;
                 isLoadingPlaylistRef.current = false;

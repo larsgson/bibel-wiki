@@ -10,12 +10,65 @@ function LanguageSelector({
   excludeLanguages = [],
   title = null,
   allowNone = false,
+  learnMode = false,
+  onLearnModeChange = null,
 }) {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const [languages, setLanguages] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { languageNames } = useLanguage();
+  const [learnMessage, setLearnMessage] = useState(null);
+  const {
+    languageNames,
+    languageData,
+    selectedLanguage: primaryLangCode,
+    secondaryLanguage: secondaryLangCode,
+  } = useLanguage();
+
+  // Check if primary language has audio timing available
+  const hasAudioTiming = useMemo(() => {
+    if (!primaryLangCode) return false;
+    const langData = languageData[primaryLangCode];
+    if (!langData) return false;
+    return (
+      langData.ot?.directAudio ||
+      langData.nt?.directAudio ||
+      ["with-timecode", "audio-with-timecode"].includes(
+        langData.ot?.audioCategory,
+      ) ||
+      ["with-timecode", "audio-with-timecode"].includes(
+        langData.nt?.audioCategory,
+      )
+    );
+  }, [primaryLangCode, languageData]);
+
+  // Determine indicator state
+  const indicatorState = useMemo(() => {
+    if (!primaryLangCode || !secondaryLangCode) return "state-unavailable";
+    if (!hasAudioTiming) return "state-no-audio";
+    return learnMode ? "state-ready-on" : "state-ready-off";
+  }, [primaryLangCode, secondaryLangCode, hasAudioTiming, learnMode]);
+
+  const indicatorLabel = useMemo(() => {
+    if (indicatorState === "state-ready-on")
+      return t("languageSelector.learnModeOn");
+    return t("languageSelector.learnLanguage");
+  }, [indicatorState, t]);
+
+  const handleLearnToggle = () => {
+    if (!primaryLangCode || !secondaryLangCode) {
+      setLearnMessage(t("languageSelector.needTwoLanguages"));
+      setTimeout(() => setLearnMessage(null), 5000);
+      return;
+    }
+    if (!hasAudioTiming) {
+      setLearnMessage(t("languageSelector.noAudioAvailable"));
+      setTimeout(() => setLearnMessage(null), 5000);
+      return;
+    }
+    // Toggle learn mode
+    onLearnModeChange?.(!learnMode);
+  };
 
   useEffect(() => {
     const loadLanguages = async () => {
@@ -171,7 +224,7 @@ function LanguageSelector({
               </div>
             ) : filteredLanguages.length === 0 ? (
               <div className="empty-state">
-                No languages found matching "{searchTerm}"
+                {t("languageSelector.noLanguagesFound")} "{searchTerm}"
               </div>
             ) : (
               <>
@@ -182,13 +235,13 @@ function LanguageSelector({
                   >
                     <div className="language-info">
                       <div className="language-name">
-                        <em>None</em>
+                        <em>{t("languageSelector.none")}</em>
                         {!selectedLanguage && (
                           <span className="check-icon"> ✓</span>
                         )}
                       </div>
                       <div className="language-vernacular">
-                        No secondary language
+                        {t("languageSelector.noSecondaryLanguage")}
                       </div>
                     </div>
                   </div>
@@ -232,11 +285,28 @@ function LanguageSelector({
         </div>
 
         {/* Footer with Actions */}
-        {/* Action Buttons */}
         <div className="language-selector-footer">
-          <div className="action-buttons single">
+          {onLearnModeChange && (
+            <div className="learn-indicator-section">
+              <div
+                className={`learn-indicator ${indicatorState}`}
+                onClick={handleLearnToggle}
+                role="switch"
+                aria-checked={learnMode}
+              >
+                <span className="learn-indicator-dot" />
+                <span className="learn-indicator-label">{indicatorLabel}</span>
+              </div>
+              {learnMessage && (
+                <div className="learn-message">{learnMessage}</div>
+              )}
+            </div>
+          )}
+          <div
+            className={`action-buttons ${onLearnModeChange ? "" : "single"}`}
+          >
             <button className="button-secondary" onClick={handleClose}>
-              Close
+              {t("languageSelector.close")}
             </button>
           </div>
         </div>

@@ -3,6 +3,9 @@ export const fr = {
   app: {
     selectLanguage: "Sélectionner la langue",
     changeLanguage: "Changer de langue",
+    addSecondaryLanguage: "Ajouter une langue secondaire",
+    changeSecondaryLanguage: "Changer la langue secondaire",
+    selectSecondaryLanguage: "Sélectionner la langue secondaire",
   },
 
   languageSelector: {
@@ -12,6 +15,14 @@ export const fr = {
     noLanguageSelected: "Aucune langue sélectionnée",
     loadingLanguages: "Chargement des langues...",
     noLanguagesFound: "Aucune langue trouvée",
+    none: "Aucune",
+    noSecondaryLanguage: "Pas de langue secondaire",
+    learnLanguage: "Apprendre une langue",
+    needTwoLanguages:
+      "Veuillez sélectionner deux langues pour utiliser cette fonctionnalité.",
+    noAudioAvailable:
+      "L'audio avec synchronisation n'est pas disponible pour la langue principale. Essayez de sélectionner une langue avec audio synchronisé comme langue principale.",
+    learnModeOn: "Mode apprentissage ACTIVÉ",
   },
 
   storyViewer: {

@@ -302,6 +302,96 @@
     background: #5a6268;
 }
 
+/* Learn Mode Indicator */
+.learn-indicator-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.learn-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: 2px solid;
+}
+
+.learn-indicator:hover {
+    transform: scale(1.03);
+}
+
+.learn-indicator-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+/* Unavailable: gray */
+.learn-indicator.state-unavailable {
+    border-color: #adb5bd;
+    color: #6c757d;
+    background: #f8f9fa;
+}
+
+.learn-indicator.state-unavailable .learn-indicator-dot {
+    background: #adb5bd;
+}
+
+/* No audio: amber */
+.learn-indicator.state-no-audio {
+    border-color: #ffc107;
+    color: #856404;
+    background: #fff8e1;
+}
+
+.learn-indicator.state-no-audio .learn-indicator-dot {
+    background: #ffc107;
+}
+
+/* Ready but OFF: green outline */
+.learn-indicator.state-ready-off {
+    border-color: #28a745;
+    color: #28a745;
+    background: white;
+}
+
+.learn-indicator.state-ready-off .learn-indicator-dot {
+    background: white;
+    border: 2px solid #28a745;
+}
+
+/* Ready and ON: solid green */
+.learn-indicator.state-ready-on {
+    border-color: #28a745;
+    color: white;
+    background: #28a745;
+}
+
+.learn-indicator.state-ready-on .learn-indicator-dot {
+    background: white;
+}
+
+.learn-message {
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: #f8f9fa;
+    border-left: 3px solid #6c757d;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    color: #495057;
+    text-align: center;
+}
+
 /* Mobile Styles */
 @media (max-width: 768px) {
     .language-selector-overlay {

@@ -19,6 +19,7 @@ import useTranslation from "../hooks/useTranslation";
 import AudioPlayer from "./AudioPlayer";
 import FullPlayingPane from "./FullPlayingPane";
 import StorySection from "./MultiLanguage/StorySection";
+import LearnVerseView from "./LearnVerseView";
 import BSBModeDialog, { DISPLAY_MODES } from "./BSBModeDialog";
 
 /** Parse locale TOML files (flat sections like [01], [01.01], etc.) */
@@ -114,7 +115,7 @@ const extractRawTimingData = (
   return null;
 };
 
-function StoryViewer({ storyData, onBack }) {
+function StoryViewer({ storyData, onBack, learnMode = false }) {
   const { t } = useTranslation();
   const {
     chapterText,
@@ -762,14 +763,17 @@ function StoryViewer({ storyData, onBack }) {
     ) {
       // Skip if we already analyzed for this language and sections haven't changed
       const sectionsLength = parsedData.sections.length;
-      if (
-        lastAnalyzedLangRef.current === selectedLanguage &&
-        lastParsedSectionsLengthRef.current === sectionsLength
-      ) {
+      // Include directAudio presence in dedup key so we re-analyze when it loads
+      const hasDirectAudio = selectedLanguages.some((lc) => {
+        const ld = languageData[lc];
+        return ld?.ot?.directAudio || ld?.nt?.directAudio;
+      });
+      const dedupKey = `${selectedLanguage}-${sectionsLength}-${hasDirectAudio}`;
+      if (lastAnalyzedLangRef.current === dedupKey) {
         return;
       }
 
-      lastAnalyzedLangRef.current = selectedLanguage;
+      lastAnalyzedLangRef.current = dedupKey;
       lastParsedSectionsLengthRef.current = sectionsLength;
       analyzeStoryCapabilities(parsedData.sections);
     }
@@ -833,6 +837,11 @@ function StoryViewer({ storyData, onBack }) {
 
   // Load playlist and auto-play when audio data is ready AND chapters are loaded
   useEffect(() => {
+    // In learn mode, LearnVerseView handles its own audio — skip MediaPlayerContext playlist
+    if (learnMode) {
+      return;
+    }
+
     // Skip if returning to an already-playing story
     if (isReturningToPlayingStory) {
       return;
@@ -893,6 +902,7 @@ function StoryViewer({ storyData, onBack }) {
       }
     }
   }, [
+    learnMode,
     audioPlaylistData,
     loadPlaylist,
     storyCapabilities.hasTimecode,
@@ -946,6 +956,36 @@ function StoryViewer({ storyData, onBack }) {
     });
     return map;
   }, [selectedLanguages, contentByLanguage]);
+
+  // Build flat verse list for learn mode
+  const learnVerses = useMemo(() => {
+    if (!learnMode) return [];
+    if (audioPlaylistData.length === 0) {
+      return [];
+    }
+    const verses = [];
+    for (const segment of audioPlaylistData) {
+      const ref = parseReference(segment.reference);
+      if (!ref) continue;
+      const timestamps = segment.timingData?.timestamps || [];
+      const verseCount = timestamps.length > 1 ? timestamps.length - 1 : 1;
+      const verseStart = ref.verseStart || 1;
+      for (let i = 0; i < verseCount; i++) {
+        verses.push({
+          book: ref.book,
+          chapter: ref.chapter,
+          verseNum: verseStart + i,
+          reference: `${ref.book} ${ref.chapter}:${verseStart + i}`,
+          audioUrl: segment.audioUrl,
+          startTime: timestamps[i] ?? 0,
+          endTime: timestamps[i + 1] ?? (timestamps[i] ?? 0) + 10,
+          imageUrl: segment.imageUrl,
+          sectionNum: segment.sectionNum,
+        });
+      }
+    }
+    return verses;
+  }, [learnMode, audioPlaylistData]);
 
   if (loading) {
     return <div className="story-loading">{t("storyViewer.loadingStory")}</div>;
@@ -1007,8 +1047,17 @@ function StoryViewer({ storyData, onBack }) {
         <h1 className="story-title">{parsedData.title || storyData.title}</h1>
       </div>
 
-      {/* Conditional rendering based on player state */}
-      {!isMinimized && currentPlaylist && currentPlaylist.length > 0 ? (
+      {/* Learn mode - single verse display */}
+      {learnMode && learnVerses.length > 0 ? (
+        <LearnVerseView
+          verses={learnVerses}
+          sectionsMap={sectionsMap}
+          selectedLanguages={selectedLanguages}
+          primaryLanguage={selectedLanguage}
+          layoutTheme={storyData.layoutTheme}
+          chapterTextSnapshot={getChapterTextSnapshot()}
+        />
+      ) : !isMinimized && currentPlaylist && currentPlaylist.length > 0 ? (
         // FULL PLAYER MODE - show only playing pane (requires timecode to have playlist)
         <div className="story-content story-content-full-player">
           <FullPlayingPane
@@ -1088,10 +1137,11 @@ function StoryViewer({ storyData, onBack }) {
         </div>
       )}
 
-      {/* Audio Player - show full player when not minimized (minimized player is in App.jsx) */}
-      {currentPlaylist && currentPlaylist.length > 0 && !isMinimized && (
-        <AudioPlayer />
-      )}
+      {/* Audio Player - show full player when not minimized (hidden in learn mode) */}
+      {!learnMode &&
+        currentPlaylist &&
+        currentPlaylist.length > 0 &&
+        !isMinimized && <AudioPlayer />}
 
       {/* BSB Mode Dialog */}
       <BSBModeDialog

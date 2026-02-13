@@ -1,0 +1,85 @@
+/* Shared word tile styles — used by ListenOrder, ListenFillGap, SentenceBuilder */
+.word-tile {
+    display: inline-block;
+    padding: 6px 12px;
+    border: 1px solid #d0d8e8;
+    border-radius: 6px;
+    background: white;
+    color: #333;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+}
+
+.word-tile:hover {
+    background: #e8edf5;
+    border-color: #007bff;
+}
+
+.word-tile:active {
+    transform: scale(0.95);
+}
+
+.word-tile.placed {
+    background: #e8f0fe;
+    border-color: #007bff;
+}
+
+/* Per-word feedback */
+.word-tile.word-correct {
+    border: 2px solid #28a745;
+    background: white;
+    color: #333;
+    cursor: default;
+}
+
+.word-tile.word-wrong {
+    background: #8b0000;
+    border-color: #8b0000;
+    color: white;
+    cursor: default;
+}
+
+.word-tile.word-displaced {
+    background: #e9ecef;
+    border-color: #ccc;
+    color: #999;
+    cursor: default;
+    opacity: 0.7;
+}
+
+/* Dark theme */
+.theme-dark_media .word-tile {
+    border-color: #444;
+    background: rgba(255, 255, 255, 0.08);
+    color: #e0e0e0;
+}
+
+.theme-dark_media .word-tile:hover {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: #5b9bd5;
+}
+
+.theme-dark_media .word-tile.placed {
+    background: rgba(91, 155, 213, 0.15);
+    border-color: #5b9bd5;
+}
+
+.theme-dark_media .word-tile.word-correct {
+    border-color: #5cb85c;
+    background: rgba(255, 255, 255, 0.08);
+    color: #e0e0e0;
+}
+
+.theme-dark_media .word-tile.word-wrong {
+    background: #8b0000;
+    border-color: #8b0000;
+    color: white;
+}
+
+.theme-dark_media .word-tile.word-displaced {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: #444;
+    color: rgba(255, 255, 255, 0.3);
+}

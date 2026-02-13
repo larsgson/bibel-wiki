@@ -1,0 +1,69 @@
+.text-peek-wrapper {
+  position: relative;
+}
+
+.text-peek-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  opacity: 0.35;
+  color: #666;
+  padding: 0;
+  transition: opacity 0.2s;
+}
+
+.text-peek-trigger:hover {
+  opacity: 0.7;
+}
+
+.text-peek-trigger.theme-dark_media {
+  color: #aaa;
+}
+
+.text-peek-overlay {
+  position: absolute;
+  top: 100%;
+  left: -120px;
+  right: -20px;
+  min-width: 200px;
+  background: rgba(240, 244, 255, 0.96);
+  border-left: 3px solid #007bff;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: peekFadeIn 0.2s ease-out;
+}
+
+.text-peek-overlay.theme-dark_media {
+  background: rgba(30, 30, 60, 0.96);
+  border-left-color: #5b9bd5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.text-peek-text {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #333;
+}
+
+.theme-dark_media .text-peek-text {
+  color: #e0e0e0;
+}
+
+@keyframes peekFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -1,0 +1,19 @@
+.listen-choose {
+  width: 100%;
+}
+
+.listen-choose-placeholder {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #999;
+}
+
+.listen-choose-coming-soon {
+  font-size: 0.85rem;
+  font-style: italic;
+  margin-top: 0.5rem;
+}
+
+.listen-choose.theme-dark_media .listen-choose-placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
