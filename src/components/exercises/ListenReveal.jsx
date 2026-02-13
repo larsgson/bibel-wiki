@@ -1,19 +1,17 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import useTranslation from "../../hooks/useTranslation";
 import "./ListenReveal.css";
 
-function ListenReveal({ primaryText, primaryWords, playVerse, isPlaying, layoutTheme }) {
+function ListenReveal({
+  primaryText,
+  primaryWords,
+  playVerse,
+  isPlaying,
+  layoutTheme,
+}) {
   const { t } = useTranslation();
   const [revealedCount, setRevealedCount] = useState(0);
   const [revealMode, setRevealMode] = useState("word"); // "word" | "all"
-
-  // Auto-play audio when exercise mounts
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      playVerse();
-    }, 300);
-    return () => clearTimeout(timer);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleReveal = useCallback(() => {
     if (revealMode === "all") {
@@ -26,7 +24,9 @@ function ListenReveal({ primaryText, primaryWords, playVerse, isPlaying, layoutT
   const allRevealed = revealedCount >= primaryWords.length;
 
   return (
-    <div className={`listen-reveal${layoutTheme ? ` theme-${layoutTheme}` : ""}`}>
+    <div
+      className={`listen-reveal${layoutTheme ? ` theme-${layoutTheme}` : ""}`}
+    >
       {/* Word display */}
       <div className="listen-reveal-words">
         {primaryWords.map((word, i) => (
@@ -34,7 +34,9 @@ function ListenReveal({ primaryText, primaryWords, playVerse, isPlaying, layoutT
             key={i}
             className={`listen-reveal-word${i < revealedCount ? " revealed" : " hidden"}`}
           >
-            {i < revealedCount ? word : "\u00A0".repeat(Math.max(word.length, 3))}
+            {i < revealedCount
+              ? word
+              : "\u00A0".repeat(Math.max(word.length, 3))}
           </span>
         ))}
       </div>

@@ -66,6 +66,27 @@ export const de = {
     emptyTooltip: "Text für erforderliche Testamente nicht verfügbar",
     missingTooltip: "Geschichte noch nicht zur Sammlung hinzugefügt",
   },
+
+  learnExercises: {
+    listenReveal: "Hören & Aufdecken",
+    listenChoose: "Hören & Wählen",
+    listenOrder: "Wörter ordnen",
+    listenFill: "Lücken füllen",
+    sentenceBuilder: "Satz bauen",
+    more: "Mehr",
+    tapToReveal: "Tippen zum Aufdecken",
+    revealAll: "Alles aufdecken",
+    wordByWord: "Wort für Wort",
+    chooseCorrect: "Wähle den richtigen Vers",
+    correct: "Richtig!",
+    incorrect: "Nochmal versuchen",
+    orderWords: "Bringe die Wörter in die richtige Reihenfolge",
+    check: "Prüfen",
+    fillBlanks: "Fülle die Lücken",
+    buildSentence: "Baue den Satz",
+    peekTooltip: "Text anzeigen",
+    completed: "Gut gemacht!",
+  },
 };
 
 export default de;

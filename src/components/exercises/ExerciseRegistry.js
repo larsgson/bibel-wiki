@@ -16,15 +16,15 @@ const EXERCISES = [
     tabOrder: 0,
     requiresAudio: true,
   },
-  {
-    id: "listen-choose",
-    component: ListenChoose,
-    localeKey: "learnExercises.listenChoose",
-    icon: "ear-check",
-    showInTabs: true,
-    tabOrder: 1,
-    requiresAudio: true,
-  },
+  // {
+  //   id: "listen-choose",
+  //   component: ListenChoose,
+  //   localeKey: "learnExercises.listenChoose",
+  //   icon: "ear-check",
+  //   showInTabs: true,
+  //   tabOrder: 1,
+  //   requiresAudio: true,
+  // },
   {
     id: "listen-order",
     component: ListenOrder,
@@ -53,6 +53,9 @@ const EXERCISES = [
     requiresAudio: false,
   },
 ];
+
+export const getAllExercises = () =>
+  [...EXERCISES].sort((a, b) => a.tabOrder - b.tabOrder);
 
 export const getTabExercises = () =>
   EXERCISES.filter((e) => e.showInTabs).sort((a, b) => a.tabOrder - b.tabOrder);

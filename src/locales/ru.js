@@ -65,6 +65,27 @@ export const ru = {
     emptyTooltip: "Текст недоступен для необходимых заветов",
     missingTooltip: "Контент истории ещё не добавлен в коллекцию",
   },
+
+  learnExercises: {
+    listenReveal: "Слушать и открывать",
+    listenChoose: "Слушать и выбирать",
+    listenOrder: "Расставить слова",
+    listenFill: "Заполнить пропуски",
+    sentenceBuilder: "Составить предложение",
+    more: "Ещё",
+    tapToReveal: "Нажмите, чтобы открыть",
+    revealAll: "Открыть всё",
+    wordByWord: "Слово за словом",
+    chooseCorrect: "Выберите правильный стих",
+    correct: "Правильно!",
+    incorrect: "Попробуйте снова",
+    orderWords: "Расставьте слова по порядку",
+    check: "Проверить",
+    fillBlanks: "Заполните пропуски",
+    buildSentence: "Составьте предложение",
+    peekTooltip: "Посмотреть текст",
+    completed: "Отлично!",
+  },
 };
 
 export default ru;

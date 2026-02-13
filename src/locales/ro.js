@@ -65,6 +65,27 @@ export const ro = {
     emptyTooltip: "Text indisponibil pentru testamentele necesare",
     missingTooltip: "Conținutul poveștii nu a fost încă adăugat în colecție",
   },
+
+  learnExercises: {
+    listenReveal: "Ascultă și Dezvăluie",
+    listenChoose: "Ascultă și Alege",
+    listenOrder: "Ordonează cuvintele",
+    listenFill: "Completează spațiile",
+    sentenceBuilder: "Construiește propoziția",
+    more: "Mai mult",
+    tapToReveal: "Apasă pentru a dezvălui",
+    revealAll: "Dezvăluie tot",
+    wordByWord: "Cuvânt cu cuvânt",
+    chooseCorrect: "Alege versetul corect",
+    correct: "Corect!",
+    incorrect: "Încearcă din nou",
+    orderWords: "Pune cuvintele în ordine",
+    check: "Verifică",
+    fillBlanks: "Completează spațiile goale",
+    buildSentence: "Construiește propoziția",
+    peekTooltip: "Vezi textul",
+    completed: "Bravo!",
+  },
 };
 
 export default ro;

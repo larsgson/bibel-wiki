@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { pickGapWords, shuffleArray } from "../../utils/exerciseUtils";
 import useTranslation from "../../hooks/useTranslation";
 import "./ListenFillGap.css";
@@ -20,14 +20,6 @@ function ListenFillGap({ primaryWords, playVerse, layoutTheme }) {
     const bank = shuffleArray([...correctWords, ...decoys]);
     return { gapIndices: gaps, bankWords: bank };
   }, [primaryWords]);
-
-  // Auto-play audio
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      playVerse();
-    }, 300);
-    return () => clearTimeout(timer);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleBankClick = useCallback(
     (word) => {
@@ -60,14 +52,15 @@ function ListenFillGap({ primaryWords, playVerse, layoutTheme }) {
 
   const allFilled = gapIndices.every((gi) => filledGaps[gi]);
   const allCorrect =
-    checked &&
-    gapIndices.every((gi) => filledGaps[gi] === primaryWords[gi]);
+    checked && gapIndices.every((gi) => filledGaps[gi] === primaryWords[gi]);
 
   // Words already placed in gaps (used to hide from bank)
   const usedWords = Object.values(filledGaps);
 
   return (
-    <div className={`listen-fill-gap${layoutTheme ? ` theme-${layoutTheme}` : ""}`}>
+    <div
+      className={`listen-fill-gap${layoutTheme ? ` theme-${layoutTheme}` : ""}`}
+    >
       <p className="listen-fill-instruction">
         {t("learnExercises.fillBlanks") || "Fill in the blanks"}
       </p>

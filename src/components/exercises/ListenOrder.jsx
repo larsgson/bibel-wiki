@@ -1,114 +1,100 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { shuffleArray } from "../../utils/exerciseUtils";
 import useTranslation from "../../hooks/useTranslation";
 import "./ListenOrder.css";
 
 function ListenOrder({ primaryWords, playVerse, layoutTheme }) {
   const { t } = useTranslation();
-  const [placedIds, setPlacedIds] = useState([]);
-  const [checked, setChecked] = useState(false);
-  const [isCorrect, setIsCorrect] = useState(false);
+  // Pre-place the first half of words; user orders the rest
+  const prefillCount = Math.floor(primaryWords.length / 2);
 
-  // Create shuffled word tiles with stable IDs
+  const [placedIds, setPlacedIds] = useState(() =>
+    Array.from({ length: prefillCount }, (_, i) => i),
+  );
+  const [hasError, setHasError] = useState(false);
+
+  // Shuffle only the remaining (second half) word tiles
   const tiles = useMemo(() => {
-    const indexed = primaryWords.map((word, i) => ({ id: i, text: word }));
-    return shuffleArray(indexed);
-  }, [primaryWords]);
-
-  // Auto-play audio
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      playVerse();
-    }, 300);
-    return () => clearTimeout(timer);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    const remaining = primaryWords
+      .map((word, i) => ({ id: i, text: word }))
+      .filter((_, i) => i >= prefillCount);
+    return shuffleArray(remaining);
+  }, [primaryWords, prefillCount]);
 
   const placeWord = useCallback((id) => {
-    setPlacedIds((prev) => [...prev, id]);
-    setChecked(false);
+    setPlacedIds((prev) => {
+      const next = [...prev, id];
+      // Check if the newly placed word is in the correct position
+      const expectedId = next.length - 1;
+      if (id !== expectedId) {
+        setHasError(true);
+      }
+      return next;
+    });
   }, []);
 
-  const removeWord = useCallback((id) => {
-    setPlacedIds((prev) => prev.filter((pid) => pid !== id));
-    setChecked(false);
-  }, []);
-
-  const handleCheck = useCallback(() => {
-    const correct = placedIds.every((id, i) => id === i);
-    setIsCorrect(correct);
-    setChecked(true);
-  }, [placedIds]);
-
-  const handleReset = useCallback(() => {
-    setPlacedIds([]);
-    setChecked(false);
-    setIsCorrect(false);
+  const removeLastWord = useCallback(() => {
+    setPlacedIds((prev) => prev.slice(0, -1));
+    setHasError(false);
   }, []);
 
   const remainingTiles = tiles.filter((tile) => !placedIds.includes(tile.id));
-  const allPlaced = placedIds.length === primaryWords.length;
+  const allCorrect = !hasError && placedIds.length === primaryWords.length;
 
   return (
-    <div className={`listen-order${layoutTheme ? ` theme-${layoutTheme}` : ""}`}>
+    <div
+      className={`listen-order${layoutTheme ? ` theme-${layoutTheme}` : ""}`}
+    >
       <p className="listen-order-instruction">
         {t("learnExercises.orderWords") || "Put the words in order"}
       </p>
 
       {/* Answer row */}
-      <div className={`listen-order-answer${checked ? (isCorrect ? " correct" : " incorrect") : ""}`}>
+      <div className="listen-order-answer">
         {placedIds.length === 0 && (
           <span className="listen-order-placeholder-text">...</span>
         )}
-        {placedIds.map((id) => {
-          const tile = tiles.find((t) => t.id === id);
+        {placedIds.map((id, position) => {
+          const word = primaryWords[id];
+          const isPrefilled = id < prefillCount;
+          const isUserPlaced = !isPrefilled;
+          const isCorrectPos = id === position;
+          const isWrong = isUserPlaced && !isCorrectPos;
           return (
-            <button
-              key={id}
-              className="word-tile placed"
-              onClick={() => removeWord(id)}
+            <span
+              key={`${position}-${id}`}
+              className={`word-tile placed${isPrefilled ? " prefilled" : ""}${isUserPlaced && isCorrectPos ? " word-correct" : ""}${isWrong ? " word-wrong" : ""}`}
+              onClick={isWrong ? removeLastWord : undefined}
+              style={isWrong ? { cursor: "pointer" } : undefined}
             >
-              {tile.text}
-            </button>
+              {word}
+            </span>
           );
         })}
       </div>
 
       {/* Word bank */}
-      <div className="listen-order-bank">
+      <div className={`listen-order-bank${hasError ? " disabled" : ""}`}>
         {remainingTiles.map((tile) => (
           <button
             key={tile.id}
             className="word-tile"
-            onClick={() => placeWord(tile.id)}
+            onClick={() => !hasError && placeWord(tile.id)}
+            disabled={hasError}
           >
             {tile.text}
           </button>
         ))}
       </div>
 
-      {/* Actions */}
-      <div className="listen-order-actions">
-        {allPlaced && !checked && (
-          <button className="listen-order-check-btn" onClick={handleCheck}>
-            {t("learnExercises.check") || "Check"}
-          </button>
-        )}
-        {checked && isCorrect && (
+      {/* Feedback */}
+      {allCorrect && (
+        <div className="listen-order-actions">
           <div className="listen-order-feedback correct">
             {t("learnExercises.completed") || "Well done!"}
           </div>
-        )}
-        {checked && !isCorrect && (
-          <div className="listen-order-feedback-row">
-            <div className="listen-order-feedback incorrect">
-              {t("learnExercises.incorrect") || "Try again"}
-            </div>
-            <button className="listen-order-reset-btn" onClick={handleReset}>
-              ↻
-            </button>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -64,6 +64,27 @@ export const ar = {
     emptyTooltip: "النص غير متوفر للعهود المطلوبة",
     missingTooltip: "لم تتم إضافة محتوى القصة إلى المجموعة بعد",
   },
+
+  learnExercises: {
+    listenReveal: "استمع واكشف",
+    listenChoose: "استمع واختر",
+    listenOrder: "رتب الكلمات",
+    listenFill: "املأ الفراغات",
+    sentenceBuilder: "ابنِ الجملة",
+    more: "المزيد",
+    tapToReveal: "اضغط للكشف",
+    revealAll: "اكشف الكل",
+    wordByWord: "كلمة بكلمة",
+    chooseCorrect: "اختر الآية الصحيحة",
+    correct: "صحيح!",
+    incorrect: "حاول مرة أخرى",
+    orderWords: "رتب الكلمات بالترتيب",
+    check: "تحقق",
+    fillBlanks: "املأ الفراغات",
+    buildSentence: "ابنِ الجملة",
+    peekTooltip: "انظر إلى النص",
+    completed: "أحسنت!",
+  },
 };
 
 export default ar;

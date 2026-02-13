@@ -64,6 +64,27 @@ export const hi = {
     emptyTooltip: "आवश्यक वसीयतनामों के लिए पाठ उपलब्ध नहीं",
     missingTooltip: "कहानी सामग्री अभी तक संग्रह में नहीं जोड़ी गई",
   },
+
+  learnExercises: {
+    listenReveal: "सुनें और प्रकट करें",
+    listenChoose: "सुनें और चुनें",
+    listenOrder: "शब्द क्रम में लगाएं",
+    listenFill: "रिक्त स्थान भरें",
+    sentenceBuilder: "वाक्य बनाएं",
+    more: "और",
+    tapToReveal: "प्रकट करने के लिए टैप करें",
+    revealAll: "सब प्रकट करें",
+    wordByWord: "शब्द दर शब्द",
+    chooseCorrect: "सही पद चुनें",
+    correct: "सही!",
+    incorrect: "पुनः प्रयास करें",
+    orderWords: "शब्दों को क्रम में लगाएं",
+    check: "जाँचें",
+    fillBlanks: "रिक्त स्थान भरें",
+    buildSentence: "वाक्य बनाएं",
+    peekTooltip: "पाठ देखें",
+    completed: "शाबाश!",
+  },
 };
 
 export default hi;

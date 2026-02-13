@@ -14,6 +14,7 @@ import {
 import ExerciseTabBar from "./exercises/ExerciseTabBar";
 import TextPeek from "./exercises/TextPeek";
 import "./LearnVerseView.css";
+import "./exercises/word-tile.css";
 
 function LearnVerseView({
   verses,
@@ -220,21 +221,29 @@ function LearnVerseView({
           activeExerciseId={activeExerciseId}
           onSelectExercise={handleSelectExercise}
           layoutTheme={layoutTheme}
+          variant="desktop"
         />
       </div>
 
       <div className="learn-verse-main" ref={containerRef}>
-        {/* Image — swipeable area */}
+        {/* Image — swipeable + clickable to play */}
         <div
-          className="learn-verse-image-container"
+          className={`learn-verse-image-container${isPlaying ? " playing" : ""}`}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
+          onClick={togglePlay}
+          role="button"
+          tabIndex={0}
+          aria-label={isPlaying ? "Pause" : "Play"}
         >
           <img
             src={currentVerse.imageUrl}
             alt={currentVerse.reference}
             className="learn-verse-image"
           />
+          <span className="learn-verse-image-play-icon">
+            {isPlaying ? "⏸" : "▶"}
+          </span>
         </div>
 
         {/* Reference + Peek */}
@@ -243,8 +252,8 @@ function LearnVerseView({
           <TextPeek text={primaryText} layoutTheme={layoutTheme} />
         </div>
 
-        {/* Secondary language text (always visible) */}
-        {secondaryText && (
+        {/* Secondary language text (hidden during sentence-builder) */}
+        {secondaryText && activeExerciseId !== "sentence-builder" && (
           <div className="learn-verse-lang-section secondary">
             <p className="learn-verse-content">{secondaryText}</p>
           </div>
@@ -274,45 +283,48 @@ function LearnVerseView({
           </Suspense>
         </div>
 
-        {/* Controls */}
-        <div className="learn-verse-controls">
-          {currentIndex > 0 ? (
-            <button
-              className="learn-nav-btn"
-              onClick={goPrev}
-              aria-label="Previous verse"
-            >
-              ◀
-            </button>
-          ) : (
-            <div className="learn-nav-spacer" />
-          )}
-
-          <button
-            className={`learn-play-btn ${isPlaying ? "playing" : ""}`}
-            onClick={togglePlay}
-            aria-label={isPlaying ? "Pause" : "Play"}
-          >
-            {isPlaying ? "⏸" : "▶"}
-          </button>
-
-          {currentIndex < verses.length - 1 ? (
-            <button
-              className="learn-nav-btn"
-              onClick={goNext}
-              aria-label="Next verse"
-            >
-              ▶
-            </button>
-          ) : (
-            <div className="learn-nav-spacer" />
-          )}
-        </div>
-
         {/* Verse counter */}
         <div className="learn-verse-counter">
           {currentIndex + 1} / {verses.length}
         </div>
+
+        {/* Edge-anchored navigation arrows */}
+        {currentIndex > 0 && (
+          <button
+            className="learn-nav-edge learn-nav-prev"
+            onClick={goPrev}
+            aria-label="Previous verse"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+        )}
+        {currentIndex < verses.length - 1 && (
+          <button
+            className="learn-nav-edge learn-nav-next"
+            onClick={goNext}
+            aria-label="Next verse"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Mobile bottom tab bar */}
@@ -321,6 +333,7 @@ function LearnVerseView({
           activeExerciseId={activeExerciseId}
           onSelectExercise={handleSelectExercise}
           layoutTheme={layoutTheme}
+          variant="mobile"
         />
       </div>
     </div>

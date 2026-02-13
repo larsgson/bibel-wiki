@@ -65,6 +65,27 @@ export const es = {
     emptyTooltip: "Texto no disponible para los testamentos requeridos",
     missingTooltip: "Contenido de la historia aún no agregado a la colección",
   },
+
+  learnExercises: {
+    listenReveal: "Escuchar y Revelar",
+    listenChoose: "Escuchar y Elegir",
+    listenOrder: "Ordenar palabras",
+    listenFill: "Llenar espacios",
+    sentenceBuilder: "Construir oración",
+    more: "Más",
+    tapToReveal: "Toca para revelar",
+    revealAll: "Revelar todo",
+    wordByWord: "Palabra por palabra",
+    chooseCorrect: "Elige el versículo correcto",
+    correct: "¡Correcto!",
+    incorrect: "Inténtalo de nuevo",
+    orderWords: "Pon las palabras en orden",
+    check: "Comprobar",
+    fillBlanks: "Rellena los espacios",
+    buildSentence: "Construye la oración",
+    peekTooltip: "Ver el texto",
+    completed: "¡Bien hecho!",
+  },
 };
 
 export default es;
