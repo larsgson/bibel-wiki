@@ -43,7 +43,11 @@ const replaceLocaleMarkers = (text, localeData) => {
 
   return text.replace(/\[\[t:([^\]]+)\]\]/g, (fullMatch, keyPath) => {
     const lastDot = keyPath.lastIndexOf(".");
-    if (lastDot === -1) return fullMatch;
+    if (lastDot === -1) {
+      // Top-level key (e.g. "title")
+      const value = localeData[keyPath];
+      return value || fullMatch;
+    }
 
     const section = keyPath.substring(0, lastDot);
     const key = keyPath.substring(lastDot + 1);

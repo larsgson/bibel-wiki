@@ -379,6 +379,50 @@ function LearnVerseView({
           <span className="learn-verse-image-play-icon">
             {isPlaying ? "⏸" : "▶"}
           </span>
+
+          {/* Navigation arrows — anchored to image */}
+          {currentIndex > 0 && (
+            <button
+              className="learn-nav-edge learn-nav-prev"
+              onClick={(e) => {
+                e.stopPropagation();
+                goPrev();
+              }}
+              aria-label="Previous verse"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+          )}
+          {currentIndex < verses.length - 1 && (
+            <button
+              className="learn-nav-edge learn-nav-next"
+              onClick={(e) => {
+                e.stopPropagation();
+                goNext();
+              }}
+              aria-label="Next verse"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Reference + Peek */}

@@ -117,6 +117,26 @@
     border-radius: 12px;
 }
 
+.story-viewer.theme-dark_media {
+    background: #1a1a2e;
+}
+
+.story-viewer.theme-dark_media .story-header {
+    border-bottom-color: rgba(255, 255, 255, 0.15);
+}
+
+.story-viewer.theme-dark_media .story-title {
+    color: #e0e0e0;
+}
+
+.story-viewer.theme-dark_media .back-button {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.story-viewer.theme-dark_media .back-button:hover {
+    background-color: rgba(255, 255, 255, 0.18);
+}
+
 .story-sections-vertical.theme-dark_media {
     background: #1a1a2e;
     gap: 6px;

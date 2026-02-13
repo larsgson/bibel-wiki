@@ -174,6 +174,24 @@ function LanguageSelector({
         </div>
 
         <div className="language-selector-body">
+          {/* Learn mode toggle */}
+          {onLearnModeChange && (
+            <div className="learn-indicator-section">
+              <div
+                className={`learn-indicator ${indicatorState}`}
+                onClick={handleLearnToggle}
+                role="switch"
+                aria-checked={learnMode}
+              >
+                <span className="learn-indicator-dot" />
+                <span className="learn-indicator-label">{indicatorLabel}</span>
+              </div>
+              {learnMessage && (
+                <div className="learn-message">{learnMessage}</div>
+              )}
+            </div>
+          )}
+
           {/* Current Language Display */}
           <div className="current-language-section">
             <div className="language-status">
@@ -286,25 +304,7 @@ function LanguageSelector({
 
         {/* Footer with Actions */}
         <div className="language-selector-footer">
-          {onLearnModeChange && (
-            <div className="learn-indicator-section">
-              <div
-                className={`learn-indicator ${indicatorState}`}
-                onClick={handleLearnToggle}
-                role="switch"
-                aria-checked={learnMode}
-              >
-                <span className="learn-indicator-dot" />
-                <span className="learn-indicator-label">{indicatorLabel}</span>
-              </div>
-              {learnMessage && (
-                <div className="learn-message">{learnMessage}</div>
-              )}
-            </div>
-          )}
-          <div
-            className={`action-buttons ${onLearnModeChange ? "" : "single"}`}
-          >
+          <div className="action-buttons single">
             <button className="button-secondary" onClick={handleClose}>
               {t("languageSelector.close")}
             </button>

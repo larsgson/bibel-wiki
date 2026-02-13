@@ -1040,7 +1040,9 @@ function StoryViewer({ storyData, onBack, learnMode = false }) {
   }
 
   return (
-    <div className="story-viewer">
+    <div
+      className={`story-viewer${storyData.layoutTheme ? ` theme-${storyData.layoutTheme}` : ""}`}
+    >
       <div className="story-header">
         <button className="back-button" onClick={onBack}>
           ←
