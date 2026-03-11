@@ -3,7 +3,19 @@
     "allow": [
       "mcp__acp__Bash",
       "mcp__acp__Edit",
-      "mcp__acp__Write"
+      "mcp__acp__Write",
+      "Bash(cat /Users/larsgson/dev/bw/bibel-wiki/public/ALL-langs-data/nt/with-timecode/aaa/*/data.json)",
+      "Bash(pnpm build)",
+      "Bash(ls /Users/larsgson/dev/bw/bibel-wiki/src/data/content/templates/John/01/*.md)",
+      "Bash(ls /Users/larsgson/dev/bw/bibel-wiki/src/data/content/templates/John/02/*.md)",
+      "Bash(ls /Users/larsgson/dev/bw/bibel-wiki/src/data/content/templates/John/03/*.md)",
+      "Bash(ls -la /Users/larsgson/dev/bw/bibel-wiki/example/duo-bibel-wiki/src/pages/[lang]/)",
+      "Bash(ls -la /Users/larsgson/dev/bw/bibel-wiki/example/duo-bibel-wiki/src/pages/[lang]/[lang2]/)",
+      "Bash(echo \"$trade_langs\")",
+      "Bash(git check-ignore .claude/settings.local.json)",
+      "Bash(git check-ignore .astro/)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(git check-ignore .astro/ .claude/settings.local.json)"
     ]
   }
 }

@@ -1,0 +1,36 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro"
+import TemplateSelectorIsland from "../../components/TemplateSelectorIsland"
+import { loadAllTemplates, loadLocaleData, loadAllLocaleData } from "../../lib/template-utils"
+import { POPULAR_LANGUAGES } from "../../lib/popular-languages"
+
+export function getStaticPaths() {
+  return POPULAR_LANGUAGES.map((lang) => ({
+    params: { lang },
+  }))
+}
+
+const templates = loadAllTemplates()
+const templateList = Object.values(templates).map((t) => {
+  const allLocales = loadAllLocaleData(t.name)
+  const localizedTitles: Record<string, string> = {}
+  for (const [iso3, locale] of Object.entries(allLocales)) {
+    if (locale.bookTitle) localizedTitles[iso3] = locale.bookTitle
+  }
+  return {
+    name: t.name,
+    image: t.image,
+    engTitle: loadLocaleData(t.name, "eng")?.bookTitle || t.name,
+    categoryCount: t.categories.length,
+    storyCount: t.categories.reduce((sum, c) => sum + c.stories.length, 0),
+    localizedTitles,
+  }
+})
+---
+
+<BaseLayout title="Bibel Wiki">
+  <div class="max-w-4xl mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-6">Bibel Wiki</h1>
+    <TemplateSelectorIsland client:load templates={templateList} />
+  </div>
+</BaseLayout>
