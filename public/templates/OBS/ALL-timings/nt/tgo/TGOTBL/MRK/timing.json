@@ -1,0 +1,35 @@
+{
+  "TGOTBLN1DA": {
+    "24": {
+      "1": {
+        "2-3": [
+          21.51,
+          28.56
+        ],
+        "4": [
+          28.56,
+          39.22
+        ],
+        "5": [
+          39.22,
+          52.28
+        ]
+      }
+    }
+  },
+  "warnings": {
+    "TGOTBLN1DA": {
+      "24": {
+        "1": {
+          "2-3": {
+            "details": "verse 2 missing, timestamps repeated",
+            "missing_verses": [
+              2
+            ],
+            "type": "partial"
+          }
+        }
+      }
+    }
+  }
+}

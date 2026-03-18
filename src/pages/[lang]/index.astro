@@ -24,6 +24,7 @@ const templateList = Object.values(templates).map((t) => {
     categoryCount: t.categories.length,
     storyCount: t.categories.reduce((sum, c) => sum + c.stories.length, 0),
     localizedTitles,
+    imageConfig: t.imageConfig,
   }
 })
 ---

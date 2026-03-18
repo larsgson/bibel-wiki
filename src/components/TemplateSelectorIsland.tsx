@@ -2,6 +2,8 @@ import { useState, useEffect } from "react"
 import { useStore } from "@nanostores/react"
 import { $selectedLanguage, $secondaryLanguages } from "../stores/language-store"
 import { buildLangHref } from "../lib/url-utils"
+import type { ImageConfig } from "../lib/types"
+import { resolveImageUrl } from "../lib/image-utils"
 
 interface TemplateInfo {
   name: string
@@ -10,6 +12,7 @@ interface TemplateInfo {
   categoryCount: number
   storyCount: number
   localizedTitles: Record<string, string>
+  imageConfig?: ImageConfig | null
 }
 
 interface Props {
@@ -39,7 +42,7 @@ export default function TemplateSelectorIsland({ templates }: Props) {
         >
           <div className="aspect-video bg-gray-100 dark:bg-gray-800 relative overflow-hidden">
             <img
-              src={t.image}
+              src={resolveImageUrl(t.image, t.imageConfig || null)}
               alt={getTitle(t)}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform"
               onError={(e) => {

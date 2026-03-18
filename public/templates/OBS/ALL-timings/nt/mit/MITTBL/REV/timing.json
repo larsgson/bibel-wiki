@@ -1,0 +1,74 @@
+{
+  "MITTBLN2DA": {
+    "48": {
+      "21": {
+        "1": [
+          4.03,
+          4.03
+        ],
+        "2": [
+          4.03,
+          33.26
+        ],
+        "3": [
+          33.26,
+          56.83
+        ],
+        "4": [
+          56.83,
+          73.77
+        ]
+      }
+    }
+  },
+  "MITTBLN2SA": {
+    "48": {
+      "21": {
+        "1": [
+          4.03,
+          4.03
+        ],
+        "2": [
+          4.03,
+          33.26
+        ],
+        "3": [
+          33.26,
+          56.83
+        ],
+        "4": [
+          56.83,
+          73.77
+        ]
+      }
+    }
+  },
+  "warnings": {
+    "MITTBLN2DA": {
+      "48": {
+        "21": {
+          "1-4": {
+            "details": "verse 2 missing, timestamps repeated",
+            "missing_verses": [
+              2
+            ],
+            "type": "partial"
+          }
+        }
+      }
+    },
+    "MITTBLN2SA": {
+      "48": {
+        "21": {
+          "1-4": {
+            "details": "verse 2 missing, timestamps repeated",
+            "missing_verses": [
+              2
+            ],
+            "type": "partial"
+          }
+        }
+      }
+    }
+  }
+}

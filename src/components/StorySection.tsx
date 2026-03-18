@@ -1,4 +1,5 @@
-import type { Section } from "../lib/types"
+import type { Section, ImageConfig } from "../lib/types"
+import { resolveImageUrl, resolveMediumUrl } from "../lib/image-utils"
 
 interface Props {
   section: Section
@@ -7,6 +8,7 @@ interface Props {
   sectionsMap: Record<string, Section[]>
   isPlaying: boolean
   onSectionClick: (index: number) => void
+  imageConfig?: ImageConfig | null
 }
 
 const RTL_LANGUAGES = ["heb", "arb", "ara"]
@@ -18,6 +20,7 @@ export default function StorySection({
   sectionsMap,
   isPlaying,
   onSectionClick,
+  imageConfig = null,
 }: Props) {
   const primaryLang = selectedLanguages[0]
   const primarySection = sectionsMap[primaryLang]?.[sectionIndex]
@@ -28,10 +31,10 @@ export default function StorySection({
       id={`verse-${sectionIndex}`}
       data-verse-idx={sectionIndex}
       data-clickable="1"
-      className={`rounded-lg overflow-hidden border transition-all cursor-pointer dark:bg-white/[0.04] ${
+      className={`listen-verse-card rounded-lg overflow-hidden border transition-all cursor-pointer ${
         isPlaying
           ? "border-red-500 ring-2 ring-red-500/30 shadow-lg"
-          : "border-gray-200 dark:border-gray-700/50 hover:shadow-md"
+          : "hover:shadow-md"
       }`}
       onClick={() => onSectionClick(sectionIndex)}
       role="button"
@@ -49,10 +52,15 @@ export default function StorySection({
           {primarySection.imageUrls.map((url, imgIdx) => (
             <img
               key={imgIdx}
-              src={url}
+              src={resolveMediumUrl(url, imageConfig)}
               alt={`Section ${sectionIndex + 1}`}
               className="w-full aspect-video object-cover"
               loading="lazy"
+              onError={(e) => {
+                const img = e.target as HTMLImageElement
+                const fullUrl = resolveImageUrl(url, imageConfig)
+                if (img.src !== fullUrl) img.src = fullUrl
+              }}
             />
           ))}
           {primarySection.reference && (
@@ -91,7 +99,7 @@ export default function StorySection({
           <div key={langCode} className={textClass} dir={isRTL ? "rtl" : "ltr"}>
             {/* Heading inside primary text block so it participates in the overlap */}
             {isPrimary && hasImages && primarySection.heading && (
-              <h3 className="text-base font-semibold mb-1 text-white">
+              <h3 className="text-base font-semibold mb-1">
                 {primarySection.heading}
               </h3>
             )}

@@ -1,0 +1,39 @@
+{
+  "AIAWYIN1DA": {
+    "24": {
+      "1": {
+        "2": [
+          10.79,
+          23.02
+        ],
+        "3": [
+          23.02,
+          32.46
+        ],
+        "4": [
+          32.46,
+          32.46
+        ],
+        "5": [
+          32.46,
+          32.46
+        ]
+      }
+    }
+  },
+  "warnings": {
+    "AIAWYIN1DA": {
+      "24": {
+        "1": {
+          "4-5": {
+            "details": "verse 5 missing, timestamps repeated",
+            "missing_verses": [
+              5
+            ],
+            "type": "partial"
+          }
+        }
+      }
+    }
+  }
+}

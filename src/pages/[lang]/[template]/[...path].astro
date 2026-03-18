@@ -10,6 +10,7 @@ import {
   loadAllLocaleData,
   findMissingStoryIds,
   extractStoryTestaments,
+  getTemplateThemeCSS,
 } from "../../../lib/template-utils"
 import { POPULAR_LANGUAGES } from "../../../lib/popular-languages"
 
@@ -64,6 +65,7 @@ export function getStaticPaths() {
               markdownContent,
               allLocales,
               layoutTheme: structure.layoutTheme,
+              imageConfig: structure.imageConfig,
             },
           })
         }
@@ -78,7 +80,7 @@ const props = Astro.props
 const pageTitle = props.engLocale?.bookTitle || props.templateName
 ---
 
-<BaseLayout title={`${pageTitle} — Bibel Wiki`} layoutTheme={props.layoutTheme}>
+<BaseLayout title={`${pageTitle} — Bibel Wiki`} layoutTheme={props.layoutTheme} themeCSS={getTemplateThemeCSS(props.templateName)}>
   {props.pageType === "category" ? (
     <div class="max-w-4xl mx-auto p-4">
       <NavigationGridIsland
@@ -90,6 +92,7 @@ const pageTitle = props.engLocale?.bookTitle || props.templateName
         defaultCategoryId={props.categoryId}
         missingStoryIds={props.missingStoryIds}
         storyTestaments={props.storyTestaments}
+        imageConfig={props.structure.imageConfig}
       />
     </div>
   ) : (
@@ -103,6 +106,7 @@ const pageTitle = props.engLocale?.bookTitle || props.templateName
         imageIndex={props.imageIndex}
         markdownContent={props.markdownContent}
         allLocales={props.allLocales}
+        imageConfig={props.imageConfig}
       />
     </div>
   )}

@@ -1,0 +1,74 @@
+{
+  "GORLAIN2DA": {
+    "24": {
+      "1": {
+        "2": [
+          14.84,
+          14.84
+        ],
+        "3": [
+          14.84,
+          40.28
+        ],
+        "4": [
+          40.28,
+          59.91
+        ],
+        "5": [
+          59.91,
+          77.12
+        ]
+      }
+    }
+  },
+  "GORLAIN2SA": {
+    "24": {
+      "1": {
+        "2": [
+          14.84,
+          14.84
+        ],
+        "3": [
+          14.84,
+          40.28
+        ],
+        "4": [
+          40.28,
+          59.91
+        ],
+        "5": [
+          59.91,
+          77.12
+        ]
+      }
+    }
+  },
+  "warnings": {
+    "GORLAIN2DA": {
+      "24": {
+        "1": {
+          "2-3": {
+            "details": "verse 3 missing, timestamps repeated",
+            "missing_verses": [
+              3
+            ],
+            "type": "partial"
+          }
+        }
+      }
+    },
+    "GORLAIN2SA": {
+      "24": {
+        "1": {
+          "2-3": {
+            "details": "verse 3 missing, timestamps repeated",
+            "missing_verses": [
+              3
+            ],
+            "type": "partial"
+          }
+        }
+      }
+    }
+  }
+}

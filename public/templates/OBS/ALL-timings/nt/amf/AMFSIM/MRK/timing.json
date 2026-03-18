@@ -1,0 +1,39 @@
+{
+  "AMFSIMN1DA": {
+    "24": {
+      "1": {
+        "2": [
+          15.17,
+          15.17
+        ],
+        "3": [
+          15.17,
+          46.74
+        ],
+        "4": [
+          46.74,
+          60.84
+        ],
+        "5": [
+          60.84,
+          74.44
+        ]
+      }
+    }
+  },
+  "warnings": {
+    "AMFSIMN1DA": {
+      "24": {
+        "1": {
+          "2-3": {
+            "details": "verse 3 missing, timestamps repeated",
+            "missing_verses": [
+              3
+            ],
+            "type": "partial"
+          }
+        }
+      }
+    }
+  }
+}

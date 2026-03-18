@@ -1,0 +1,39 @@
+{
+  "BOJWBTN1DA": {
+    "24": {
+      "1": {
+        "2": [
+          9.28,
+          20.5
+        ],
+        "3": [
+          20.5,
+          38.14
+        ],
+        "4": [
+          38.14,
+          38.14
+        ],
+        "5": [
+          38.14,
+          73.21
+        ]
+      }
+    }
+  },
+  "warnings": {
+    "BOJWBTN1DA": {
+      "24": {
+        "1": {
+          "4-5": {
+            "details": "verse 5 missing, timestamps repeated",
+            "missing_verses": [
+              5
+            ],
+            "type": "partial"
+          }
+        }
+      }
+    }
+  }
+}

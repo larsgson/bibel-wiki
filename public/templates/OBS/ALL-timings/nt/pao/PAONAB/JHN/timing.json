@@ -1,0 +1,48 @@
+{
+  "PAONABN1DA": {
+    "24": {
+      "1": {
+        "29": [
+          467.249,
+          474.69
+        ],
+        "32": [
+          474.69,
+          474.69
+        ],
+        "33": [
+          474.69,
+          474.69
+        ],
+        "34": [
+          474.69,
+          474.69
+        ]
+      }
+    },
+    "48": {
+      "1": {
+        "29": [
+          467.249,
+          474.69
+        ]
+      }
+    }
+  },
+  "warnings": {
+    "PAONABN1DA": {
+      "24": {
+        "1": {
+          "32-34": {
+            "details": "no verses after range, repeating verse 30 timestamp",
+            "method": "repeat_before",
+            "type": "approximated",
+            "used_verses": [
+              30
+            ]
+          }
+        }
+      }
+    }
+  }
+}

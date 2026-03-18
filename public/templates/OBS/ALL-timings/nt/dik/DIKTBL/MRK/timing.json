@@ -1,0 +1,78 @@
+{
+  "DIKTBLN2DA": {
+    "24": {
+      "1": {
+        "2": [
+          4.07,
+          4.07
+        ],
+        "3": [
+          4.07,
+          11.68
+        ],
+        "4": [
+          11.68,
+          71.44
+        ],
+        "5": [
+          71.44,
+          83.5
+        ]
+      }
+    }
+  },
+  "DIKTBLN2SA": {
+    "24": {
+      "1": {
+        "2": [
+          4.07,
+          4.07
+        ],
+        "3": [
+          4.07,
+          11.68
+        ],
+        "4": [
+          11.68,
+          71.44
+        ],
+        "5": [
+          71.44,
+          83.5
+        ]
+      }
+    }
+  },
+  "warnings": {
+    "DIKTBLN2DA": {
+      "24": {
+        "1": {
+          "2-3": {
+            "details": "using verses 1 and 4 as boundary approximation",
+            "method": "boundary_verses",
+            "type": "approximated",
+            "used_verses": [
+              1,
+              4
+            ]
+          }
+        }
+      }
+    },
+    "DIKTBLN2SA": {
+      "24": {
+        "1": {
+          "2-3": {
+            "details": "using verses 1 and 4 as boundary approximation",
+            "method": "boundary_verses",
+            "type": "approximated",
+            "used_verses": [
+              1,
+              4
+            ]
+          }
+        }
+      }
+    }
+  }
+}

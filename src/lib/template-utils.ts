@@ -70,13 +70,15 @@ export function buildImageIndex(
         const refMatch = line.match(
           /\[\[ref:\w+\s+(\d+):(\d+)(?:-(\d+))?\]\]/,
         )
-        if (refMatch && currentChapter > 0) {
+        if (refMatch) {
+          const refChapter = parseInt(refMatch[1], 10)
+          const chapter = currentChapter > 0 ? currentChapter : refChapter
           const verse = parseInt(refMatch[2], 10)
           if (pendingImages.length > 0) {
-            if (!index[currentChapter]) index[currentChapter] = {}
-            if (!index[currentChapter][verse])
-              index[currentChapter][verse] = []
-            index[currentChapter][verse].push(...pendingImages)
+            if (!index[chapter]) index[chapter] = {}
+            if (!index[chapter][verse])
+              index[chapter][verse] = []
+            index[chapter][verse].push(...pendingImages)
             pendingImages = []
           }
         }
@@ -101,8 +103,8 @@ export function loadLocaleData(
 
   let bookTitle = ""
   const categories: Record<string, CategoryMeta> = {}
-  const stories: Record<number, StoryMeta> = {}
-  const sections: Record<number, Record<number, string>> = {}
+  const stories: Record<string, StoryMeta> = {}
+  const sections: Record<string, Record<string, string>> = {}
 
   let currentSection = ""
   const pendingValues: Record<string, string> = {}
@@ -123,19 +125,19 @@ export function loadLocaleData(
     const parts = currentSection.split(".")
 
     if (parts.length === 2) {
-      const storyNum = parseInt(parts[1], 10)
-      if (storyNum > 0) {
-        stories[storyNum] = {
-          title: pendingValues.title || "",
-          description: pendingValues.description || "",
-        }
+      // Use compound key "catId.storyNum" to avoid collisions across categories
+      const storyKey = `${parts[0]}.${parts[1]}`
+      stories[storyKey] = {
+        title: pendingValues.title || "",
+        description: pendingValues.description || "",
       }
     } else if (parts.length === 3) {
-      const storyNum = parseInt(parts[1], 10)
-      const verseNum = parseInt(parts[2], 10)
-      if (storyNum > 0 && verseNum > 0 && pendingValues.p_hd) {
-        if (!sections[storyNum]) sections[storyNum] = {}
-        sections[storyNum][verseNum] = pendingValues.p_hd
+      // Use compound key "catId.storyNum" for the story, keep verse key as-is
+      const storyKey = `${parts[0]}.${parts[1]}`
+      const verseKey = parts[2]
+      if (pendingValues.p_hd) {
+        if (!sections[storyKey]) sections[storyKey] = {}
+        sections[storyKey][verseKey] = pendingValues.p_hd
       }
     }
   }
@@ -204,6 +206,28 @@ export function loadTemplateStructure(
   let layoutTheme: string | null = null
   const themeMatch = rootContent.match(/^layout_theme\s*=\s*"([^"]+)"/m)
   if (themeMatch) layoutTheme = themeMatch[1]
+
+  // Parse [images] config (base_url, thumbs_url, thumbs_resize)
+  let imageConfig: import("./types").ImageConfig | null = null
+  const imagesBlock = rootContent.match(
+    /\[images\]\s*\n((?:\s*(?:\w+\s*=\s*"[^"]*"|#[^\n]*)\s*\n?)*)/,
+  )
+  if (imagesBlock) {
+    const baseUrlMatch = imagesBlock[1].match(/base_url\s*=\s*"([^"]+)"/)
+    if (baseUrlMatch) {
+      imageConfig = { base_url: baseUrlMatch[1] }
+      const thumbsUrlMatch = imagesBlock[1].match(/thumbs_url\s*=\s*"([^"]+)"/)
+      if (thumbsUrlMatch) imageConfig.thumbs_url = thumbsUrlMatch[1]
+      const thumbsResizeMatch = imagesBlock[1].match(/thumbs_resize\s*=\s*"([^"]+)"/)
+      if (thumbsResizeMatch) imageConfig.thumbs_resize = thumbsResizeMatch[1]
+      const pathPatternMatch = imagesBlock[1].match(/path_pattern\s*=\s*"([^"]+)"/)
+      if (pathPatternMatch) imageConfig.path_pattern = pathPatternMatch[1]
+      const thumbsPatternMatch = imagesBlock[1].match(/thumbs_pattern\s*=\s*"([^"]+)"/)
+      if (thumbsPatternMatch) imageConfig.thumbs_pattern = thumbsPatternMatch[1]
+      const mediumPatternMatch = imagesBlock[1].match(/medium_pattern\s*=\s*"([^"]+)"/)
+      if (mediumPatternMatch) imageConfig.medium_pattern = mediumPatternMatch[1]
+    }
+  }
 
   let coverImage = ""
   const imgFilenameMatch = rootContent.match(
@@ -304,7 +328,7 @@ export function loadTemplateStructure(
     coverImage = categories[0].stories[0].image
   }
 
-  return { name: templateName, image: coverImage, layoutTheme, categories }
+  return { name: templateName, image: coverImage, layoutTheme, imageConfig, categories }
 }
 
 export function loadAllTemplates(): Record<string, TemplateStructure> {
@@ -433,4 +457,14 @@ export function loadTimingData(
     }
   }
   return null
+}
+
+export function getTemplateThemeCSS(templateName: string): string {
+  const tomlPath = path.join(SRC_TEMPLATES_DIR, templateName, "index.toml")
+  if (!fs.existsSync(tomlPath)) return ""
+  const content = fs.readFileSync(tomlPath, "utf-8")
+  const themeMatch = content.match(/^layout_theme\s*=\s*"([^"]+)"/m)
+  if (!themeMatch) return ""
+  const cssPath = path.join(SRC_TEMPLATES_DIR, templateName, themeMatch[1])
+  return fs.existsSync(cssPath) ? fs.readFileSync(cssPath, "utf-8") : ""
 }

@@ -8,12 +8,12 @@ filename = "000-01.png"
 
 [[stories]]
 id = "01"
-image = "https://cdn.door43.org/obs/jpg/360px/obs-en-01-01.jpg"
+image = "obs-en-01-01.jpg"
 
 [[stories]]
 id = "02"
-image = "https://cdn.door43.org/obs/jpg/360px/obs-en-02-01.jpg"
+image = "obs-en-02-01.jpg"
 
 [[stories]]
 id = "03"
-image = "https://cdn.door43.org/obs/jpg/360px/obs-en-03-01.jpg"
+image = "obs-en-03-01.jpg"

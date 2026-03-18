@@ -32,19 +32,19 @@ const replaceLocaleMarkers = (
   return text.replace(/\[\[t:([^\]]+)\]\]/g, (fullMatch, keyPath: string) => {
     const parts = keyPath.split(".")
 
-    // "02.14.5.p_hd" → sections[14][5]
+    // "01.02.6_5.p_hd" → sections["01.02"]["6_5"]
     if (parts.length === 4 && parts[3] === "p_hd") {
-      const storyNum = parseInt(parts[1], 10)
-      const verseNum = parseInt(parts[2], 10)
-      const value = localeData.sections?.[storyNum]?.[verseNum]
+      const storyKey = `${parts[0]}.${parts[1]}`
+      const verseKey = parts[2]
+      const value = localeData.sections?.[storyKey]?.[verseKey]
       return value || fullMatch
     }
 
-    // "02.14.title" or "02.14.description" → stories[14].title
+    // "01.02.title" or "01.02.description" → stories["01.02"].title
     if (parts.length === 3) {
-      const storyNum = parseInt(parts[1], 10)
+      const storyKey = `${parts[0]}.${parts[1]}`
       const key = parts[2]
-      const value = localeData.stories?.[storyNum]?.[key]
+      const value = localeData.stories?.[storyKey]?.[key]
       return value || fullMatch
     }
 

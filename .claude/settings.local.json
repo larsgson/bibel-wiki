@@ -15,7 +15,19 @@
       "Bash(git check-ignore .claude/settings.local.json)",
       "Bash(git check-ignore .astro/)",
       "Bash(echo \"exit: $?\")",
-      "Bash(git check-ignore .astro/ .claude/settings.local.json)"
+      "Bash(git check-ignore .astro/ .claude/settings.local.json)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:filedn.com)",
+      "WebSearch",
+      "Bash(npx tsc:*)",
+      "Bash(kill 20453)",
+      "Bash(grep -E \"\\\\.\\(css|scss|sass\\)$\")",
+      "Bash(grep -n \"getTemplateThemeCSS\\\\|layoutTheme\\\\|layout_theme\" /Users/larsgson/dev/bw/bibel-wiki/example/duo-bibel-wiki/src/pages/[lang]/[lang2]/[book]/[chapter]/index.astro)",
+      "Bash(grep -n \"getTemplateThemeCSS\\\\|layoutTheme\" /Users/larsgson/dev/bw/bibel-wiki/example/duo-bibel-wiki/src/pages/[lang]/[lang2]/[book]/[category]/[story]/index.astro)",
+      "Bash(node -e \":*)",
+      "Bash(npx tsx -e \":*)",
+      "Bash(curl -s http://localhost:8888/l/John/)",
+      "Bash(find /Users/larsgson/dev/bw/bibel-wiki/public/templates/John/ALL-timings -path */JHN/* -name timing.json)"
     ]
   }
 }

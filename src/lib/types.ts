@@ -10,10 +10,20 @@ export interface TemplateCategory {
   stories: TemplateStory[]
 }
 
+export interface ImageConfig {
+  base_url: string
+  thumbs_url?: string
+  thumbs_resize?: string
+  path_pattern?: string
+  thumbs_pattern?: string
+  medium_pattern?: string
+}
+
 export interface TemplateStructure {
   name: string
   image: string
   layoutTheme: string | null
+  imageConfig: ImageConfig | null
   categories: TemplateCategory[]
 }
 
@@ -30,8 +40,8 @@ export interface CategoryMeta {
 export interface LocaleData {
   bookTitle: string
   categories: Record<string, CategoryMeta>
-  stories: Record<number, StoryMeta>
-  sections: Record<number, Record<number, string>>
+  stories: Record<string, StoryMeta>
+  sections: Record<string, Record<string, string>>
 }
 
 export interface VerseEntry {

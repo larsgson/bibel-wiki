@@ -1,0 +1,35 @@
+{
+  "HUUTBLN1DA": {
+    "24": {
+      "1": {
+        "2-3": [
+          42.75,
+          66.88
+        ],
+        "4": [
+          66.88,
+          103.95
+        ],
+        "5": [
+          103.95,
+          131.08
+        ]
+      }
+    }
+  },
+  "warnings": {
+    "HUUTBLN1DA": {
+      "24": {
+        "1": {
+          "2-3": {
+            "details": "verse 2 missing, timestamps repeated",
+            "missing_verses": [
+              2
+            ],
+            "type": "partial"
+          }
+        }
+      }
+    }
+  }
+}

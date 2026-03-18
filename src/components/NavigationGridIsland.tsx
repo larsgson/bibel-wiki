@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from "react"
 import { useStore } from "@nanostores/react"
 import { $selectedLanguage, $secondaryLanguages } from "../stores/language-store"
 import { buildLangHref } from "../lib/url-utils"
-import type { TemplateStructure, LocaleData } from "../lib/types"
+import type { TemplateStructure, LocaleData, ImageConfig } from "../lib/types"
+import { resolveThumbUrl } from "../lib/image-utils"
 
 interface Props {
   templateName: string
@@ -13,6 +14,7 @@ interface Props {
   missingStoryIds?: string[]
   /** Map of "catId/storyId" → ["nt"] | ["ot"] | ["nt","ot"] */
   storyTestaments?: Record<string, string[]>
+  imageConfig?: ImageConfig | null
 }
 
 /** Coverage status for a story given the selected language */
@@ -28,6 +30,7 @@ export default function NavigationGridIsland({
   defaultCategoryId = null,
   missingStoryIds = [],
   storyTestaments = {},
+  imageConfig = null,
 }: Props) {
   const selectedLang = useStore($selectedLanguage)
   const secondaryLangs = useStore($secondaryLanguages)
@@ -102,8 +105,9 @@ export default function NavigationGridIsland({
     return localeData?.categories?.[catId]?.description || ""
   }
 
-  const getStoryTitle = (storyNum: number) => {
-    return localeData?.stories?.[storyNum]?.title || `Story ${storyNum}`
+  const getStoryTitle = (catId: string, storyId: string) => {
+    const key = `${catId}.${storyId}`
+    return localeData?.stories?.[key]?.title || `Story ${storyId}`
   }
 
   const bookTitle = localeData?.bookTitle || engLocale?.bookTitle || templateName
@@ -174,7 +178,7 @@ export default function NavigationGridIsland({
                 {story.image ? (
                   <img
                     className="chapter-card-img"
-                    src={story.image}
+                    src={resolveThumbUrl(story.image, imageConfig)}
                     alt=""
                     loading="lazy"
                     onError={(e) => {
@@ -192,7 +196,7 @@ export default function NavigationGridIsland({
                 <div className="chapter-card-info">
                   <span className="chapter-card-num">Chapter {story.chapter}</span>
                   <span className="chapter-card-title">
-                    {getStoryTitle(story.chapter)}
+                    {getStoryTitle(cat.id, story.id)}
                   </span>
                 </div>
               </a>
@@ -213,7 +217,8 @@ export default function NavigationGridIsland({
       <div>
         {structure.categories.map((cat) => {
           const isOpen = openCatId === cat.id
-          const thumbSrc = cat.image || cat.stories[0]?.image || null
+          const rawThumb = cat.image || cat.stories[0]?.image || null
+          const thumbSrc = rawThumb ? resolveThumbUrl(rawThumb, imageConfig) : null
 
           return (
             <div
@@ -262,7 +267,7 @@ export default function NavigationGridIsland({
                           {(story.image || cat.image) ? (
                             <img
                               className="chapter-card-img"
-                              src={story.image || cat.image}
+                              src={resolveThumbUrl(story.image || cat.image, imageConfig)}
                               alt=""
                               loading="lazy"
                               onError={(e) => {
@@ -282,7 +287,7 @@ export default function NavigationGridIsland({
                               Story {story.chapter}
                             </span>
                             <span className="chapter-card-title">
-                              {getStoryTitle(story.chapter)}
+                              {getStoryTitle(cat.id, story.id)}
                             </span>
                           </div>
                         </a>

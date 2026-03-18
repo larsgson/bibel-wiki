@@ -6,27 +6,19 @@ import "../styles/global.css"
 interface Props {
   title?: string
   layoutTheme?: string | null
+  themeCSS?: string
 }
 
-const { title = "Bibel Wiki", layoutTheme = null } = Astro.props
-const forceDark = layoutTheme === "dark_media"
+const { title = "Bibel Wiki", layoutTheme = null, themeCSS = "" } = Astro.props
 ---
 
 <!doctype html>
-<html lang="en" class={forceDark ? "dark" : ""}>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title}</title>
     <ViewTransitions />
-    {!forceDark && (
-      <script is:inline>
-        // Auto-detect dark mode from system preference (only when not forced)
-        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-          document.documentElement.classList.add('dark');
-        }
-      </script>
-    )}
   </head>
   <body class="min-h-screen flex flex-col">
     <Header />
@@ -96,6 +88,18 @@ const forceDark = layoutTheme === "dark_media"
         stopAll,
         unlockAudio,
       } from "../stores/audio-store"
+
+      // iOS audio unlock on first interaction (touchstart or click)
+      const unlockEvents = ["touchstart", "click"] as const
+      function onFirstInteraction() {
+        unlockAudio()
+        for (const evt of unlockEvents) {
+          document.removeEventListener(evt, onFirstInteraction, true)
+        }
+      }
+      for (const evt of unlockEvents) {
+        document.addEventListener(evt, onFirstInteraction, true)
+      }
 
       function initAudioUI() {
         // Focus panel elements
@@ -189,7 +193,7 @@ const forceDark = layoutTheme === "dark_media"
         function scrollToVerse(idx: number) {
           const card = document.getElementById(`verse-${idx}`)
           if (!card) return
-          // Center the card in the viewport
+          // Align the card behind the focus panel (centered in viewport)
           const cardRect = card.getBoundingClientRect()
           const viewportCenter = window.innerHeight / 2
           const cardCenter = cardRect.top + cardRect.height / 2
@@ -355,5 +359,6 @@ const forceDark = layoutTheme === "dark_media"
         initAudioUI()
       }
     </script>
+    {themeCSS && <style set:html={themeCSS} />}
   </body>
 </html>

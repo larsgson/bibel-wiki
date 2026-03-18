@@ -1,0 +1,46 @@
+{
+  "ALPWBTN1DA": {
+    "24": {
+      "1": {
+        "2": [
+          10.79,
+          10.79
+        ],
+        "3": [
+          10.79,
+          30.58
+        ],
+        "4": [
+          30.58,
+          30.58
+        ],
+        "5": [
+          30.58,
+          30.58
+        ]
+      }
+    }
+  },
+  "warnings": {
+    "ALPWBTN1DA": {
+      "24": {
+        "1": {
+          "2-3": {
+            "details": "verse 3 missing, timestamps repeated",
+            "missing_verses": [
+              3
+            ],
+            "type": "partial"
+          },
+          "4-5": {
+            "details": "verse 5 missing, timestamps repeated",
+            "missing_verses": [
+              5
+            ],
+            "type": "partial"
+          }
+        }
+      }
+    }
+  }
+}

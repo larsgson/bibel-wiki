@@ -1,0 +1,27 @@
+{
+  "BENDPIO1DA": {
+    "48": {
+      "7": {
+        "12-13": [
+          170.62,
+          170.62
+        ]
+      }
+    }
+  },
+  "warnings": {
+    "BENDPIO1DA": {
+      "48": {
+        "7": {
+          "12-13": {
+            "details": "verse 12 missing, timestamps repeated",
+            "missing_verses": [
+              12
+            ],
+            "type": "partial"
+          }
+        }
+      }
+    }
+  }
+}

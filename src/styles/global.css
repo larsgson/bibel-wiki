@@ -96,7 +96,7 @@
 }
 
 .focus-panel-btn {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(0, 0, 0, 0.4);
   border: none;
   border-radius: 50%;
   width: 64px;
@@ -120,7 +120,7 @@
 }
 
 .focus-panel-btn:hover {
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(0, 0, 0, 0.55);
 }
 
 .focus-panel-stop {
@@ -197,7 +197,7 @@ body.audio-paused .focus-panel-content .listen-verse-images img { animation-play
 .listen-player-overlay {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.7) 100%);
+  background: var(--player-overlay, none);
   display: flex;
   align-items: flex-end;
 }
@@ -517,6 +517,11 @@ body.focus-mode .verse-focus-active {
 
 /* ---- Listen Verse Card ---- */
 
+.listen-verse-card {
+  border-color: var(--color-border);
+  background-color: var(--color-card-bg, transparent);
+}
+
 .listen-verse-images {
   position: relative;
 }
@@ -552,35 +557,35 @@ body.focus-mode .verse-focus-active {
 
 .listen-verse-text-primary {
   padding: 0.75rem;
-  font-size: 0.9rem;
+  font-size: calc(0.9rem * var(--primary-font-scale, 1));
   line-height: 1.6;
   color: var(--color-text);
+  word-spacing: calc(0.35em * (var(--primary-gap-scale, 1) - 1));
 }
 
 .listen-verse-text-primary.has-images {
   margin-top: -2.3rem;
   padding: 1.1rem 0.75rem 0.5rem;
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--img-text, var(--color-text));
   background: linear-gradient(
     to bottom,
-    rgba(26, 26, 46, 0) 0%,
-    rgba(26, 26, 46, 0.9) 60%,
-    rgba(26, 26, 46, 1) 100%
+    transparent 0%,
+    var(--color-bg) 30%
   );
   position: relative;
   z-index: 1;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  text-shadow: var(--img-text-shadow, none);
+}
+
+.listen-verse-text-primary.has-images > :first-child {
+  margin-top: 1rem;
 }
 
 .listen-verse-text-secondary {
   padding: 0 0.75rem 0.75rem;
-  font-size: 0.85rem;
+  font-size: calc(0.85rem * var(--secondary-font-scale, 1));
   line-height: 1.5;
-  color: rgba(128, 128, 128, 0.7);
-}
-
-.dark .listen-verse-text-secondary {
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--color-text-secondary, #555);
 }
 
 .listen-verse-text-secondary.has-images {

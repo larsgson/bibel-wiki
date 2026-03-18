@@ -1,0 +1,80 @@
+{
+  "DAAWYIN2DA": {
+    "24": {
+      "1": {
+        "2": [
+          10.24,
+          10.24
+        ],
+        "3": [
+          10.24,
+          10.24
+        ],
+        "4-5": [
+          45.69,
+          55.82
+        ]
+      }
+    }
+  },
+  "DAAWYIN2SA": {
+    "24": {
+      "1": {
+        "2": [
+          10.24,
+          10.24
+        ],
+        "3": [
+          10.24,
+          10.24
+        ],
+        "4-5": [
+          45.69,
+          55.82
+        ]
+      }
+    }
+  },
+  "warnings": {
+    "DAAWYIN2DA": {
+      "24": {
+        "1": {
+          "2-3": {
+            "details": "verse 3 missing, timestamps repeated",
+            "missing_verses": [
+              3
+            ],
+            "type": "partial"
+          },
+          "4-5": {
+            "details": "verse 4 missing, timestamps repeated",
+            "missing_verses": [
+              4
+            ],
+            "type": "partial"
+          }
+        }
+      }
+    },
+    "DAAWYIN2SA": {
+      "24": {
+        "1": {
+          "2-3": {
+            "details": "verse 3 missing, timestamps repeated",
+            "missing_verses": [
+              3
+            ],
+            "type": "partial"
+          },
+          "4-5": {
+            "details": "verse 4 missing, timestamps repeated",
+            "missing_verses": [
+              4
+            ],
+            "type": "partial"
+          }
+        }
+      }
+    }
+  }
+}

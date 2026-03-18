@@ -363,9 +363,41 @@ const SILENT_WAV = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAI
 export function unlockAudio() {
   if ($audioUnlocked.get()) return
   $audioUnlocked.set(true)
-  const silent = new Audio(SILENT_WAV)
-  silent
-    .play()
-    .then(() => silent.remove())
-    .catch(() => {})
+
+  // Build a proper-length silent WAV (10ms) as a Blob URL.
+  // Data URIs that are too short may not register as valid playback on some iOS versions.
+  const sr = 44100
+  const n = 441
+  const buf = new ArrayBuffer(44 + n * 2)
+  const v = new DataView(buf)
+  const w = (o: number, s: string) => {
+    for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i))
+  }
+  w(0, "RIFF")
+  v.setUint32(4, 36 + n * 2, true)
+  w(8, "WAVE")
+  w(12, "fmt ")
+  v.setUint32(16, 16, true)
+  v.setUint16(20, 1, true)
+  v.setUint16(22, 1, true)
+  v.setUint32(24, sr, true)
+  v.setUint32(28, sr * 2, true)
+  v.setUint16(32, 2, true)
+  v.setUint16(34, 16, true)
+  w(36, "data")
+  v.setUint32(40, n * 2, true)
+  const blob = new Blob([buf], { type: "audio/wav" })
+  const url = URL.createObjectURL(blob)
+
+  // Unlock the actual audio elements synchronously within the user gesture.
+  // iOS requires play() on the same elements that will be used for playback.
+  const { primaryAudio: pa, secondaryAudio: sa } = getAudioElements()
+  pa.src = url
+  pa.play().then(() => pa.pause()).catch(() => {})
+  sa.src = url
+  sa.play().then(() => sa.pause()).catch(() => {})
+
+  // Do NOT clear .src — it would race with playVerse if triggered on the same gesture.
+  // Revoke the blob URL after a short delay.
+  setTimeout(() => URL.revokeObjectURL(url), 500)
 }

@@ -218,8 +218,10 @@ export async function loadLanguageData(langCode: string) {
 
     const categories = ["with-timecode", "audio-with-timecode", "syncable", "text-only", "audio-only"]
     let result: any = null
+    const canonResults: Record<string, any> = {}
 
     for (const canon of ["nt", "ot"]) {
+      let canonResult: any = null
       for (const cat of categories) {
         const langEntries = manifest?.files?.[canon]?.[cat]
         if (!langEntries || !langEntries[langCode]) continue
@@ -231,18 +233,30 @@ export async function loadLanguageData(langCode: string) {
             const resp = await fetch(`/ALL-langs-data/${canon}/${cat}/${langCode}/${distinctId}/data.json`)
             if (!resp.ok) continue
             const data = await resp.json()
-            if (!result) result = { langCode, canon, category: cat, distinctId, data }
+            if (!canonResult) canonResult = { langCode, canon, category: cat, distinctId, data }
             if (cat === "with-timecode") {
-              result = { langCode, canon, category: cat, distinctId, data }
+              canonResult = { langCode, canon, category: cat, distinctId, data }
               break
             }
           } catch {
             continue
           }
         }
-        if (result && result.category === "with-timecode") break
+        if (canonResult && canonResult.category === "with-timecode") break
       }
-      if (result && result.category === "with-timecode") break
+      if (canonResult) {
+        canonResults[canon] = canonResult
+        // Prefer with-timecode as the primary result
+        if (!result || (canonResult.category === "with-timecode" && result.category !== "with-timecode")) {
+          result = canonResult
+        }
+      }
+    }
+
+    // If we have both canons, mark as full-bible coverage
+    if (result && canonResults.nt && canonResults.ot) {
+      result.canon = "full"
+      result.canonData = canonResults
     }
 
     if (result) {

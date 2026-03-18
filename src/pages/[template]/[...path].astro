@@ -46,6 +46,7 @@ export function getStaticPaths() {
             imageIndex: buildImageIndex(name),
             markdownContent: loadMarkdownContent(name, cat.id, story.id) || "",
             allLocales: loadAllLocaleData(name),
+            imageConfig: structure.imageConfig,
           },
         })
       }
@@ -71,6 +72,7 @@ const pageTitle = props.engLocale?.bookTitle || props.templateName
         defaultCategoryId={props.categoryId}
         missingStoryIds={props.missingStoryIds}
         storyTestaments={props.storyTestaments}
+        imageConfig={props.structure.imageConfig}
       />
     </div>
   ) : (
@@ -84,6 +86,7 @@ const pageTitle = props.engLocale?.bookTitle || props.templateName
         imageIndex={props.imageIndex}
         markdownContent={props.markdownContent}
         allLocales={props.allLocales}
+        imageConfig={props.imageConfig}
       />
     </div>
   )}
