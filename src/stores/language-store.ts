@@ -216,6 +216,16 @@ export async function loadLanguageData(langCode: string) {
     const manifest = await loadManifest()
     if (!manifest) return null
 
+    // Load language preferences to prioritize preferred fileset
+    let preferredFileset: string | null = null
+    try {
+      const prefResp = await fetch("/data/language-preferences.json")
+      if (prefResp.ok) {
+        const prefs = await prefResp.json()
+        preferredFileset = prefs[langCode]?.preferredFileset || null
+      }
+    } catch { /* ignore */ }
+
     const categories = ["with-timecode", "audio-with-timecode", "syncable", "text-only", "audio-only"]
     let result: any = null
     const canonResults: Record<string, any> = {}
@@ -228,7 +238,13 @@ export async function loadLanguageData(langCode: string) {
 
         const ids = langEntries[langCode]
         const idList = Array.isArray(ids) ? ids : Object.keys(ids)
-        for (const distinctId of idList) {
+
+        // If preferred fileset exists in this list, try it first
+        const sortedIds = preferredFileset && idList.includes(preferredFileset)
+          ? [preferredFileset, ...idList.filter((id: string) => id !== preferredFileset)]
+          : idList
+
+        for (const distinctId of sortedIds) {
           try {
             const resp = await fetch(`/ALL-langs-data/${canon}/${cat}/${langCode}/${distinctId}/data.json`)
             if (!resp.ok) continue
