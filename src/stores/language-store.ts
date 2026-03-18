@@ -1,4 +1,5 @@
 import { atom, computed } from "nanostores"
+import languagePreferences from "../data/language-preferences.json"
 
 // Always initialize with defaults to match server-rendered HTML.
 // Actual values are hydrated from URL in initLanguageFromUrl().
@@ -216,15 +217,8 @@ export async function loadLanguageData(langCode: string) {
     const manifest = await loadManifest()
     if (!manifest) return null
 
-    // Load language preferences to prioritize preferred fileset
-    let preferredFileset: string | null = null
-    try {
-      const prefResp = await fetch("/data/language-preferences.json")
-      if (prefResp.ok) {
-        const prefs = await prefResp.json()
-        preferredFileset = prefs[langCode]?.preferredFileset || null
-      }
-    } catch { /* ignore */ }
+    // Use language preferences to prioritize preferred fileset
+    const preferredFileset = (languagePreferences as Record<string, any>)[langCode]?.preferredFileset || null
 
     const categories = ["with-timecode", "audio-with-timecode", "syncable", "text-only", "audio-only"]
     let result: any = null
