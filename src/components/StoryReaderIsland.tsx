@@ -296,12 +296,14 @@ export default function StoryReaderIsland({
         return langData
       }
 
-      // Build audio fileset IDs per canon
+      // Build audio fileset IDs per canon, respecting language preferences
       const audioFilesetIds: Record<string, string> = {}
+      const prefs = (languagePreferences as Record<string, { preferredFileset?: string }>)[audioLang]
       for (const testament of neededTestaments) {
         const cData = getCanonLangData(testament)
         if (cData?.data) {
-          const id = parseAudioFilesetId(cData.data?.a, cData.distinctId)
+          const distinctId = prefs?.preferredFileset || cData.distinctId
+          const id = parseAudioFilesetId(cData.data?.a, distinctId)
           if (id) audioFilesetIds[testament] = id
         }
       }
@@ -336,9 +338,25 @@ export default function StoryReaderIsland({
       }
 
       // Fetch timing data
-      const timingData = await fetchTimingData(
+      const timingResult = await fetchTimingData(
         templateName, audioLang, timingIds, timingCategory, [...neededBooks],
       )
+      const timingData = timingResult?.data || null
+
+      // Use fileset IDs from timing data for audio fetch (ensures timing/audio match)
+      if (timingResult?.filesetIds) {
+        for (const [canon, fsId] of Object.entries(timingResult.filesetIds)) {
+          const prev = audioFilesetIds[canon]
+          if (prev && prev !== fsId) {
+            console.warn(
+              `[audio] Fileset mismatch for ${canon}/${audioLang}: ` +
+              `language data suggested "${prev}" but timing data requires "${fsId}". ` +
+              `Using timing fileset to ensure timestamps match audio.`
+            )
+          }
+          audioFilesetIds[canon] = fsId
+        }
+      }
 
       // Fetch audio URLs for all chapters in parallel, using canon-appropriate fileset
       const audioUrlMap = new Map<string, string | null>()
@@ -647,8 +665,10 @@ async function fetchTimingData(
   timingIds: Record<string, string>,
   category: string,
   neededBooks: string[] = [],
-): Promise<Record<string, any> | null> {
+): Promise<{ data: Record<string, any>; filesetIds: Record<string, string> } | null> {
   const merged: Record<string, any> = {}
+  // Track the actual audio fileset IDs found in timing data, keyed by canon
+  const filesetIds: Record<string, string> = {}
   // Fetch per-book timing files and merge
   // Path: {canon}/{lang}/{distinctId}/{BOOK}/timing.json
   // Each file contains: fileset > story > chapter > verse > [start, end]
@@ -664,6 +684,9 @@ async function fetchTimingData(
         const data = await resp.json()
         // Deep-merge: fileset > story > chapter > verse
         for (const [fileset, stories] of Object.entries(data)) {
+          if (fileset === "warnings") continue
+          // Record the fileset ID from the timing data for this canon
+          if (!filesetIds[canon]) filesetIds[canon] = fileset
           if (!merged[fileset]) merged[fileset] = {}
           for (const [story, chapters] of Object.entries(stories as Record<string, any>)) {
             if (!merged[fileset][story]) merged[fileset][story] = {}
@@ -679,7 +702,7 @@ async function fetchTimingData(
     }
   }
 
-  return Object.keys(merged).length > 0 ? merged : null
+  return Object.keys(merged).length > 0 ? { data: merged, filesetIds } : null
 }
 
 /**
