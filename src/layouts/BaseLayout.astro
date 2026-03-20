@@ -1,0 +1,364 @@
+---
+import { ViewTransitions } from "astro:transitions"
+import Header from "../components/Header.astro"
+import "../styles/global.css"
+
+interface Props {
+  title?: string
+  layoutTheme?: string | null
+  themeCSS?: string
+}
+
+const { title = "Bibel Wiki", layoutTheme = null, themeCSS = "" } = Astro.props
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <ViewTransitions />
+  </head>
+  <body class="min-h-screen flex flex-col">
+    <Header />
+    <main class="flex-1">
+      <slot />
+    </main>
+
+    <!-- Focus panel (modal playing overlay) -->
+    <div class="focus-panel-backdrop" id="focus-backdrop" style="display:none" transition:persist></div>
+    <div class="focus-panel" id="focus-panel" style="display:none" transition:persist>
+      <div class="focus-panel-content" id="focus-panel-content"></div>
+      <div class="focus-panel-controls" id="focus-panel-controls">
+        <button class="focus-panel-btn" id="focus-play-btn" aria-label="Play">
+          <svg id="fp-icon-play" width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+          <svg id="fp-icon-pause" width="48" height="48" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+          </svg>
+        </button>
+        <button class="focus-panel-btn focus-panel-stop" id="focus-stop-btn" aria-label="Stop" style="display:none">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 6h12v12H6z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mini player (floating bottom-right) -->
+    <div class="listen-player" id="listen-player" style="display:none" transition:persist>
+      <div class="listen-player-image" id="player-image"></div>
+      <div class="listen-player-overlay">
+        <div class="listen-player-content">
+          <button class="listen-player-btn" id="player-btn" aria-label="Play">
+            <svg id="player-icon-play" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+            <svg id="player-icon-pause" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+              <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <button class="listen-player-close" id="player-close" aria-label="Stop" style="display:none">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+        </svg>
+      </button>
+      <div class="listen-player-pulse" id="player-pulse" style="display:none"></div>
+    </div>
+
+    <script>
+      import {
+        $audioPlayState,
+        $isPlaying,
+        $playerVisible,
+        $focusMode,
+        $pausedState,
+        $currentVerseIdx,
+        $currentVerseEntries,
+        $audioContext,
+        $audioPageStory,
+        $playerCardInfo,
+        playVerse,
+        pausePlayback,
+        resumePlayback,
+        stopAll,
+        unlockAudio,
+      } from "../stores/audio-store"
+
+      // iOS audio unlock on first interaction (touchstart or click)
+      const unlockEvents = ["touchstart", "click"] as const
+      function onFirstInteraction() {
+        unlockAudio()
+        for (const evt of unlockEvents) {
+          document.removeEventListener(evt, onFirstInteraction, true)
+        }
+      }
+      for (const evt of unlockEvents) {
+        document.addEventListener(evt, onFirstInteraction, true)
+      }
+
+      function initAudioUI() {
+        // Focus panel elements
+        const focusBackdrop = document.getElementById("focus-backdrop")!
+        const focusPanel = document.getElementById("focus-panel")!
+        const focusPanelContent = document.getElementById("focus-panel-content")!
+        const focusPanelControls = document.getElementById("focus-panel-controls")!
+        const focusPlayBtn = document.getElementById("focus-play-btn")!
+        const focusStopBtn = document.getElementById("focus-stop-btn")!
+        const fpIconPlay = document.getElementById("fp-icon-play")!
+        const fpIconPause = document.getElementById("fp-icon-pause")!
+
+        // Mini player elements
+        const playerEl = document.getElementById("listen-player")!
+        const playerImage = document.getElementById("player-image")!
+        const playerBtn = document.getElementById("player-btn")!
+        const playerClose = document.getElementById("player-close")!
+        const playerPulse = document.getElementById("player-pulse")!
+        const playerIconPlay = document.getElementById("player-icon-play")!
+        const playerIconPause = document.getElementById("player-icon-pause")!
+
+        // --- Focus panel logic ---
+
+        function populateFocusPanel(idx: number) {
+          const el = document.getElementById(`verse-${idx}`)
+          if (!el) return
+
+          const clone = el.cloneNode(true) as HTMLElement
+          clone.removeAttribute("id")
+          clone.removeAttribute("data-verse-idx")
+          clone.removeAttribute("data-clickable")
+          clone.style.cursor = "default"
+          clone.classList.remove("verse-focus-active")
+
+          // Apply Ken Burns effect to images
+          const entries = $currentVerseEntries.get()
+          const entry = entries[idx]
+          const duration = entry ? Math.max(entry.endTime - entry.startTime, 5) : 10
+
+          clone.querySelectorAll(".listen-verse-images img").forEach((img, i) => {
+            ;(img as HTMLImageElement).removeAttribute("loading")
+            const variant = (i % 4) + 1
+            img.classList.add(`ken-burns-${variant}`)
+            ;(img as HTMLElement).style.animation = `kenBurns${variant} ${duration}s linear forwards`
+          })
+
+          focusPanelContent.innerHTML = ""
+          focusPanelContent.appendChild(clone)
+          focusPanel.scrollTop = 0
+        }
+
+        function showFocusPanel(idx: number) {
+          populateFocusPanel(idx)
+          focusBackdrop.style.display = ""
+          focusPanel.style.display = ""
+        }
+
+        function hideFocusPanel() {
+          focusBackdrop.style.display = "none"
+          focusPanel.style.display = "none"
+          focusPanelContent.innerHTML = ""
+        }
+
+        // --- Verse highlighting ---
+
+        function clearFocusHighlight() {
+          document.querySelectorAll(".verse-focus-active").forEach((el) =>
+            el.classList.remove("verse-focus-active"),
+          )
+        }
+
+        function isOnAudioPage() {
+          const audioStory = $audioPageStory.get()
+          if (!audioStory) return false
+          const parts = window.location.pathname.split("/").filter(Boolean)
+          // Strip lang prefix (e.g. /swe/) or /l/ prefix
+          let pagePath: string
+          if (parts[0] === "l") pagePath = parts.slice(1).join("/")
+          else if (/^[a-z]{3}$/.test(parts[0] || "")) pagePath = parts.slice(1).join("/")
+          else pagePath = parts.join("/")
+          return pagePath === audioStory
+        }
+
+        function applyFocusHighlight(idx: number) {
+          clearFocusHighlight()
+          if (!isOnAudioPage()) return
+          const card = document.getElementById(`verse-${idx}`)
+          if (card) card.classList.add("verse-focus-active")
+        }
+
+        function scrollToVerse(idx: number) {
+          const card = document.getElementById(`verse-${idx}`)
+          if (!card) return
+          // Align the card behind the focus panel (centered in viewport)
+          const cardRect = card.getBoundingClientRect()
+          const viewportCenter = window.innerHeight / 2
+          const cardCenter = cardRect.top + cardRect.height / 2
+          const delta = cardCenter - viewportCenter
+          window.scrollBy({ top: delta, behavior: "smooth" })
+        }
+
+        // --- Store subscriptions ---
+
+        $focusMode.subscribe((active: boolean) => {
+          if (active) {
+            document.body.classList.add("focus-mode")
+            playerEl.style.display = "none"
+            const idx = $currentVerseIdx.get()
+            requestAnimationFrame(() => scrollToVerse(idx))
+            showFocusPanel(idx)
+          } else {
+            document.body.classList.remove("focus-mode")
+            hideFocusPanel()
+            if ($playerVisible.get()) {
+              playerEl.style.display = ""
+            }
+          }
+        })
+
+        $playerVisible.subscribe((visible: boolean) => {
+          if ($focusMode.get()) {
+            playerEl.style.display = "none"
+          } else {
+            playerEl.style.display = visible ? "" : "none"
+          }
+          if (!visible) {
+            playerImage.innerHTML = ""
+          }
+        })
+
+        $isPlaying.subscribe((playing: boolean) => {
+          // Focus panel icons + position
+          fpIconPlay.style.display = playing ? "none" : ""
+          fpIconPause.style.display = playing ? "" : "none"
+          focusStopBtn.style.display = playing ? "none" : ""
+          focusPanelControls.classList.toggle("is-playing", playing)
+
+          // Mini player icons
+          playerIconPlay.style.display = playing ? "none" : ""
+          playerIconPause.style.display = playing ? "" : "none"
+          playerPulse.style.display = playing ? "" : "none"
+          playerClose.style.display = playing ? "none" : ""
+
+          document.body.classList.toggle("audio-paused", !playing)
+        })
+
+        $currentVerseIdx.subscribe((idx: number) => {
+          clearFocusHighlight()
+          if ($audioPlayState.get() === "idle" && !$pausedState.get()) return
+
+          // Map verse entry index to visual section index
+          const entries = $currentVerseEntries.get()
+          const sectionIdx = entries[idx]?.sectionIndex ?? idx
+          applyFocusHighlight(sectionIdx)
+          if ($focusMode.get()) {
+            populateFocusPanel(sectionIdx)
+            scrollToVerse(sectionIdx)
+          } else {
+            // No auto-scroll in mini player mode
+          }
+        })
+
+        $playerCardInfo.subscribe(({ title, imageUrl }) => {
+          if (imageUrl) {
+            playerImage.innerHTML = `<img src="${imageUrl}" alt="${title}">`
+          }
+        })
+
+        // --- Event listeners ---
+
+        function togglePlayPause() {
+          if ($audioPlayState.get() === "idle") {
+            if ($pausedState.get()) {
+              resumePlayback()
+            } else {
+              const idx = $currentVerseIdx.get()
+              playVerse(idx)
+            }
+          } else {
+            pausePlayback()
+          }
+          unlockAudio()
+        }
+
+        focusPlayBtn.addEventListener("click", (e) => {
+          e.stopPropagation()
+          togglePlayPause()
+        })
+
+        focusStopBtn.addEventListener("click", (e) => {
+          e.stopPropagation()
+          stopAll()
+        })
+
+        focusBackdrop.addEventListener("click", () => {
+          $focusMode.set(false)
+        })
+
+        // Click mini player card to enter focus mode (navigate if on different page)
+        playerEl.addEventListener("click", async () => {
+          const audioStory = $audioPageStory.get()
+          if (audioStory) {
+            const parts = window.location.pathname.split("/").filter(Boolean)
+            const langPrefix = (parts.length >= 1 && /^[a-z]{3}$/.test(parts[0]))
+              ? `/${parts[0]}` : ""
+            const audioUrl = `${langPrefix}/${audioStory}`
+            const currentPath = window.location.pathname.replace(/\/$/, "")
+            if (currentPath !== audioUrl) {
+              // Use Astro View Transitions navigate to preserve audio state
+              const { navigate } = await import("astro:transitions/client")
+              await navigate(audioUrl)
+              $focusMode.set(true)
+              return
+            }
+          }
+          $focusMode.set(true)
+        })
+
+        // Refresh focus panel when clicking a verse while already in focus mode
+        window.addEventListener("focus-panel-refresh", ((e: CustomEvent) => {
+          if (!$focusMode.get()) return
+          const idx = e.detail?.idx ?? $currentVerseIdx.get()
+          document.body.classList.add("focus-mode")
+          playerEl.style.display = "none"
+          requestAnimationFrame(() => scrollToVerse(idx))
+          showFocusPanel(idx)
+        }) as EventListener)
+
+        playerBtn.addEventListener("click", (e) => {
+          e.stopPropagation()
+          togglePlayPause()
+        })
+
+        playerClose.addEventListener("click", (e) => {
+          e.stopPropagation()
+          stopAll()
+        })
+
+        // Exit focus mode on scroll
+        window.addEventListener("wheel", () => {
+          if ($focusMode.get()) {
+            $focusMode.set(false)
+          }
+        })
+
+        // Exit focus mode on touch scroll (mobile)
+        window.addEventListener("touchmove", () => {
+          if ($focusMode.get()) {
+            $focusMode.set(false)
+          }
+        })
+      }
+
+      // Initialize once — persisted elements survive View Transitions
+      if (!(window as any).__audioUIInitialized) {
+        ;(window as any).__audioUIInitialized = true
+        initAudioUI()
+      }
+    </script>
+    {themeCSS && <style set:html={themeCSS} />}
+  </body>
+</html>

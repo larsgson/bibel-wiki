@@ -1,0 +1,142 @@
+{
+  "files": [
+    {
+      "path": "01/01.md",
+      "size": 3387
+    },
+    {
+      "path": "01/02.md",
+      "size": 1723
+    },
+    {
+      "path": "01/03.md",
+      "size": 1906
+    },
+    {
+      "path": "01/04.md",
+      "size": 3425
+    },
+    {
+      "path": "01/05.md",
+      "size": 2708
+    },
+    {
+      "path": "01/06.md",
+      "size": 4506
+    },
+    {
+      "path": "01/07.md",
+      "size": 2939
+    },
+    {
+      "path": "01/08.md",
+      "size": 3239
+    },
+    {
+      "path": "01/09.md",
+      "size": 2346
+    },
+    {
+      "path": "01/10.md",
+      "size": 2596
+    },
+    {
+      "path": "01/11.md",
+      "size": 3709
+    },
+    {
+      "path": "01/12.md",
+      "size": 3817
+    },
+    {
+      "path": "02/13.md",
+      "size": 2994
+    },
+    {
+      "path": "02/14.md",
+      "size": 2181
+    },
+    {
+      "path": "02/15.md",
+      "size": 1976
+    },
+    {
+      "path": "02/16.md",
+      "size": 2328
+    },
+    {
+      "path": "02/17.md",
+      "size": 1759
+    },
+    {
+      "path": "03/18.md",
+      "size": 3359
+    },
+    {
+      "path": "03/19.md",
+      "size": 3716
+    },
+    {
+      "path": "03/20.md",
+      "size": 2880
+    },
+    {
+      "path": "03/21.md",
+      "size": 2339
+    },
+    {
+      "path": "index.toml",
+      "size": 143
+    },
+    {
+      "path": "01/index.toml",
+      "size": 194
+    },
+    {
+      "path": "02/index.toml",
+      "size": 140
+    },
+    {
+      "path": "03/index.toml",
+      "size": 131
+    },
+    {
+      "path": "locales/arb.toml",
+      "size": 11627
+    },
+    {
+      "path": "locales/deu.toml",
+      "size": 10945
+    },
+    {
+      "path": "locales/eng.toml",
+      "size": 9437
+    },
+    {
+      "path": "locales/fra.toml",
+      "size": 10275
+    },
+    {
+      "path": "locales/hin.toml",
+      "size": 20277
+    },
+    {
+      "path": "locales/por.toml",
+      "size": 9947
+    },
+    {
+      "path": "locales/ron.toml",
+      "size": 10222
+    },
+    {
+      "path": "locales/rus.toml",
+      "size": 14059
+    },
+    {
+      "path": "locales/spa.toml",
+      "size": 10047
+    }
+  ],
+  "total_files": 34,
+  "total_size": 168406
+}

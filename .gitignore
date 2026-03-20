@@ -1,0 +1,49 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+**/.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Local Netlify folder
+.netlify
+
+# Astro
+.astro/
+
+# Claude Code
+.claude/
+
+# Fetched data (populated by scripts/fetch-data.sh)
+public/ALL-langs-data/
+public/ALL-langs-compact.json
+public/ALL-langs-mini.json
+public/templates/*/ALL-timings/
+
+# Local folders
+example/
+previous/

@@ -1,0 +1,36 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro"
+import NavigationGridIsland from "../../components/NavigationGridIsland"
+import { loadAllTemplates, loadLocaleData, loadAllLocaleData, extractStoryTestaments } from "../../lib/template-utils"
+
+export function getStaticPaths() {
+  const templates = loadAllTemplates()
+  return Object.entries(templates).map(([name, structure]) => ({
+    params: { template: name },
+    props: {
+      templateName: name,
+      structure,
+      engLocale: loadLocaleData(name, "eng"),
+      allLocales: loadAllLocaleData(name),
+      storyTestaments: extractStoryTestaments(name),
+    },
+  }))
+}
+
+const { templateName, structure, engLocale, allLocales, storyTestaments } = Astro.props
+const pageTitle = engLocale?.bookTitle || templateName
+---
+
+<BaseLayout title={`${pageTitle} — Bibel Wiki`}>
+  <div class="max-w-4xl mx-auto p-4">
+    <NavigationGridIsland
+      client:load
+      templateName={templateName}
+      structure={structure}
+      engLocale={engLocale}
+      allLocales={allLocales}
+      storyTestaments={storyTestaments}
+      imageConfig={structure.imageConfig}
+    />
+  </div>
+</BaseLayout>
