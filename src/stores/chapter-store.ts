@@ -1,9 +1,18 @@
 import { atom } from "nanostores"
+import {
+  loadContribText,
+  fetchHelloaoText,
+  fetchDbtText,
+  getHelloaoTid,
+} from "../lib/content-sources"
 
 // Cache key: "langCode-BOOK.chapter" e.g. "spa-JHN.1"
 export const $chapterText = atom<Record<string, any>>({})
 
-const PROXY_URL = "/.netlify/functions/dbt-proxy"
+// Contrib registry: lang → contribId (e.g. "nor" → "NBS")
+const contribRegistry: Record<string, string> = {
+  nor: "NBS",
+}
 
 export async function loadChapter(
   book: string,
@@ -15,28 +24,34 @@ export async function loadChapter(
   const existing = $chapterText.get()
   if (existing[cacheKey]) return existing[cacheKey]
 
-  try {
-    const url = `${PROXY_URL}?type=text&fileset_id=${filesetId}&book_id=${book}&chapter_id=${chapter}`
-    const resp = await fetch(url)
-    if (!resp.ok) return null
+  let verses: any = null
 
-    const json = await resp.json()
-    // DBT API v4 returns { data: [...] } or direct array
-    // Each item: { book_id, chapter, verse_start, verse_text, ... }
-    const rawData = Array.isArray(json) ? json : (json.data || json)
-    const verses = Array.isArray(rawData)
-      ? rawData.map((v: any) => ({
-          num: parseInt(v.verse_start || v.verse_end || "0", 10),
-          text: v.verse_text || "",
-        }))
-      : rawData
-
-    $chapterText.set({ ...existing, [cacheKey]: verses })
-    return verses
-  } catch (e) {
-    console.warn(`Failed to load chapter ${book} ${chapter}:`, e)
-    return null
+  // 1. Try contrib (local files)
+  const contribId = contribRegistry[langCode]
+  if (contribId) {
+    verses = loadContribText(langCode, contribId, book, chapter)
   }
+
+  // 2. Try helloao (free API, no key needed)
+  if (!verses) {
+    // Derive distinct_id from filesetId by stripping audio suffix patterns
+    const distinctId = filesetId.replace(/(N[12]DA|[A-Z]{2}16|O[12]DA|S[12]DA)$/, "")
+    const tid = getHelloaoTid(distinctId)
+    if (tid) {
+      verses = await fetchHelloaoText(tid, book, chapter)
+    }
+  }
+
+  // 3. Fall back to DBT proxy
+  if (!verses) {
+    verses = await fetchDbtText(filesetId, book, chapter)
+  }
+
+  if (verses) {
+    $chapterText.set({ ...existing, [cacheKey]: verses })
+  }
+
+  return verses
 }
 
 export function getChapterData(

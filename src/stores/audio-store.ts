@@ -149,12 +149,15 @@ function onPrimaryTimeUpdate() {
   // Find the audio URL for the currently playing entry
   const playingUrl = entries[idx]?.audioUrl || $cachedAudioUrl.get()
 
-  // Find the CONSECUTIVE run of entries sharing the same audio URL, starting from idx.
-  // Walk forward from idx while the audio URL matches.
+  // Find the CONSECUTIVE run of entries sharing the same audio URL AND contiguous timing.
+  // Break when URL changes or there's a time gap (e.g., verse 5 → verse 14).
   let groupEnd = idx
   for (let i = idx + 1; i < entries.length; i++) {
     const entryUrl = entries[i].audioUrl || $cachedAudioUrl.get()
     if (entryUrl !== playingUrl) break
+    // Check for time gap: previous entry's endTime should match this entry's startTime
+    const prevEntry = entries[i - 1]
+    if (prevEntry.endTime > prevEntry.startTime && entries[i].startTime > prevEntry.endTime + 0.5) break
     groupEnd = i
   }
 

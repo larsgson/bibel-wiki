@@ -2,25 +2,36 @@
 # Fetch external data from bible-story-builder GitHub releases and repo.
 # Run before build: pnpm fetch-data
 #
+# Reads site.config.json for which templates to fetch.
+#
 # Sources:
-#   - Release assets: ALL-langs-data.zip, {Template}-ALL-timings.zip
+#   - Release assets: ALL-langs-data.zip, {Template}-ALL-timings.zip, {Template}-content.zip
 #   - Repo export/: ALL-langs*.json
 #
 # Targets:
 #   - public/ALL-langs-data/
 #   - public/ALL-langs*.json
 #   - public/templates/{Template}/ALL-timings/
+#   - src/data/content/templates/{Template}/
 
 set -euo pipefail
 
 REPO="larsgson/bible-story-builder"
 PUBLIC_DIR="public"
-TEMPLATES_DIR="src/data/content/templates"
+CONFIG="site.config.json"
 TMP_DIR=$(mktemp -d)
 
 trap "rm -rf $TMP_DIR" EXIT
 
+# Read templates from site.config.json
+if [ ! -f "$CONFIG" ]; then
+    echo "ERROR: $CONFIG not found" >&2
+    exit 1
+fi
+TEMPLATES=$(node -e "require('./$CONFIG').templates.forEach(t=>console.log(t))")
+
 echo "── Fetching data from $REPO ──"
+echo "Templates: $(echo $TEMPLATES | tr '\n' ' ')"
 
 # Get the latest release download URL prefix
 RELEASE_URL="https://github.com/$REPO/releases/latest/download"
@@ -40,12 +51,10 @@ mkdir -p "$PUBLIC_DIR/ALL-langs-data"
 unzip -q "$TMP_DIR/ALL-langs-data.zip" -d "$PUBLIC_DIR/ALL-langs-data"
 echo "  ✓ ALL-langs-data/"
 
-# ── 3. Template timing data from latest release ──
-# Discover templates from src/data/content/templates/ and fetch matching timing zips
-for tpl_dir in "$TEMPLATES_DIR"/*/; do
-    tpl=$(basename "$tpl_dir")
+# ── 3. Per-template data from latest release ──
+for tpl in $TEMPLATES; do
+    # Timing data
     zip_name="${tpl}-ALL-timings.zip"
-
     echo "Fetching $zip_name..."
     if curl -sfL "$RELEASE_URL/$zip_name" -o "$TMP_DIR/$zip_name" 2>/dev/null; then
         rm -rf "$PUBLIC_DIR/templates/$tpl/ALL-timings"
@@ -53,7 +62,19 @@ for tpl_dir in "$TEMPLATES_DIR"/*/; do
         unzip -q "$TMP_DIR/$zip_name" -d "$PUBLIC_DIR/templates/$tpl/ALL-timings"
         echo "  ✓ $tpl timing data"
     else
-        echo "  ⊘ No timing data for $tpl (no $zip_name in release)"
+        echo "  ⊘ No timing data for $tpl"
+    fi
+
+    # Template content (markdown, locales, index.toml)
+    content_zip="${tpl}-content.zip"
+    echo "Fetching $content_zip..."
+    if curl -sfL "$RELEASE_URL/$content_zip" -o "$TMP_DIR/$content_zip" 2>/dev/null; then
+        rm -rf "src/data/content/templates/$tpl"
+        mkdir -p "src/data/content/templates/$tpl"
+        unzip -q "$TMP_DIR/$content_zip" -d "src/data/content/templates/"
+        echo "  ✓ $tpl content"
+    else
+        echo "  ⊘ No content zip for $tpl"
     fi
 done
 

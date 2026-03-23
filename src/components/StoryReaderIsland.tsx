@@ -299,25 +299,27 @@ export default function StoryReaderIsland({
       // Build audio fileset IDs per canon, respecting language preferences
       const audioFilesetIds: Record<string, string> = {}
       const prefs = (languagePreferences as Record<string, { preferredFileset?: string }>)[audioLang]
-      console.log(`[audio] Language: ${audioLang}, preference: ${prefs?.preferredFileset || "(none)"}`)
+
       for (const testament of neededTestaments) {
         const cData = getCanonLangData(testament)
         if (cData?.data) {
           const distinctId = prefs?.preferredFileset || cData.distinctId
           const id = parseAudioFilesetId(cData.data?.a, distinctId)
-          console.log(`[audio] ${testament}: distinctId=${distinctId} (default=${cData.distinctId}), suffix=${cData.data?.a}, filesetId=${id}`)
+
           if (id) audioFilesetIds[testament] = id
         }
       }
 
       // Check template manifest for timing info per canon
       const timingIds: Record<string, string> = {}
+      const timingBooks: Record<string, string[]> = {} // books with timing data per canon
       let timingCategory = langData?.category || ""
       let hasTemplateInfo = false
       for (const canon of ["nt", "ot"]) {
         const info = await findTemplateTimingInfo(templateName, audioLang, canon)
         if (info) {
           timingIds[canon] = info.distinctId
+          timingBooks[canon] = info.books
           timingCategory = info.category
           hasTemplateInfo = true
         }
@@ -329,14 +331,7 @@ export default function StoryReaderIsland({
 
       // Need at least one audio fileset
       if (Object.keys(audioFilesetIds).length === 0) {
-        if (hasTemplateInfo) {
-          // Use template's distinctId as fallback
-          for (const testament of neededTestaments) {
-            audioFilesetIds[testament] = timingIds[testament] + "DA"
-          }
-        } else {
-          return
-        }
+        if (!hasTemplateInfo) return
       }
 
       // Fetch timing data
@@ -361,14 +356,20 @@ export default function StoryReaderIsland({
       }
 
       // Fetch audio URLs for all chapters in parallel, using canon-appropriate fileset
+      // Only attempt books that have timing data (per manifest)
       const audioUrlMap = new Map<string, string | null>()
       await Promise.all(
         [...chapterRefs.entries()].map(async ([key, { book, chapter }]) => {
           const testament = getTestament(book)
+          // Skip books not in the timing manifest for this language
+          const availableBooks = timingBooks[testament]
+          if (availableBooks && availableBooks.length > 0 && !availableBooks.includes(book)) {
+            audioUrlMap.set(key, null)
+            return
+          }
           const filesetId = audioFilesetIds[testament] || Object.values(audioFilesetIds)[0]
           if (!filesetId) { audioUrlMap.set(key, null); return }
-          const url = await fetchAudioUrl(filesetId, book, chapter)
-          console.log(`[audio] Fetching: fileset=${filesetId}, book=${book}, chapter=${chapter} → ${url ? "OK" : "no URL"}`)
+          const url = await fetchAudioUrl(filesetId, book, chapter, audioLang || undefined)
           audioUrlMap.set(key, url)
         }),
       )
@@ -404,8 +405,11 @@ export default function StoryReaderIsland({
           const p = parseReference(ref)
           if (!p) continue
           const chapterKey = `${p.book}.${p.chapter}`
+          const isNewChapter = chapterKey !== currentChapterKey && currentChapterKey !== ""
+          // Detect non-contiguous verses in same chapter (e.g., v5 then v14)
+          const isGap = !isNewChapter && currentChapterKey !== "" && ve > 0 && (p.verseStart || 1) > ve + 1
 
-          if (chapterKey !== currentChapterKey && currentChapterKey !== "") {
+          if (isNewChapter || isGap) {
             // Flush previous group as an entry
             verseEntries.push({
               verseStart: vs, verseEnd: ve,
@@ -757,11 +761,34 @@ function findTimingForReference(
   return null
 }
 
+// Contrib registry: lang → { id, canon } (mirrors chapter-store.ts)
+const contribRegistry: Record<string, { id: string; canon: "nt" | "ot" | "full" }> = {
+  nor: { id: "NBS", canon: "nt" },
+}
+
 async function fetchAudioUrl(
   audioFilesetId: string,
   bookCode: string,
   chapter: number,
+  langCode?: string,
 ): Promise<string | null> {
+  // 1. Try contrib audio (local files)
+  if (langCode) {
+    const contrib = contribRegistry[langCode]
+    if (contrib) {
+      const contribUrl = `/audio/${langCode}/${contrib.id}/${bookCode}_${chapter}.mp3`
+      try {
+        const resp = await fetch(contribUrl, { method: "HEAD" })
+        if (resp.ok) {
+          return contribUrl
+        }
+      } catch { /* fall through */ }
+      // Contrib-only language — don't fall back to DBT with invalid fileset
+      if (audioFilesetId.startsWith(contrib.id)) return null
+    }
+  }
+
+  // 2. Try DBT proxy
   const params = new URLSearchParams({
     type: "audio",
     fileset_id: audioFilesetId,
@@ -772,7 +799,8 @@ async function fetchAudioUrl(
     const resp = await fetch(`/.netlify/functions/dbt-proxy?${params}`)
     if (!resp.ok) return null
     const json = await resp.json()
-    return json.data?.[0]?.path || null
+    const url = json.data?.[0]?.path || null
+    return url
   } catch {
     return null
   }

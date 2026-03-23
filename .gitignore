@@ -43,6 +43,8 @@ public/ALL-langs-data/
 public/ALL-langs-compact.json
 public/ALL-langs-mini.json
 public/templates/*/ALL-timings/
+src/data/content/templates/
+public/direct-audio/
 
 # Local folders
 example/
