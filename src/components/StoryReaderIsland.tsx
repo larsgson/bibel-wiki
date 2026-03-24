@@ -11,8 +11,6 @@ import {
 } from "../stores/language-store"
 import { $chapterText, loadChapter } from "../stores/chapter-store"
 import {
-  $audioPlayState,
-  $currentVerseIdx,
   $currentVerseEntries,
   $focusMode,
   $audioPageStory,
@@ -54,15 +52,10 @@ export default function StoryReaderIsland({
   const selectedLangs = useStore($selectedLanguages)
   const engIsExplicit = useStore($engIsExplicit)
   const chapterText = useStore($chapterText)
-  const audioPlayState = useStore($audioPlayState)
-  const currentVerseIdx = useStore($currentVerseIdx)
-  const verseEntries = useStore($currentVerseEntries)
   const audioPageStory = useStore($audioPageStory)
 
   const thisPageStory = `${templateName}/${categoryId}/${storyId}`
   const isOnAudioPage = audioPageStory === thisPageStory
-  // Map current verse entry index back to visual section index
-  const playingSectionIdx = isOnAudioPage ? verseEntries[currentVerseIdx]?.sectionIndex ?? -1 : -1
 
   const [hydrated, setHydrated] = useState(false)
   const [markdown] = useState<string>(markdownContent)
@@ -590,7 +583,6 @@ export default function StoryReaderIsland({
             sectionIndex={index}
             selectedLanguages={langsToRender}
             sectionsMap={sectionsMap}
-            isPlaying={isOnAudioPage && audioPlayState !== "idle" && playingSectionIdx === index}
             onSectionClick={handleSectionClick}
             imageConfig={imageConfig}
           />

@@ -6,7 +6,6 @@ interface Props {
   sectionIndex: number
   selectedLanguages: string[]
   sectionsMap: Record<string, Section[]>
-  isPlaying: boolean
   onSectionClick: (index: number) => void
   imageConfig?: ImageConfig | null
 }
@@ -18,7 +17,6 @@ export default function StorySection({
   sectionIndex,
   selectedLanguages,
   sectionsMap,
-  isPlaying,
   onSectionClick,
   imageConfig = null,
 }: Props) {
@@ -32,12 +30,8 @@ export default function StorySection({
       id={`verse-${sectionIndex}`}
       data-verse-idx={sectionIndex}
       {...(hasReference ? { "data-clickable": "1" } : {})}
-      className={`listen-verse-card rounded-lg overflow-hidden border transition-all ${
-        hasReference ? "cursor-pointer" : ""
-      } ${
-        isPlaying
-          ? "border-red-500 ring-2 ring-red-500/30 shadow-lg"
-          : hasReference ? "hover:shadow-md" : ""
+      className={`listen-verse-card rounded-lg overflow-hidden border ${
+        hasReference ? "cursor-pointer hover:shadow-md" : ""
       }`}
       {...(hasReference ? {
         onClick: () => onSectionClick(sectionIndex),

@@ -132,31 +132,36 @@
 
 /* Variant 1: slow zoom in */
 @keyframes kenBurns1 {
-  0% { transform: scale(1) translate(0, 0); }
-  100% { transform: scale(1.15) translate(-1%, -1%); }
+  0% { -webkit-transform: scale(1) translate(0, 0); transform: scale(1) translate(0, 0); }
+  100% { -webkit-transform: scale(1.15) translate(-1%, -1%); transform: scale(1.15) translate(-1%, -1%); }
 }
 /* Variant 2: pan left to right with vertical drift */
 @keyframes kenBurns2 {
-  0% { transform: scale(1.15) translate(-3%, -2%); }
-  100% { transform: scale(1.15) translate(3%, 2%); }
+  0% { -webkit-transform: scale(1.15) translate(-3%, -2%); transform: scale(1.15) translate(-3%, -2%); }
+  100% { -webkit-transform: scale(1.15) translate(3%, 2%); transform: scale(1.15) translate(3%, 2%); }
 }
 /* Variant 3: pan right to left with vertical drift */
 @keyframes kenBurns3 {
-  0% { transform: scale(1.15) translate(3%, -2%); }
-  100% { transform: scale(1.15) translate(-3%, 2%); }
+  0% { -webkit-transform: scale(1.15) translate(3%, -2%); transform: scale(1.15) translate(3%, -2%); }
+  100% { -webkit-transform: scale(1.15) translate(-3%, 2%); transform: scale(1.15) translate(-3%, 2%); }
 }
 /* Variant 4: pan down */
 @keyframes kenBurns4 {
-  0% { transform: scale(1.15) translate(0, -3%); }
-  100% { transform: scale(1.15) translate(0, 3%); }
+  0% { -webkit-transform: scale(1.15) translate(0, -3%); transform: scale(1.15) translate(0, -3%); }
+  100% { -webkit-transform: scale(1.15) translate(0, 3%); transform: scale(1.15) translate(0, 3%); }
 }
 
-.focus-panel-content .listen-verse-images { overflow: hidden; }
-.focus-panel-content .listen-verse-images img.ken-burns-1 { animation: kenBurns1 linear forwards; }
-.focus-panel-content .listen-verse-images img.ken-burns-2 { animation: kenBurns2 linear forwards; }
-.focus-panel-content .listen-verse-images img.ken-burns-3 { animation: kenBurns3 linear forwards; }
-.focus-panel-content .listen-verse-images img.ken-burns-4 { animation: kenBurns4 linear forwards; }
-body.audio-paused .focus-panel-content .listen-verse-images img { animation-play-state: paused; }
+.focus-panel-content .listen-verse-images { overflow: hidden; -webkit-overflow-scrolling: touch; }
+.focus-panel-content .listen-verse-images img {
+  will-change: transform;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.focus-panel-content .listen-verse-images img.ken-burns-1 { -webkit-animation: kenBurns1 linear forwards; animation: kenBurns1 linear forwards; }
+.focus-panel-content .listen-verse-images img.ken-burns-2 { -webkit-animation: kenBurns2 linear forwards; animation: kenBurns2 linear forwards; }
+.focus-panel-content .listen-verse-images img.ken-burns-3 { -webkit-animation: kenBurns3 linear forwards; animation: kenBurns3 linear forwards; }
+.focus-panel-content .listen-verse-images img.ken-burns-4 { -webkit-animation: kenBurns4 linear forwards; animation: kenBurns4 linear forwards; }
+body.audio-paused .focus-panel-content .listen-verse-images img { -webkit-animation-play-state: paused; animation-play-state: paused; }
 
 /* ---- Mini Player (floating bottom-right) ---- */
 
@@ -171,7 +176,7 @@ body.audio-paused .focus-panel-content .listen-verse-images img { animation-play
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   z-index: 1000;
   transition: transform 0.2s;
-  background: #1a1a2e;
+  background: var(--bg);
   cursor: pointer;
 }
 
@@ -501,8 +506,8 @@ body.audio-paused .focus-panel-content .listen-verse-images img { animation-play
 /* Mini player mode: red frame on active verse */
 .verse-focus-active {
   outline: 3px solid #e74c3c;
+  outline-offset: 2px;
   background: rgba(231, 76, 60, 0.08);
-  transition: opacity 0.3s, outline-color 0.2s, background 0.2s;
 }
 
 /* Focus mode: dim the active verse behind the focus panel */

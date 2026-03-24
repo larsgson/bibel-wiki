@@ -128,13 +128,7 @@ const { title = "Bibel Wiki", layoutTheme = null, themeCSS = "" } = Astro.props
 
           focusPanelContent.innerHTML = ""
 
-          // Image placeholder — will be filled by $playerCardInfo subscriber
-          const imgContainer = document.createElement("div")
-          imgContainer.className = "listen-verse-images"
-          imgContainer.id = "focus-panel-image"
-          focusPanelContent.appendChild(imgContainer)
-
-          // Text content from section DOM (if still available)
+          // Clone section content including images
           if (el) {
             const clone = el.cloneNode(true) as HTMLElement
             clone.removeAttribute("id")
@@ -142,38 +136,34 @@ const { title = "Bibel Wiki", layoutTheme = null, themeCSS = "" } = Astro.props
             clone.removeAttribute("data-clickable")
             clone.style.cursor = "default"
             clone.classList.remove("verse-focus-active")
-            clone.querySelectorAll(".listen-verse-images").forEach((e) => e.remove())
             focusPanelContent.appendChild(clone)
+
+            // Apply Ken Burns to all images in the clone
+            applyKenBurnsToImages()
           }
 
-          // Apply current image immediately
-          updateFocusPanelImage()
           focusPanel.scrollTop = 0
         }
 
         let lastKenBurnsVariant = 0
 
-        function updateFocusPanelImage() {
-          const container = document.getElementById("focus-panel-image")
-          if (!container) return
-          const { imageUrl } = $playerCardInfo.get()
-          if (!imageUrl) { container.innerHTML = ""; return }
+        function applyKenBurnsToImages() {
+          const images = focusPanelContent.querySelectorAll(".listen-verse-images img")
+          if (!images.length) return
 
           const entries = $currentVerseEntries.get()
           const idx = $currentVerseIdx.get()
           const entry = entries[idx]
           const duration = entry ? Math.max(entry.endTime - entry.startTime, 5) : 10
-          let variant = Math.floor(Math.random() * 4) + 1
-          if (variant === lastKenBurnsVariant) variant = (variant % 4) + 1
-          lastKenBurnsVariant = variant
+          const perImage = duration / images.length
 
-          container.innerHTML = ""
-          const img = document.createElement("img")
-          img.src = imageUrl
-          img.alt = ""
-          img.classList.add(`ken-burns-${variant}`)
-          img.style.animation = `kenBurns${variant} ${duration}s linear forwards`
-          container.appendChild(img)
+          images.forEach((img) => {
+            let variant = Math.floor(Math.random() * 4) + 1
+            if (variant === lastKenBurnsVariant) variant = (variant % 4) + 1
+            lastKenBurnsVariant = variant
+            img.classList.add(`ken-burns-${variant}`)
+            ;(img as HTMLElement).style.animation = `kenBurns${variant} ${perImage}s linear forwards`
+          })
         }
 
         function showFocusPanel(idx: number) {
@@ -188,19 +178,12 @@ const { title = "Bibel Wiki", layoutTheme = null, themeCSS = "" } = Astro.props
           focusPanelContent.innerHTML = ""
         }
 
-        // --- Verse highlighting ---
-
-        function clearFocusHighlight() {
-          document.querySelectorAll(".verse-focus-active").forEach((el) =>
-            el.classList.remove("verse-focus-active"),
-          )
-        }
+        // --- Verse highlighting (single system) ---
 
         function isOnAudioPage() {
           const audioStory = $audioPageStory.get()
           if (!audioStory) return false
           const parts = window.location.pathname.split("/").filter(Boolean)
-          // Strip lang prefix (e.g. /swe/) or /l/ prefix
           let pagePath: string
           if (parts[0] === "l") pagePath = parts.slice(1).join("/")
           else if (/^[a-z]{3}$/.test(parts[0] || "")) pagePath = parts.slice(1).join("/")
@@ -208,10 +191,19 @@ const { title = "Bibel Wiki", layoutTheme = null, themeCSS = "" } = Astro.props
           return pagePath === audioStory
         }
 
-        function applyFocusHighlight(idx: number) {
-          clearFocusHighlight()
-          if (!isOnAudioPage()) return
-          const card = document.getElementById(`verse-${idx}`)
+        function syncHighlight() {
+          // Clear all existing highlights
+          document.querySelectorAll(".verse-focus-active").forEach((el) =>
+            el.classList.remove("verse-focus-active"),
+          )
+          // Only highlight if audio is active (playing or paused) and we're on the right page
+          const isActive = $audioPlayState.get() !== "idle" || !!$pausedState.get()
+          if (!isActive || !isOnAudioPage()) return
+
+          const entries = $currentVerseEntries.get()
+          const idx = $currentVerseIdx.get()
+          const sectionIdx = entries[idx]?.sectionIndex ?? idx
+          const card = document.getElementById(`verse-${sectionIdx}`)
           if (card) card.classList.add("verse-focus-active")
         }
 
@@ -242,6 +234,7 @@ const { title = "Bibel Wiki", layoutTheme = null, themeCSS = "" } = Astro.props
               playerEl.style.display = ""
             }
           }
+          syncHighlight()
         })
 
         $playerVisible.subscribe((visible: boolean) => {
@@ -269,31 +262,25 @@ const { title = "Bibel Wiki", layoutTheme = null, themeCSS = "" } = Astro.props
           playerClose.style.display = playing ? "none" : ""
 
           document.body.classList.toggle("audio-paused", !playing)
+          syncHighlight()
         })
 
         $currentVerseIdx.subscribe((idx: number) => {
-          clearFocusHighlight()
+          syncHighlight()
+
           if ($audioPlayState.get() === "idle" && !$pausedState.get()) return
 
-          // Map verse entry index to visual section index
           const entries = $currentVerseEntries.get()
           const sectionIdx = entries[idx]?.sectionIndex ?? idx
-          applyFocusHighlight(sectionIdx)
           if ($focusMode.get()) {
             populateFocusPanel(sectionIdx)
             scrollToVerse(sectionIdx)
-          } else {
-            // No auto-scroll in mini player mode
           }
         })
 
         $playerCardInfo.subscribe(({ title, imageUrl }) => {
-          // Single image source: update both mini player and focus panel
           if (imageUrl) {
             playerImage.innerHTML = `<img src="${imageUrl}" alt="${title}">`
-          }
-          if ($focusMode.get()) {
-            updateFocusPanelImage()
           }
         })
 
