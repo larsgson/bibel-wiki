@@ -170,14 +170,32 @@ export async function loadLanguageNames() {
     const resp = await fetch("/ALL-langs-compact.json")
     const data = await resp.json()
     const names: Record<string, { n: string; v: string }> = {}
+    const audioOnlyLangs = new Set<string>()
     if (data.canons) {
-      for (const canon of Object.values(data.canons) as any[]) {
-        for (const category of Object.values(canon) as any[]) {
-          for (const [code, info] of Object.entries(category) as any[]) {
-            if (!names[code] && info.n) {
-              names[code] = { n: info.n, v: info.v || info.n }
+      // First pass: collect all languages and track which are audio-only
+      const allLangs = new Map<string, { n: string; v: string }>()
+      for (const [, categories] of Object.entries(data.canons) as any[]) {
+        for (const [catName, langs] of Object.entries(categories) as any[]) {
+          for (const [code, info] of Object.entries(langs) as any[]) {
+            if (info.n && !allLangs.has(code)) {
+              allLangs.set(code, { n: info.n, v: info.v || info.n })
+            }
+            if (catName === "audio-only") {
+              audioOnlyLangs.add(code)
             }
           }
+        }
+      }
+      // Only include languages that appear in a non-audio-only category
+      for (const [code, info] of allLangs) {
+        const hasText = !audioOnlyLangs.has(code) ||
+          Object.values(data.canons).some((categories: any) =>
+            Object.entries(categories).some(([cat, langs]: any) =>
+              cat !== "audio-only" && langs[code]
+            )
+          )
+        if (hasText) {
+          names[code] = info
         }
       }
     }

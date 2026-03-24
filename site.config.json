@@ -1,5 +1,5 @@
 {
-  "templates": ["John", "TGS"],
+  "templates": ["John", "TGS", "OBS"],
   "region": {
     "languages": ["*"],
     "defaultLanguage": "eng"

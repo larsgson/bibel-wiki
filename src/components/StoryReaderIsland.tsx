@@ -489,8 +489,8 @@ export default function StoryReaderIsland({
     sectionsMap[lang] = parsed.sections
   }
 
-  const primaryParsed = parseMarkdownIntoSections(markdown, {}, localeData)
-  const storyTitle = primaryParsed.title || `Story ${storyId}`
+  const primaryParsed = parseMarkdownIntoSections(markdown, {}, localeData || engLocale)
+  const storyTitle = primaryParsed.title || primaryParsed.description || ""
 
   const handleSectionClick = (sectionIndex: number) => {
     if (!audioLang) return // Audio disabled

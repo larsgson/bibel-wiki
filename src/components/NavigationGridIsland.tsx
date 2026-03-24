@@ -63,7 +63,7 @@ export default function NavigationGridIsland({
       .catch(() => {})
   }, [hydrated])
 
-  // Auto-open the category: prefer defaultCategoryId prop, then last visited, then first
+  // Auto-open the category: prefer defaultCategoryId prop, then last visited from localStorage, then first
   useEffect(() => {
     if (!hydrated) return
 
@@ -72,21 +72,13 @@ export default function NavigationGridIsland({
       return
     }
 
-    const bookKey = templateName.toLowerCase()
+    const storageKey = `lastCategory_${templateName.toLowerCase()}`
     let catToOpen = structure.categories[0]?.id || null
 
     try {
-      const lastChapter = parseInt(
-        localStorage.getItem(`lastVisitedChapter_${bookKey}`) || "",
-        10,
-      )
-      if (lastChapter) {
-        for (const cat of structure.categories) {
-          if (cat.stories.some((s) => s.chapter === lastChapter)) {
-            catToOpen = cat.id
-            break
-          }
-        }
+      const saved = localStorage.getItem(storageKey)
+      if (saved && structure.categories.some((c) => c.id === saved)) {
+        catToOpen = saved
       }
     } catch {
       /* localStorage unavailable */
@@ -113,8 +105,16 @@ export default function NavigationGridIsland({
   const bookTitle = localeData?.bookTitle || engLocale?.bookTitle || templateName
 
   const toggleAccordion = useCallback((catId: string) => {
-    setOpenCatId((prev) => (prev === catId ? null : catId))
-  }, [])
+    setOpenCatId((prev) => {
+      const newId = prev === catId ? null : catId
+      if (newId) {
+        try {
+          localStorage.setItem(`lastCategory_${templateName.toLowerCase()}`, newId)
+        } catch { /* localStorage unavailable */ }
+      }
+      return newId
+    })
+  }, [templateName])
 
   const getStoryHref = (catId: string, storyId: string) => {
     if (!hydrated) return `/${templateName}/${catId}/${storyId}`
@@ -153,61 +153,6 @@ export default function NavigationGridIsland({
     )
   }
 
-  const skipCategories = structure.categories.length === 1
-
-  if (skipCategories) {
-    // Single category — show chapter grid directly
-    const cat = structure.categories[0]
-    return (
-      <div className="chapter-picker">
-        <div className="flex items-center gap-3 mb-4">
-          <a href={hydrated ? buildLangHref(selectedLang, "", secondaryLangs) : "/"} className="text-lg font-bold" style={{ color: "var(--text)" }}>&larr;</a>
-          <h1 className="chapter-picker-title" style={{ marginBottom: 0 }}>{bookTitle}</h1>
-        </div>
-        <div className="chapter-grid">
-          {cat.stories.map((story) => {
-            const missing = isMissing(cat.id, story.id)
-            return (
-              <a
-                key={story.id}
-                href={missing ? undefined : getStoryHref(cat.id, story.id)}
-                className={`chapter-card${missing ? " chapter-card-missing" : ""}`}
-                title={missing ? "Content not yet available" : undefined}
-                onClick={missing ? (e: React.MouseEvent) => e.preventDefault() : undefined}
-              >
-                {story.image ? (
-                  <img
-                    className="chapter-card-img"
-                    src={resolveThumbUrl(story.image, imageConfig)}
-                    alt=""
-                    loading="lazy"
-                    onError={(e) => {
-                      ;(e.target as HTMLImageElement).src = FALLBACK_IMAGE
-                    }}
-                  />
-                ) : (
-                  <div
-                    className="chapter-card-img"
-                    style={{ background: "var(--bg-surface)" }}
-                  />
-                )}
-                {missing && <div className="chapter-card-badge" title="Content not yet available">∅</div>}
-                {!missing && <CoverageBadge catId={cat.id} storyId={story.id} />}
-                <div className="chapter-card-info">
-                  <span className="chapter-card-num">Chapter {story.chapter}</span>
-                  <span className="chapter-card-title">
-                    {getStoryTitle(cat.id, story.id)}
-                  </span>
-                </div>
-              </a>
-            )
-          })}
-        </div>
-      </div>
-    )
-  }
-
-  // Multiple categories — show accordion
   return (
     <div className="chapter-picker">
       <div className="flex items-center gap-3 mb-4">
@@ -284,9 +229,6 @@ export default function NavigationGridIsland({
                           {!missing && <CoverageBadge catId={cat.id} storyId={story.id} />}
                           <div className="chapter-card-info">
                             <span className="chapter-card-num">
-                              Story {story.chapter}
-                            </span>
-                            <span className="chapter-card-title">
                               {getStoryTitle(cat.id, story.id)}
                             </span>
                           </div>
