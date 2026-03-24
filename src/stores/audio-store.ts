@@ -10,6 +10,12 @@ export interface VerseEntry {
   audioUrl?: string | null
   /** Visual section index — multiple entries can share the same sectionIndex */
   sectionIndex?: number
+  /** Book code for this entry (e.g. "GEN") — needed for multi-book stories */
+  bookCode?: string
+  /** Chapter number for this entry — needed for multi-book stories */
+  chapter?: number
+  /** Resolved image URL from the section's markdown */
+  imageUrl?: string | null
 }
 
 export type AudioPlayState = "idle" | "playing_primary" | "playing_secondary"
@@ -76,18 +82,6 @@ export function getAudioElements() {
   return { primaryAudio: primaryAudio!, secondaryAudio: secondaryAudio! }
 }
 
-// ---- Callbacks for page-level integration ----
-
-interface AudioCallbacks {
-  findBestImage: (chapter: number, verse: number) => string | null
-  imgProxy: (url: string, w: number) => string
-}
-
-let callbacks: AudioCallbacks | null = null
-
-export function registerAudioCallbacks(cb: AudioCallbacks) {
-  callbacks = cb
-}
 
 // ---- Internal helpers ----
 
@@ -118,20 +112,16 @@ function updatePlayerCardInfo(idx: number) {
   if (!ctx || !entries[idx]) return
 
   const entry = entries[idx]
+  const chapter = entry.chapter ?? ctx.chapter
   const verseDisplay =
     entry.verseStart === entry.verseEnd
       ? String(entry.verseStart)
       : `${entry.verseStart}-${entry.verseEnd}`
 
-  const title = `${ctx.bookName} ${ctx.chapter}:${verseDisplay}`
+  const title = `${ctx.bookName} ${chapter}:${verseDisplay}`
 
-  let imageUrl: string | null = null
-  if (callbacks?.findBestImage) {
-    const raw = callbacks.findBestImage(ctx.chapter, entry.verseStart)
-    if (raw && callbacks.imgProxy) {
-      imageUrl = callbacks.imgProxy(raw, 560)
-    }
-  }
+  // Image from the verse entry (rule 5), keep previous if none (rule 6)
+  const imageUrl = entry.imageUrl ?? $playerCardInfo.get().imageUrl
 
   $playerCardInfo.set({ title, imageUrl })
 }

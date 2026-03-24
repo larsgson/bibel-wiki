@@ -5,7 +5,6 @@ import NavigationGridIsland from "../../../components/NavigationGridIsland"
 import {
   loadAllTemplates,
   loadLocaleData,
-  buildImageIndex,
   loadMarkdownContent,
   loadAllLocaleData,
   findMissingStoryIds,
@@ -45,7 +44,6 @@ export function getStaticPaths() {
             categoryId: cat.id,
             storyId: story.id,
             engLocale: loadLocaleData(name, "eng"),
-            imageIndex: buildImageIndex(name),
             markdownContent: loadMarkdownContent(name, cat.id, story.id) || "",
             allLocales: loadAllLocaleData(name),
             layoutTheme: structure.layoutTheme,
@@ -86,7 +84,6 @@ const pageTitle = props.engLocale?.bookTitle || props.templateName
         categoryId={props.categoryId}
         storyId={props.storyId}
         engLocale={props.engLocale}
-        imageIndex={props.imageIndex}
         markdownContent={props.markdownContent}
         allLocales={props.allLocales}
         imageConfig={props.imageConfig}

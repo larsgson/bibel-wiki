@@ -26,25 +26,30 @@ export default function StorySection({
   const primarySection = sectionsMap[primaryLang]?.[sectionIndex]
   if (!primarySection) return null
 
+  const hasReference = !!primarySection.reference
   return (
     <div
       id={`verse-${sectionIndex}`}
       data-verse-idx={sectionIndex}
-      data-clickable="1"
-      className={`listen-verse-card rounded-lg overflow-hidden border transition-all cursor-pointer ${
+      {...(hasReference ? { "data-clickable": "1" } : {})}
+      className={`listen-verse-card rounded-lg overflow-hidden border transition-all ${
+        hasReference ? "cursor-pointer" : ""
+      } ${
         isPlaying
           ? "border-red-500 ring-2 ring-red-500/30 shadow-lg"
-          : "hover:shadow-md"
+          : hasReference ? "hover:shadow-md" : ""
       }`}
-      onClick={() => onSectionClick(sectionIndex)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault()
-          onSectionClick(sectionIndex)
-        }
-      }}
+      {...(hasReference ? {
+        onClick: () => onSectionClick(sectionIndex),
+        role: "button",
+        tabIndex: 0,
+        onKeyDown: (e: React.KeyboardEvent) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
+            onSectionClick(sectionIndex)
+          }
+        },
+      } : {})}
     >
       {/* Images + verse ref */}
       {primarySection.imageUrls.length > 0 && (

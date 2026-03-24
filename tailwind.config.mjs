@@ -6,9 +6,8 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: "#1a5276",
-          light: "#2980b9",
-          dark: "#0e2f44",
+          DEFAULT: "var(--accent, #1a5276)",
+          light: "var(--accent-hover, #2980b9)",
         },
       },
     },

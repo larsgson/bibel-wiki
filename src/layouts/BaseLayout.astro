@@ -125,30 +125,55 @@ const { title = "Bibel Wiki", layoutTheme = null, themeCSS = "" } = Astro.props
 
         function populateFocusPanel(idx: number) {
           const el = document.getElementById(`verse-${idx}`)
-          if (!el) return
-
-          const clone = el.cloneNode(true) as HTMLElement
-          clone.removeAttribute("id")
-          clone.removeAttribute("data-verse-idx")
-          clone.removeAttribute("data-clickable")
-          clone.style.cursor = "default"
-          clone.classList.remove("verse-focus-active")
-
-          // Apply Ken Burns effect to images
-          const entries = $currentVerseEntries.get()
-          const entry = entries[idx]
-          const duration = entry ? Math.max(entry.endTime - entry.startTime, 5) : 10
-
-          clone.querySelectorAll(".listen-verse-images img").forEach((img, i) => {
-            ;(img as HTMLImageElement).removeAttribute("loading")
-            const variant = (i % 4) + 1
-            img.classList.add(`ken-burns-${variant}`)
-            ;(img as HTMLElement).style.animation = `kenBurns${variant} ${duration}s linear forwards`
-          })
 
           focusPanelContent.innerHTML = ""
-          focusPanelContent.appendChild(clone)
+
+          // Image placeholder — will be filled by $playerCardInfo subscriber
+          const imgContainer = document.createElement("div")
+          imgContainer.className = "listen-verse-images"
+          imgContainer.id = "focus-panel-image"
+          focusPanelContent.appendChild(imgContainer)
+
+          // Text content from section DOM (if still available)
+          if (el) {
+            const clone = el.cloneNode(true) as HTMLElement
+            clone.removeAttribute("id")
+            clone.removeAttribute("data-verse-idx")
+            clone.removeAttribute("data-clickable")
+            clone.style.cursor = "default"
+            clone.classList.remove("verse-focus-active")
+            clone.querySelectorAll(".listen-verse-images").forEach((e) => e.remove())
+            focusPanelContent.appendChild(clone)
+          }
+
+          // Apply current image immediately
+          updateFocusPanelImage()
           focusPanel.scrollTop = 0
+        }
+
+        let lastKenBurnsVariant = 0
+
+        function updateFocusPanelImage() {
+          const container = document.getElementById("focus-panel-image")
+          if (!container) return
+          const { imageUrl } = $playerCardInfo.get()
+          if (!imageUrl) { container.innerHTML = ""; return }
+
+          const entries = $currentVerseEntries.get()
+          const idx = $currentVerseIdx.get()
+          const entry = entries[idx]
+          const duration = entry ? Math.max(entry.endTime - entry.startTime, 5) : 10
+          let variant = Math.floor(Math.random() * 4) + 1
+          if (variant === lastKenBurnsVariant) variant = (variant % 4) + 1
+          lastKenBurnsVariant = variant
+
+          container.innerHTML = ""
+          const img = document.createElement("img")
+          img.src = imageUrl
+          img.alt = ""
+          img.classList.add(`ken-burns-${variant}`)
+          img.style.animation = `kenBurns${variant} ${duration}s linear forwards`
+          container.appendChild(img)
         }
 
         function showFocusPanel(idx: number) {
@@ -263,8 +288,12 @@ const { title = "Bibel Wiki", layoutTheme = null, themeCSS = "" } = Astro.props
         })
 
         $playerCardInfo.subscribe(({ title, imageUrl }) => {
+          // Single image source: update both mini player and focus panel
           if (imageUrl) {
             playerImage.innerHTML = `<img src="${imageUrl}" alt="${title}">`
+          }
+          if ($focusMode.get()) {
+            updateFocusPanelImage()
           }
         })
 

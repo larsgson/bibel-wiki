@@ -25,69 +25,6 @@ function discoverTemplates(): string[] {
   })
 }
 
-// --- Image Index ---
-
-export function buildImageIndex(
-  templateName: string,
-): Record<number, Record<number, string[]>> {
-  const templateDir = path.join(SRC_TEMPLATES_DIR, templateName)
-  const index: Record<number, Record<number, string[]>> = {}
-
-  const catDirs = fs.existsSync(templateDir)
-    ? fs
-        .readdirSync(templateDir)
-        .filter(
-          (d) =>
-            /^\d+$/.test(d) &&
-            fs.statSync(path.join(templateDir, d)).isDirectory(),
-        )
-    : []
-
-  for (const catDir of catDirs) {
-    const dirPath = path.join(templateDir, catDir)
-    const files = fs.readdirSync(dirPath).filter((f) => f.endsWith(".md"))
-    for (const file of files) {
-      const content = fs.readFileSync(path.join(dirPath, file), "utf-8")
-      const lines = content.split("\n")
-
-      let currentChapter = 0
-      let pendingImages: string[] = []
-
-      for (const line of lines) {
-        const chapterMatch = line.match(/\[\[chapter:(\d+)\]\]/)
-        if (chapterMatch) {
-          currentChapter = parseInt(chapterMatch[1], 10)
-          if (!index[currentChapter]) index[currentChapter] = {}
-          continue
-        }
-
-        const imgMatch = line.match(/!\[.*?\]\(([^)]+)\)/)
-        if (imgMatch) {
-          pendingImages.push(imgMatch[1])
-          continue
-        }
-
-        const refMatch = line.match(
-          /\[\[ref:\w+\s+(\d+):(\d+)(?:-(\d+))?\]\]/,
-        )
-        if (refMatch) {
-          const refChapter = parseInt(refMatch[1], 10)
-          const chapter = currentChapter > 0 ? currentChapter : refChapter
-          const verse = parseInt(refMatch[2], 10)
-          if (pendingImages.length > 0) {
-            if (!index[chapter]) index[chapter] = {}
-            if (!index[chapter][verse])
-              index[chapter][verse] = []
-            index[chapter][verse].push(...pendingImages)
-            pendingImages = []
-          }
-        }
-      }
-    }
-  }
-
-  return index
-}
 
 // --- Locale Data ---
 

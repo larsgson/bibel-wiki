@@ -77,7 +77,8 @@ export const parseMarkdownIntoSections = (
 
   const sections: Section[] = []
   const lines = markdown.split("\n")
-  let currentSection: Section | null = null
+  // Start with section 0 to capture content before the first image (rule 1)
+  let currentSection: Section | null = { imageUrls: [], text: "", reference: "" }
   let storyTitle = ""
 
   for (let i = 0; i < lines.length; i++) {
@@ -92,19 +93,18 @@ export const parseMarkdownIntoSections = (
       continue
     }
 
-    if (line.startsWith("[[story:") || line.startsWith("[[chapter:")) {
-      continue
-    }
+    if (line.startsWith("[[story:") || line.startsWith("[[chapter:")) continue
 
     if (line.includes("[[t:")) {
       const resolved = replaceLocaleMarkers(line, localeData)
       if (!resolved.trim() || (resolved === line && !localeData)) continue
-      if (resolved.startsWith("# ") && !storyTitle) {
-        storyTitle = resolved.substring(2).trim()
+      // ## title → story title
+      if (resolved.startsWith("## ") && !storyTitle) {
+        storyTitle = resolved.replace(/^#+\s*/, "").trim()
         continue
       }
-      // Store ### headings separately so they don't prevent verse text loading
-      if (resolved.startsWith("##") && currentSection) {
+      // ### heading → section heading
+      if (resolved.startsWith("### ") && currentSection) {
         currentSection.heading = resolved.replace(/^#+\s*/, "").trim()
         continue
       }
@@ -129,7 +129,7 @@ export const parseMarkdownIntoSections = (
       if (currentSection && !currentSection.reference && !currentSection.text.trim()) {
         currentSection.imageUrls.push(imageMatch[1])
       } else {
-        if (currentSection) {
+        if (currentSection && (currentSection.text.trim() || currentSection.reference || currentSection.imageUrls.length > 0 || currentSection.heading)) {
           sections.push(currentSection)
         }
         currentSection = {

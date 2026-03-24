@@ -217,14 +217,20 @@ export async function loadLanguageData(langCode: string) {
     const manifest = await loadManifest()
     if (!manifest) return null
 
-    // Use language preferences to prioritize preferred fileset
-    const preferredFileset = (languagePreferences as Record<string, any>)[langCode]?.preferredFileset || null
+    // Use language preferences to prioritize preferred fileset (supports per-canon)
+    const prefRaw = (languagePreferences as Record<string, any>)[langCode]?.preferredFileset || null
+    const getPreferred = (canon: string): string | null => {
+      if (!prefRaw) return null
+      if (typeof prefRaw === "string") return prefRaw
+      return prefRaw[canon] || null
+    }
 
     const categories = ["with-timecode", "audio-with-timecode", "syncable", "text-only", "audio-only"]
     let result: any = null
     const canonResults: Record<string, any> = {}
 
     for (const canon of ["nt", "ot"]) {
+      const preferredFileset = getPreferred(canon)
       let canonResult: any = null
       for (const cat of categories) {
         const langEntries = manifest?.files?.[canon]?.[cat]

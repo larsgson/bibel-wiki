@@ -161,7 +161,7 @@ export default function NavigationGridIsland({
     return (
       <div className="chapter-picker">
         <div className="flex items-center gap-3 mb-4">
-          <a href={hydrated ? buildLangHref(selectedLang, "", secondaryLangs) : "/"} className="text-primary hover:text-primary-light text-sm">&larr;</a>
+          <a href={hydrated ? buildLangHref(selectedLang, "", secondaryLangs) : "/"} className="text-lg font-bold" style={{ color: "var(--text)" }}>&larr;</a>
           <h1 className="chapter-picker-title" style={{ marginBottom: 0 }}>{bookTitle}</h1>
         </div>
         <div className="chapter-grid">
@@ -188,7 +188,7 @@ export default function NavigationGridIsland({
                 ) : (
                   <div
                     className="chapter-card-img"
-                    style={{ background: "var(--color-surface)" }}
+                    style={{ background: "var(--bg-surface)" }}
                   />
                 )}
                 {missing && <div className="chapter-card-badge" title="Content not yet available">∅</div>}
@@ -211,7 +211,7 @@ export default function NavigationGridIsland({
   return (
     <div className="chapter-picker">
       <div className="flex items-center gap-3 mb-4">
-        <a href={hydrated ? buildLangHref(selectedLang, "", secondaryLangs) : "/"} className="text-primary hover:text-primary-light text-sm">&larr;</a>
+        <a href={hydrated ? buildLangHref(selectedLang, "", secondaryLangs) : "/"} className="text-lg font-bold" style={{ color: "var(--text)" }}>&larr;</a>
         <h1 className="chapter-picker-title" style={{ marginBottom: 0 }}>{bookTitle}</h1>
       </div>
       <div>
@@ -277,7 +277,7 @@ export default function NavigationGridIsland({
                           ) : (
                             <div
                               className="chapter-card-img"
-                              style={{ background: "var(--color-surface)" }}
+                              style={{ background: "var(--bg-surface)" }}
                             />
                           )}
                           {missing && <div className="chapter-card-badge" title="Content not yet available">∅</div>}

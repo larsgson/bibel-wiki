@@ -19,7 +19,6 @@ import {
   playVerse,
   setAudioForChapter,
   unlockAudio,
-  registerAudioCallbacks,
 } from "../stores/audio-store"
 import { parseMarkdownIntoSections } from "../lib/markdown-parser"
 import { parseReference, splitReference, getTestament } from "../lib/bible-utils"
@@ -36,7 +35,6 @@ interface Props {
   categoryId: string
   storyId: string
   engLocale: LocaleData | null
-  imageIndex: Record<number, Record<number, string[]>>
   markdownContent: string
   allLocales: Record<string, LocaleData>
   imageConfig?: ImageConfig | null
@@ -47,7 +45,6 @@ export default function StoryReaderIsland({
   categoryId,
   storyId,
   engLocale,
-  imageIndex,
   markdownContent,
   allLocales,
   imageConfig = null,
@@ -88,27 +85,6 @@ export default function StoryReaderIsland({
     document.documentElement.style.setProperty("--secondary-font-scale", String(secondary?.fontScale ?? 1))
     document.documentElement.style.setProperty("--primary-gap-scale", String(primary?.gapScale ?? 1))
   }, [selectedLang, secondaryLangs])
-
-  // Register audio callbacks for image lookup (used by mini player)
-  useEffect(() => {
-    registerAudioCallbacks({
-      findBestImage: (chapter: number, verse: number) => {
-        const chapterImages = imageIndex?.[chapter]
-        if (!chapterImages) return null
-        const keys = Object.keys(chapterImages).map(Number).sort((a, b) => a - b)
-        let bestKey = keys[0]
-        for (const k of keys) {
-          if (k <= verse) bestKey = k
-          else break
-        }
-        const images = chapterImages[bestKey]
-        const img = images?.[0]
-        if (!img) return null
-        return resolveImageUrl(img, imageConfig)
-      },
-      imgProxy: (url: string, _w: number) => url,
-    })
-  }, [templateName, imageIndex, imageConfig])
 
   // Load locale data for current language from build-time data
   useEffect(() => {
@@ -266,7 +242,7 @@ export default function StoryReaderIsland({
     audioSetupPromise.current = (async () => {
       const langData = await loadLanguageData(audioLang)
 
-      const tempSections = parseMarkdownIntoSections(markdown)
+      const tempSections = parseMarkdownIntoSections(markdown, {}, localeData)
 
       // Collect all unique book+chapter combinations from sections
       const chapterRefs = new Map<string, { book: string; chapter: number }>()
@@ -298,12 +274,17 @@ export default function StoryReaderIsland({
 
       // Build audio fileset IDs per canon, respecting language preferences
       const audioFilesetIds: Record<string, string> = {}
-      const prefs = (languagePreferences as Record<string, { preferredFileset?: string }>)[audioLang]
+      const prefRaw = (languagePreferences as Record<string, any>)[audioLang]?.preferredFileset
+      const getPreferred = (canon: string): string | null => {
+        if (!prefRaw) return null
+        if (typeof prefRaw === "string") return prefRaw
+        return prefRaw[canon] || null
+      }
 
       for (const testament of neededTestaments) {
         const cData = getCanonLangData(testament)
         if (cData?.data) {
-          const distinctId = prefs?.preferredFileset || cData.distinctId
+          const distinctId = getPreferred(testament) || cData.distinctId
           const id = parseAudioFilesetId(cData.data?.a, distinctId)
 
           if (id) audioFilesetIds[testament] = id
@@ -383,10 +364,14 @@ export default function StoryReaderIsland({
       // Group split references by book+chapter for sequential playback
       for (let sectionIdx = 0; sectionIdx < tempSections.sections.length; sectionIdx++) {
         const section = tempSections.sections[sectionIdx]
+        const sectionImageUrl = section.imageUrls.length > 0
+          ? resolveImageUrl(section.imageUrls[0], imageConfig)
+          : null
         if (!section.reference) {
           verseEntries.push({
             verseStart: 0, verseEnd: 0, startTime: 0, endTime: 0,
             audioUrl: null, sectionIndex: sectionIdx,
+            imageUrl: sectionImageUrl,
           })
           continue
         }
@@ -396,6 +381,8 @@ export default function StoryReaderIsland({
         // Group consecutive refs that share the same book+chapter into one entry,
         // but create a new entry when the book+chapter changes.
         let currentChapterKey = ""
+        let currentBook = ""
+        let currentChapter = 0
         let startTime = Infinity
         let endTime = 0
         let vs = 0
@@ -417,6 +404,9 @@ export default function StoryReaderIsland({
               endTime,
               audioUrl: audioUrlMap.get(currentChapterKey) || null,
               sectionIndex: sectionIdx,
+              bookCode: currentBook,
+              chapter: currentChapter,
+              imageUrl: sectionImageUrl,
             })
             startTime = Infinity
             endTime = 0
@@ -425,6 +415,8 @@ export default function StoryReaderIsland({
           }
 
           currentChapterKey = chapterKey
+          currentBook = p.book
+          currentChapter = p.chapter
           const refTestament = getTestament(p.book)
           const refFilesetId = audioFilesetIds[refTestament] || Object.values(audioFilesetIds)[0] || ""
           const timing = findTimingForReference(timingData, refFilesetId, ref)
@@ -444,11 +436,15 @@ export default function StoryReaderIsland({
             endTime,
             audioUrl: audioUrlMap.get(currentChapterKey) || null,
             sectionIndex: sectionIdx,
+            bookCode: currentBook,
+            chapter: currentChapter,
+            imageUrl: sectionImageUrl,
           })
         } else {
           verseEntries.push({
             verseStart: 0, verseEnd: 0, startTime: 0, endTime: 0,
             audioUrl: null, sectionIndex: sectionIdx,
+            imageUrl: sectionImageUrl,
           })
         }
       }
@@ -537,7 +533,7 @@ export default function StoryReaderIsland({
     return (
       <div>
         <div className="mb-4">
-          <a href={backHref} className="text-primary hover:text-primary-light text-sm">&larr;</a>
+          <a href={backHref} className="text-lg font-bold" style={{ color: "var(--text)" }}>&larr;</a>
         </div>
         <div className="flex items-center justify-center py-12">
           <div className="text-gray-500">Loading story...</div>
@@ -550,7 +546,7 @@ export default function StoryReaderIsland({
     return (
       <div>
         <div className="mb-4">
-          <a href={backHref} className="text-primary hover:text-primary-light text-sm">&larr;</a>
+          <a href={backHref} className="text-lg font-bold" style={{ color: "var(--text)" }}>&larr;</a>
         </div>
         <div className="text-center py-12">
           <h2 className="text-lg font-semibold text-red-600 mb-2">Story Not Available</h2>
@@ -567,7 +563,7 @@ export default function StoryReaderIsland({
       <div className="flex items-center gap-3 mb-4">
         <a
           href={backHref}
-          className="text-primary hover:text-primary-light text-sm"
+          className="text-lg font-bold" style={{ color: "var(--text)" }}
         >
           &larr;
         </a>
@@ -641,10 +637,11 @@ async function findTemplateTimingInfo(
 
   // New format: array of {id, books}
   if (Array.isArray(langEntry) && langEntry.length > 0) {
-    // Check language preferences for a preferred fileset
-    const prefs = (languagePreferences as Record<string, { preferredFileset?: string }>)[langCode]
-    const preferred = prefs?.preferredFileset
-      ? langEntry.find((e: any) => (e.id || e) === prefs.preferredFileset)
+    // Check language preferences for a preferred fileset (supports per-canon)
+    const prefRaw = (languagePreferences as Record<string, any>)[langCode]?.preferredFileset
+    const prefId = typeof prefRaw === "string" ? prefRaw : prefRaw?.[canon] || null
+    const preferred = prefId
+      ? langEntry.find((e: any) => (e.id || e) === prefId)
       : null
     const pick = preferred || langEntry[0]
     return {
