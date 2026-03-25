@@ -199,16 +199,18 @@ export default function LanguageSelectorIsland({ mode, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="bg-white text-gray-900 rounded-lg w-full max-w-md max-h-[80vh] flex flex-col"
+        className="rounded-lg w-full max-w-md max-h-[80vh] flex flex-col"
+        style={{ backgroundColor: "var(--bg)", color: "var(--text)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
+        <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: "var(--border, #e5e7eb)" }}>
+          <h2 className="text-lg font-semibold" style={{ color: "var(--text)" }}>
             {mode === "primary" ? t(uiLang, "languageSelector.title") : t(uiLang, "languageSelector.selectSecondaryLanguages")}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-xl"
+            className="text-xl opacity-60 hover:opacity-100"
+            style={{ color: "var(--text)" }}
             aria-label="Close"
           >
             &times;
@@ -225,10 +227,14 @@ export default function LanguageSelectorIsland({ mode, onClose }: Props) {
                   key={lang.code}
                   onClick={() => handleSelect(lang)}
                   className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                    selected
-                      ? "bg-blue-100 border-blue-400 text-blue-800 font-semibold"
-                      : "bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100"
+                    selected ? "font-semibold" : ""
                   }`}
+                  style={{
+                    borderColor: selected ? "var(--accent, #60a5fa)" : "var(--border, #d1d5db)",
+                    backgroundColor: selected ? "var(--accent, #60a5fa)" : "color-mix(in srgb, var(--text) 15%, var(--bg))",
+                    color: selected ? "var(--bg, #fff)" : "var(--text)",
+                    opacity: selected ? 1 : 0.8,
+                  }}
                 >
                   {lang.english}
                   {selected && " \u2713"}
@@ -242,7 +248,8 @@ export default function LanguageSelectorIsland({ mode, onClose }: Props) {
         <div className="px-3 pb-3">
           <input
             type="text"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+            style={{ borderColor: "var(--border, #d1d5db)", backgroundColor: "var(--bg)", color: "var(--text)", "--tw-ring-color": "var(--accent, #60a5fa)" } as any}
             placeholder={t(uiLang, "languageSelector.typeLangName")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -250,7 +257,7 @@ export default function LanguageSelectorIsland({ mode, onClose }: Props) {
             autoFocus
           />
           {search.length === 1 && (
-            <div className="text-xs text-gray-400 mt-1 px-1">{t(uiLang, "languageSelector.typeOneMore")}</div>
+            <div className="text-xs mt-1 px-1" style={{ color: "var(--text)", opacity: 0.5 }}>{t(uiLang, "languageSelector.typeOneMore")}</div>
           )}
         </div>
 
@@ -260,7 +267,8 @@ export default function LanguageSelectorIsland({ mode, onClose }: Props) {
             {mode === "secondary" && secondaryLangs.length > 0 && (
               <button
                 onClick={() => { clearSecondaryLanguages(); onClose() }}
-                className="w-full text-left px-3 py-2 rounded-md mb-1 text-gray-700 hover:bg-gray-100"
+                className="w-full text-left px-3 py-2 rounded-md mb-1"
+                style={{ color: "var(--text)", opacity: 0.7 }}
               >
                 <em>{t(uiLang, "languageSelector.clearAll")}</em>
               </button>
@@ -274,9 +282,14 @@ export default function LanguageSelectorIsland({ mode, onClose }: Props) {
                   data-idx={idx}
                   onClick={() => handleSelect(lang)}
                   onMouseEnter={() => setHighlightIdx(idx)}
-                  className={`w-full text-left px-3 py-2 rounded-md mb-1 flex items-center gap-2 text-gray-900 ${
-                    highlighted ? "bg-blue-50" : "hover:bg-gray-100"
-                  } ${selected ? "font-semibold" : ""}`}
+                  className={`w-full text-left px-3 py-2 rounded-md mb-1 flex items-center gap-2 ${
+                    selected ? "font-semibold" : ""
+                  }`}
+                  style={{
+                    color: "var(--text)",
+                    backgroundColor: highlighted ? "var(--accent, #3b82f6)" : "transparent",
+                    opacity: highlighted ? 0.9 : 1,
+                  }}
                 >
                   <div className="flex-1 min-w-0">
                     <div className="truncate">
@@ -284,29 +297,30 @@ export default function LanguageSelectorIsland({ mode, onClose }: Props) {
                       {selected && " \u2713"}
                     </div>
                     {lang.vernacular !== lang.english && (
-                      <div className="text-sm text-gray-500 truncate">
+                      <div className="text-sm truncate" style={{ color: "var(--text)", opacity: 0.6 }}>
                         {highlightMatch(lang.vernacular, search)}
                       </div>
                     )}
                   </div>
-                  <span className="text-xs text-gray-400 flex-shrink-0">
+                  <span className="text-xs flex-shrink-0" style={{ color: "var(--text)", opacity: 0.4 }}>
                     {highlightMatch(lang.code, search)}
                   </span>
                 </button>
               )
             })}
             {searchResults.length === 0 && (
-              <div className="text-center py-4 text-gray-500">
+              <div className="text-center py-4" style={{ color: "var(--text)", opacity: 0.5 }}>
                 {t(uiLang, "languageSelector.noLangsFound")} &ldquo;{searchTerm}&rdquo;
               </div>
             )}
           </div>
         )}
 
-        <div className="p-3 border-t border-gray-200">
+        <div className="p-3 border-t" style={{ borderColor: "var(--border, #e5e7eb)" }}>
           <button
             onClick={onClose}
-            className="w-full py-2 px-4 bg-gray-200 rounded-md hover:bg-gray-300 text-gray-800"
+            className="w-full py-2 px-4 rounded-md"
+            style={{ backgroundColor: "var(--accent, #e5e7eb)", color: "var(--bg, #1f2937)", opacity: 0.9 }}
           >
             {mode === "secondary" ? t(uiLang, "languageSelector.done") : t(uiLang, "languageSelector.close")}
           </button>

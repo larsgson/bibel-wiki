@@ -77,10 +77,14 @@ export function resolveMediumUrl(
     return `${imageConfig.base_url}/${path}`
   }
 
-  // Use Netlify Image CDN for resizing when available
+  // Use Netlify Image CDN for resizing when available (production only)
   if (imageConfig?.thumbs_resize === "netlify") {
     const fullUrl = resolveImageUrl(filename, imageConfig)
-    return `/_netlify/images?url=${encodeURIComponent(fullUrl)}&w=${width}&q=75`
+    const isDev = import.meta.env?.DEV ?? false
+    if (!isDev) {
+      return `/_netlify/images?url=${encodeURIComponent(fullUrl)}&w=${width}&q=75`
+    }
+    return fullUrl
   }
 
   return resolveImageUrl(filename, imageConfig)
