@@ -24,12 +24,16 @@ export function buildLangHref(lang: string, path: string, secondaryLangs?: strin
   if (typeof window === "undefined") return `/${path}`
 
   let href: string
-  if (prebuiltSet.has(lang)) {
-    href = `/${lang}/${path}`
-  } else if (lang === "eng") {
-    href = `/l/${path}`
+  if (isDevMode()) {
+    // Dev: no Netlify rewrites, use /l/ paths directly
+    if (prebuiltSet.has(lang)) {
+      href = `/${lang}/${path}`
+    } else {
+      href = `/l/${path}${path.includes("?") ? "&" : "?"}lang=${lang}`
+    }
   } else {
-    href = `/l/${path}${path.includes("?") ? "&" : "?"}lang=${lang}`
+    // Production: always use clean /:lang/:path/ — Netlify rewrites to /l/ internally
+    href = `/${lang}/${path}`
   }
 
   if (secondaryLangs && secondaryLangs.length > 0) {

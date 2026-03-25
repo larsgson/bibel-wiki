@@ -23,46 +23,42 @@ const replaceBibleReferences = (
   return result
 }
 
+const resolveLocaleKey = (
+  keyPath: string,
+  localeData: Record<string, any> | null,
+): string | null => {
+  if (!localeData) return null
+  const parts = keyPath.split(".")
+
+  if (parts.length === 4 && parts[3] === "p_hd") {
+    const storyKey = `${parts[0]}.${parts[1]}`
+    const verseKey = parts[2]
+    return localeData.sections?.[storyKey]?.[verseKey] || null
+  }
+
+  if (parts.length === 3) {
+    const storyKey = `${parts[0]}.${parts[1]}`
+    const key = parts[2]
+    return localeData.stories?.[storyKey]?.[key] || null
+  }
+
+  if (parts.length === 2) {
+    return localeData.categories?.[parts[0]]?.[parts[1]] || null
+  }
+
+  return null
+}
+
 const replaceLocaleMarkers = (
   text: string,
   localeData: Record<string, any> | null,
+  fallbackLocale?: Record<string, any> | null,
 ): string => {
-  if (!text || !localeData) return text
+  if (!text || (!localeData && !fallbackLocale)) return text
 
   return text.replace(/\[\[t:([^\]]+)\]\]/g, (fullMatch, keyPath: string) => {
-    const parts = keyPath.split(".")
-
-    // "01.02.6_5.p_hd" → sections["01.02"]["6_5"]
-    if (parts.length === 4 && parts[3] === "p_hd") {
-      const storyKey = `${parts[0]}.${parts[1]}`
-      const verseKey = parts[2]
-      const value = localeData.sections?.[storyKey]?.[verseKey]
-      return value || fullMatch
-    }
-
-    // "01.02.title" or "01.02.description" → stories["01.02"].title
-    if (parts.length === 3) {
-      const storyKey = `${parts[0]}.${parts[1]}`
-      const key = parts[2]
-      const value = localeData.stories?.[storyKey]?.[key]
-      return value || fullMatch
-    }
-
-    // "01.title" or "01.description" → categories["01"].title
-    if (parts.length === 2) {
-      const catId = parts[0]
-      const key = parts[1]
-      const value = localeData.categories?.[catId]?.[key]
-      return value || fullMatch
-    }
-
-    // "bookTitle" → localeData.bookTitle
-    if (parts.length === 1) {
-      const value = localeData[parts[0]] || localeData.bookTitle
-      return value || fullMatch
-    }
-
-    return fullMatch
+    const value = resolveLocaleKey(keyPath, localeData) || resolveLocaleKey(keyPath, fallbackLocale)
+    return value || fullMatch
   })
 }
 
@@ -70,6 +66,7 @@ export const parseMarkdownIntoSections = (
   markdown: string,
   chapterText: Record<string, any> = {},
   localeData: Record<string, any> | null = null,
+  fallbackLocale?: Record<string, any> | null,
 ): ParsedMarkdown => {
   if (!markdown) {
     return { title: "", sections: [] }
@@ -87,7 +84,7 @@ export const parseMarkdownIntoSections = (
     if (line.startsWith("# ") && !storyTitle) {
       let titleText = line.substring(2).trim()
       if (titleText.includes("[[t:")) {
-        titleText = replaceLocaleMarkers(titleText, localeData)
+        titleText = replaceLocaleMarkers(titleText, localeData, fallbackLocale)
       }
       storyTitle = titleText
       continue
@@ -96,8 +93,8 @@ export const parseMarkdownIntoSections = (
     if (line.startsWith("[[story:") || line.startsWith("[[chapter:")) continue
 
     if (line.includes("[[t:")) {
-      const resolved = replaceLocaleMarkers(line, localeData)
-      if (!resolved.trim() || (resolved === line && !localeData)) continue
+      const resolved = replaceLocaleMarkers(line, localeData, fallbackLocale)
+      if (!resolved.trim() || (resolved === line && !localeData && !fallbackLocale)) continue
       // ## title → story title
       if (resolved.startsWith("## ") && !storyTitle) {
         storyTitle = resolved.replace(/^#+\s*/, "").trim()

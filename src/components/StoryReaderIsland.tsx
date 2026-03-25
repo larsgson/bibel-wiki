@@ -235,7 +235,7 @@ export default function StoryReaderIsland({
     audioSetupPromise.current = (async () => {
       const langData = await loadLanguageData(audioLang)
 
-      const tempSections = parseMarkdownIntoSections(markdown, {}, localeData)
+      const tempSections = parseMarkdownIntoSections(markdown, {}, localeData, engLocale)
 
       // Collect all unique book+chapter combinations from sections
       const chapterRefs = new Map<string, { book: string; chapter: number }>()
@@ -478,11 +478,11 @@ export default function StoryReaderIsland({
         langChapterText[key.replace(`${lang}-`, "")] = value
       }
     }
-    const parsed = parseMarkdownIntoSections(markdown, langChapterText, localeData)
+    const parsed = parseMarkdownIntoSections(markdown, langChapterText, localeData, engLocale)
     sectionsMap[lang] = parsed.sections
   }
 
-  const primaryParsed = parseMarkdownIntoSections(markdown, {}, localeData || engLocale)
+  const primaryParsed = parseMarkdownIntoSections(markdown, {}, localeData, engLocale)
   const storyTitle = primaryParsed.title || primaryParsed.description || ""
 
   const handleSectionClick = (sectionIndex: number) => {
