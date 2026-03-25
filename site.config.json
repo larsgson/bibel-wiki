@@ -3,5 +3,8 @@
   "region": {
     "languages": ["*"],
     "defaultLanguage": "eng"
+  },
+  "imageOverrides": {
+    "John": { "base_url": "/img/john-pics" }
   }
 }

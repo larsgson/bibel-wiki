@@ -1,5 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
+import siteConfig from "../../site.config.json"
 import type {
   TemplateStructure,
   TemplateCategory,
@@ -164,6 +165,14 @@ export function loadTemplateStructure(
       const mediumPatternMatch = imagesBlock[1].match(/medium_pattern\s*=\s*"([^"]+)"/)
       if (mediumPatternMatch) imageConfig.medium_pattern = mediumPatternMatch[1]
     }
+  }
+
+  // Apply site.config.json imageOverrides (takes precedence over template's index.toml)
+  const overrides = (siteConfig as any).imageOverrides?.[templateName]
+  if (overrides?.base_url && imageConfig) {
+    imageConfig.base_url = overrides.base_url
+  } else if (overrides?.base_url) {
+    imageConfig = { base_url: overrides.base_url }
   }
 
   let coverImage = ""
