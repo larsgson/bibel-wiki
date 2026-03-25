@@ -22,6 +22,12 @@ export const hi = {
     noAudioAvailable:
       "मुख्य भाषा के लिए समकालिक ऑडियो उपलब्ध नहीं है। समकालिक ऑडियो वाली भाषा को मुख्य भाषा के रूप में चुनने का प्रयास करें।",
     learnModeOn: "सीखने का मोड चालू",
+    selectSecondaryLanguages: "द्वितीयक भाषाएँ चुनें",
+    typeLangName: "भाषा का नाम लिखें...",
+    typeOneMore: "खोजने के लिए एक और अक्षर लिखें",
+    clearAll: "सब मिटाएँ",
+    noLangsFound: "इसके लिए कोई भाषा नहीं मिली",
+    done: "हो गया",
   },
 
   storyViewer: {

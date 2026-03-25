@@ -23,6 +23,12 @@ export const ro = {
     noAudioAvailable:
       "Audio sincronizat nu este disponibil pentru limba principală. Încercați să selectați o limbă cu audio sincronizat ca limbă principală.",
     learnModeOn: "Mod învățare ACTIVAT",
+    selectSecondaryLanguages: "Selectați limbile secundare",
+    typeLangName: "Introduceți numele limbii...",
+    typeOneMore: "Introduceți încă un caracter pentru a căuta",
+    clearAll: "Șterge tot",
+    noLangsFound: "Nu s-au găsit limbi pentru",
+    done: "Gata",
   },
 
   storyViewer: {

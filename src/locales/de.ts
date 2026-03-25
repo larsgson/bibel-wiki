@@ -23,6 +23,12 @@ export const de = {
     noAudioAvailable:
       "Audio mit Synchronisation ist für die Hauptsprache nicht verfügbar. Versuchen Sie, eine Sprache mit synchronisiertem Audio als Hauptsprache auszuwählen.",
     learnModeOn: "Lernmodus AN",
+    selectSecondaryLanguages: "Zweitsprachen auswählen",
+    typeLangName: "Sprachname eingeben...",
+    typeOneMore: "Noch ein Zeichen eingeben zum Suchen",
+    clearAll: "Alle löschen",
+    noLangsFound: "Keine Sprachen gefunden für",
+    done: "Fertig",
   },
 
   storyViewer: {

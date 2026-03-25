@@ -22,6 +22,12 @@ export const ar = {
     noAudioAvailable:
       "الصوت المتزامن غير متوفر للغة الرئيسية. حاول اختيار لغة بها صوت متزامن كلغة رئيسية.",
     learnModeOn: "وضع التعلم مُفعَّل",
+    selectSecondaryLanguages: "اختيار اللغات الثانوية",
+    typeLangName: "اكتب اسم اللغة...",
+    typeOneMore: "اكتب حرفًا آخر للبحث",
+    clearAll: "مسح الكل",
+    noLangsFound: "لم يتم العثور على لغات لـ",
+    done: "تم",
   },
 
   storyViewer: {

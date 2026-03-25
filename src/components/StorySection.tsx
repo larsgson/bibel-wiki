@@ -51,10 +51,10 @@ export default function StorySection({
           {primarySection.imageUrls.map((url, imgIdx) => (
             <img
               key={imgIdx}
-              src={resolveMediumUrl(url, imageConfig)}
+              src={resolveMediumUrl(url, imageConfig, 800)}
               alt={`Section ${sectionIndex + 1}`}
               className="w-full aspect-video object-cover"
-              loading="lazy"
+              loading={sectionIndex < 3 ? "eager" : "lazy"}
               onError={(e) => {
                 const img = e.target as HTMLImageElement
                 const fullUrl = resolveImageUrl(url, imageConfig)

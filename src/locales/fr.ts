@@ -23,6 +23,12 @@ export const fr = {
     noAudioAvailable:
       "L'audio avec synchronisation n'est pas disponible pour la langue principale. Essayez de sélectionner une langue avec audio synchronisé comme langue principale.",
     learnModeOn: "Mode apprentissage ACTIVÉ",
+    selectSecondaryLanguages: "Sélectionner les langues secondaires",
+    typeLangName: "Tapez le nom de la langue...",
+    typeOneMore: "Tapez un caractère de plus pour chercher",
+    clearAll: "Tout effacer",
+    noLangsFound: "Aucune langue trouvée pour",
+    done: "Terminé",
   },
 
   storyViewer: {

@@ -66,12 +66,22 @@ export function resolveThumbUrl(
 export function resolveMediumUrl(
   filename: string,
   imageConfig: ImageConfig | null,
+  width = 800,
 ): string {
   if (!filename) return filename
   if (filename.startsWith("http://") || filename.startsWith("https://")) return filename
   if (filename.startsWith("/")) return filename
-  if (!imageConfig?.medium_pattern) return resolveImageUrl(filename, imageConfig)
 
-  const path = applyPathPattern(filename, imageConfig.medium_pattern)
-  return `${imageConfig.base_url}/${path}`
+  if (imageConfig?.medium_pattern) {
+    const path = applyPathPattern(filename, imageConfig.medium_pattern)
+    return `${imageConfig.base_url}/${path}`
+  }
+
+  // Use Netlify Image CDN for resizing when available
+  if (imageConfig?.thumbs_resize === "netlify") {
+    const fullUrl = resolveImageUrl(filename, imageConfig)
+    return `/_netlify/images?url=${encodeURIComponent(fullUrl)}&w=${width}&q=75`
+  }
+
+  return resolveImageUrl(filename, imageConfig)
 }

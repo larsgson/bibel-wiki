@@ -22,6 +22,12 @@ export const en = {
     noAudioAvailable:
       "Audio with timing is not available for the primary language. Try selecting a language with audio timing as primary.",
     learnModeOn: "Learn mode ON",
+    selectSecondaryLanguages: "Select Secondary Languages",
+    typeLangName: "Type language name...",
+    typeOneMore: "Type one more character to search",
+    clearAll: "Clear all",
+    noLangsFound: "No languages found for",
+    done: "Done",
   },
 
   storyViewer: {

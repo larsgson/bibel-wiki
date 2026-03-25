@@ -7,8 +7,9 @@ import { ru } from "../locales/ru"
 import { hi } from "../locales/hi"
 import { ar } from "../locales/ar"
 import { ro } from "../locales/ro"
+import { zh } from "../locales/zh"
 
-const locales: Record<string, any> = { en, fr, de, es, pt, ru, hi, ar, ro }
+const locales: Record<string, any> = { en, fr, de, es, pt, ru, hi, ar, ro, zh }
 const defaultLocale = "en"
 
 const localeMap: Record<string, string> = {
@@ -21,6 +22,8 @@ const localeMap: Record<string, string> = {
   hin: "hi",
   arb: "ar",
   ron: "ro",
+  cmn: "zh",
+  zho: "zh",
   en: "en",
   fr: "fr",
   de: "de",
@@ -30,6 +33,43 @@ const localeMap: Record<string, string> = {
   hi: "hi",
   ar: "ar",
   ro: "ro",
+  zh: "zh",
+}
+
+function hasLocale(langCode: string): boolean {
+  const mapped = localeMap[langCode]
+  return !!mapped && !!locales[mapped]
+}
+
+/**
+ * Resolve the best UI locale code using priority:
+ * 1. Primary selected language (if locale exists)
+ * 2. Browser language
+ * 3. Any secondary language with a locale
+ * 4. English fallback
+ */
+export function resolveUILang(
+  primaryLang: string,
+  secondaryLangs: string[] = [],
+): string {
+  // 1. Primary language
+  if (hasLocale(primaryLang)) return primaryLang
+
+  // 2. Browser language
+  if (typeof navigator !== "undefined") {
+    for (const bl of navigator.languages || [navigator.language]) {
+      const code = bl.split("-")[0].toLowerCase()
+      if (hasLocale(code)) return code
+    }
+  }
+
+  // 3. Any secondary language with a locale
+  for (const lang of secondaryLangs) {
+    if (hasLocale(lang)) return lang
+  }
+
+  // 4. Fallback
+  return defaultLocale
 }
 
 export function getLocale(langCode: string): any {
