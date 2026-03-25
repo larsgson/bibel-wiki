@@ -138,11 +138,6 @@ const { title = "Bibel Wiki", layoutTheme = null, themeCSS = "" } = Astro.props
             clone.classList.remove("verse-focus-active")
             focusPanelContent.appendChild(clone)
 
-            // Swap to full-res images for Ken Burns
-            clone.querySelectorAll("img[data-full-src]").forEach((img: Element) => {
-              const fullSrc = img.getAttribute("data-full-src")
-              if (fullSrc) (img as HTMLImageElement).src = fullSrc
-            })
             // Apply Ken Burns to all images in the clone
             applyKenBurnsToImages()
           }

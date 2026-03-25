@@ -52,7 +52,6 @@ export default function StorySection({
             <img
               key={imgIdx}
               src={resolveMediumUrl(url, imageConfig, 800)}
-              data-full-src={resolveImageUrl(url, imageConfig)}
               alt={`Section ${sectionIndex + 1}`}
               className="w-full aspect-video object-cover"
               loading={sectionIndex < 3 ? "eager" : "lazy"}
