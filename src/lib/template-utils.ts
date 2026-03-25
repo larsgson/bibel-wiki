@@ -169,10 +169,15 @@ export function loadTemplateStructure(
 
   // Apply site.config.json imageOverrides (takes precedence over template's index.toml)
   const overrides = (siteConfig as any).imageOverrides?.[templateName]
-  if (overrides?.base_url && imageConfig) {
-    imageConfig.base_url = overrides.base_url
-  } else if (overrides?.base_url) {
-    imageConfig = { base_url: overrides.base_url }
+  if (overrides) {
+    if (!imageConfig && overrides.base_url) {
+      imageConfig = { base_url: overrides.base_url }
+    }
+    if (imageConfig) {
+      if (overrides.base_url) imageConfig.base_url = overrides.base_url
+      if (overrides.medium_pattern) imageConfig.medium_pattern = overrides.medium_pattern
+      if (overrides.thumbs_pattern) imageConfig.thumbs_pattern = overrides.thumbs_pattern
+    }
   }
 
   let coverImage = ""

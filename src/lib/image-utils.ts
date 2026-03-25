@@ -77,14 +77,10 @@ export function resolveMediumUrl(
     return `${imageConfig.base_url}/${path}`
   }
 
-  // Use Netlify Image CDN for resizing when available (production only)
+  // Netlify Image CDN requires a paid plan — serve images directly.
+  // John images are already web-optimized (1280×720, ~300 KB).
   if (imageConfig?.thumbs_resize === "netlify") {
-    const fullUrl = resolveImageUrl(filename, imageConfig)
-    const isDev = import.meta.env?.DEV ?? false
-    if (!isDev) {
-      return `/_netlify/images?url=${encodeURIComponent(fullUrl)}&w=${width}&q=75`
-    }
-    return fullUrl
+    return resolveImageUrl(filename, imageConfig)
   }
 
   return resolveImageUrl(filename, imageConfig)

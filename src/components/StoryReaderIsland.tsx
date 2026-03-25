@@ -24,7 +24,7 @@ import { parseTextFilesetId, parseAudioFilesetId } from "../lib/fileset-utils"
 import StorySection from "./StorySection"
 import { buildLangHref } from "../lib/url-utils"
 import type { Section, LocaleData, ImageConfig } from "../lib/types"
-import { resolveImageUrl } from "../lib/image-utils"
+import { resolveImageUrl, resolveMediumUrl } from "../lib/image-utils"
 import languageStyles from "../data/language-styles.json"
 import languagePreferences from "../data/language-preferences.json"
 
@@ -358,7 +358,7 @@ export default function StoryReaderIsland({
       for (let sectionIdx = 0; sectionIdx < tempSections.sections.length; sectionIdx++) {
         const section = tempSections.sections[sectionIdx]
         const sectionImageUrl = section.imageUrls.length > 0
-          ? resolveImageUrl(section.imageUrls[0], imageConfig)
+          ? resolveMediumUrl(section.imageUrls[0], imageConfig, 640)
           : null
         if (!section.reference) {
           verseEntries.push({
