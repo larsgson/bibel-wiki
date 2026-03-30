@@ -47,6 +47,7 @@ export const zh = {
     stop: "停止",
     seek: "跳转",
     loadingAudio: "正在加载音频...",
+    noTimingAvailable: "此部分的音频时间尚不可用",
   },
 
   fullPlayingPane: {

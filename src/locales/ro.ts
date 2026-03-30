@@ -48,6 +48,7 @@ export const ro = {
     stop: "Oprire",
     seek: "Căutare",
     loadingAudio: "Se încarcă audio...",
+    noTimingAvailable: "Cronometrarea audio nu este încă disponibilă pentru această secțiune",
   },
 
   fullPlayingPane: {

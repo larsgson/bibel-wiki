@@ -47,6 +47,7 @@ export const hi = {
     stop: "बंद करें",
     seek: "खोजें",
     loadingAudio: "ऑडियो लोड हो रहा है...",
+    noTimingAvailable: "इस अनुभाग के लिए ऑडियो टाइमिंग अभी उपलब्ध नहीं है",
   },
 
   fullPlayingPane: {

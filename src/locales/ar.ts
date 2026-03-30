@@ -47,6 +47,7 @@ export const ar = {
     stop: "إيقاف",
     seek: "بحث",
     loadingAudio: "جاري تحميل الصوت...",
+    noTimingAvailable: "توقيت الصوت غير متاح بعد لهذا القسم",
   },
 
   fullPlayingPane: {

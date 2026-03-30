@@ -48,6 +48,7 @@ export const es = {
     stop: "Detener",
     seek: "Buscar",
     loadingAudio: "Cargando audio...",
+    noTimingAvailable: "La sincronización de audio aún no está disponible para esta sección",
   },
 
   fullPlayingPane: {

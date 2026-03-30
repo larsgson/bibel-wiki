@@ -47,6 +47,9 @@ const { title = "Bibel Wiki", layoutTheme = null, themeCSS = "" } = Astro.props
       </div>
     </div>
 
+    <!-- Audio toast notification -->
+    <div class="audio-toast" id="audio-toast" style="display:none" transition:persist></div>
+
     <!-- Mini player (floating bottom-right) -->
     <div class="listen-player" id="listen-player" style="display:none" transition:persist>
       <div class="listen-player-image" id="player-image"></div>
@@ -87,7 +90,9 @@ const { title = "Bibel Wiki", layoutTheme = null, themeCSS = "" } = Astro.props
         resumePlayback,
         stopAll,
         unlockAudio,
+        $audioToast,
       } from "../stores/audio-store"
+      import { t } from "../lib/ui-locales"
 
       // iOS audio unlock on first interaction (touchstart or click)
       const unlockEvents = ["touchstart", "click"] as const
@@ -282,6 +287,21 @@ const { title = "Bibel Wiki", layoutTheme = null, themeCSS = "" } = Astro.props
           if (imageUrl) {
             playerImage.innerHTML = `<img src="${imageUrl}" alt="${title}">`
           }
+        })
+
+        // Toast notification
+        const toastEl = document.getElementById("audio-toast")!
+        let toastTimer: ReturnType<typeof setTimeout> | null = null
+        $audioToast.subscribe((key: string) => {
+          if (!key) {
+            toastEl.style.display = "none"
+            return
+          }
+          const langCode = window.location.pathname.split("/").filter(Boolean)[0] || "en"
+          toastEl.textContent = t(langCode, `audio.${key}`)
+          toastEl.style.display = "block"
+          if (toastTimer) clearTimeout(toastTimer)
+          toastTimer = setTimeout(() => $audioToast.set(""), 4000)
         })
 
         // --- Event listeners ---

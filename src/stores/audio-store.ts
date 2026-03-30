@@ -52,6 +52,8 @@ export const $playerCardInfo = atom<{ title: string; imageUrl: string | null }>(
 export const $focusMode = atom<boolean>(false)
 /** Identifies the story that audio is playing for */
 export const $audioPageStory = atom<string>("")
+/** Transient toast message shown when audio cannot play */
+export const $audioToast = atom<string>("")
 
 // ---- Derived stores ----
 
@@ -213,6 +215,12 @@ export function playVerse(idx: number) {
   const audioUrl = entry?.audioUrl || $cachedAudioUrl.get()
   if (idx >= entries.length || !audioUrl) {
     stopAll()
+    return
+  }
+
+  // Skip entries with no timing data (startTime and endTime both 0)
+  if (entry.startTime === 0 && entry.endTime === 0) {
+    $audioToast.set("noTimingAvailable")
     return
   }
 

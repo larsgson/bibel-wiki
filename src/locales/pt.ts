@@ -48,6 +48,7 @@ export const pt = {
     stop: "Parar",
     seek: "Buscar",
     loadingAudio: "Carregando áudio...",
+    noTimingAvailable: "Temporização de áudio ainda não disponível para esta seção",
   },
 
   fullPlayingPane: {

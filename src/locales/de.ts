@@ -49,6 +49,7 @@ export const de = {
     stop: "Stopp",
     seek: "Suchen",
     loadingAudio: "Audio wird geladen...",
+    noTimingAvailable: "Audio-Timing für diesen Abschnitt noch nicht verfügbar",
   },
 
   fullPlayingPane: {

@@ -50,6 +50,7 @@ export const fr = {
     stop: "Arrêter",
     seek: "Rechercher",
     loadingAudio: "Chargement audio...",
+    noTimingAvailable: "Le minutage audio n'est pas encore disponible pour cette section",
   },
 
   fullPlayingPane: {

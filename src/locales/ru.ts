@@ -48,6 +48,7 @@ export const ru = {
     stop: "Остановить",
     seek: "Перемотка",
     loadingAudio: "Загрузка аудио...",
+    noTimingAvailable: "Временные метки аудио ещё недоступны для этого раздела",
   },
 
   fullPlayingPane: {

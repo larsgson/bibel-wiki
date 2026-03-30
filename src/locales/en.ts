@@ -48,6 +48,7 @@ export const en = {
     stop: "Stop",
     seek: "Seek",
     loadingAudio: "Loading audio...",
+    noTimingAvailable: "Audio timing not yet available for this section",
   },
 
   fullPlayingPane: {
