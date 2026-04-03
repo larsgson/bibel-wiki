@@ -298,7 +298,7 @@ const { title = "Bibel Wiki", layoutTheme = null, themeCSS = "" } = Astro.props
             return
           }
           const langCode = window.location.pathname.split("/").filter(Boolean)[0] || "en"
-          toastEl.textContent = t(langCode, `audio.${key}`)
+          toastEl.textContent = t(langCode, `audioPlayer.${key}`)
           toastEl.style.display = "block"
           if (toastTimer) clearTimeout(toastTimer)
           toastTimer = setTimeout(() => $audioToast.set(""), 4000)

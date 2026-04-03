@@ -14,6 +14,7 @@ import {
   $currentVerseEntries,
   $focusMode,
   $audioPageStory,
+  $audioToast,
   playVerse,
   setAudioForChapter,
   unlockAudio,
@@ -308,9 +309,16 @@ export default function StoryReaderIsland({
         if (!hasTemplateInfo) return
       }
 
+      // Filter neededBooks to only those with timing data per the template manifest
+      const booksWithTiming = [...neededBooks].filter((book) => {
+        const canon = getTestament(book)
+        const available = timingBooks[canon]
+        return !available || available.length === 0 || available.includes(book)
+      })
+
       // Fetch timing data
       const timingResult = await fetchTimingData(
-        templateName, audioLang, timingIds, timingCategory, [...neededBooks],
+        templateName, audioLang, timingIds, timingCategory, booksWithTiming,
       )
       const timingData = timingResult?.data || null
 
@@ -496,17 +504,17 @@ export default function StoryReaderIsland({
       $focusMode.set(true)
     }
     ensureAudioSetup().then(() => {
-      // Find the first verse entry for this visual section
+      // Find the first verse entry for this visual section that has timing
       const entries = $currentVerseEntries.get()
-      let entryIdx = entries.findIndex(
+      const entryIdx = entries.findIndex(
         (e) => e.sectionIndex === sectionIndex && e.endTime > e.startTime,
       )
-      // Fall back to any entry for this section even without timing
-      if (entryIdx < 0) {
-        entryIdx = entries.findIndex((e) => e.sectionIndex === sectionIndex)
-      }
       if (entryIdx >= 0) {
         playVerse(entryIdx)
+      } else {
+        // No timing for this section — show toast and exit focus mode
+        $audioToast.set("noTimingAvailable")
+        $focusMode.set(false)
       }
       if ($focusMode.get()) {
         requestAnimationFrame(() => {

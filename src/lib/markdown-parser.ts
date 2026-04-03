@@ -46,6 +46,10 @@ const resolveLocaleKey = (
     return localeData.categories?.[parts[0]]?.[parts[1]] || null
   }
 
+  if (parts.length === 1) {
+    if (keyPath === "title") return localeData.bookTitle || null
+  }
+
   return null
 }
 
@@ -95,8 +99,8 @@ export const parseMarkdownIntoSections = (
     if (line.includes("[[t:")) {
       const resolved = replaceLocaleMarkers(line, localeData, fallbackLocale)
       if (!resolved.trim() || (resolved === line && !localeData && !fallbackLocale)) continue
-      // ## title → story title
-      if (resolved.startsWith("## ") && !storyTitle) {
+      // ## title → story title (overrides # book-level title if present)
+      if (resolved.startsWith("## ")) {
         storyTitle = resolved.replace(/^#+\s*/, "").trim()
         continue
       }
