@@ -1,0 +1,72 @@
+[build]
+  command = "bash scripts/fetch-data.sh && pnpm build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[dev]
+  framework = "#auto"
+
+# Language-in-URL fallback: serve the generic /l/ page for languages
+# that don't have pre-built static pages. Netlify tries static files first,
+# so pre-built pages (e.g. /swe/John/01/05) take priority.
+[[redirects]]
+  from = "/:lang/:template/:catId/:storyId"
+  to = "/l/:template/:catId/:storyId?lang=:lang"
+  status = 200
+
+[[redirects]]
+  from = "/:lang/:template/"
+  to = "/l/:template/?lang=:lang"
+  status = 200
+
+[[redirects]]
+  from = "/:lang/"
+  to = "/l/?lang=:lang"
+  status = 200
+
+# Immutable hashed Astro assets
+[[headers]]
+  for = "/_astro/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# TOML template config files - 1 week cache
+[[headers]]
+  for = "/templates/*/*.toml"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/templates/*/*/*.toml"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/templates/*/locales/*.toml"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+# Markdown content files - 30 days cache
+[[headers]]
+  for = "/templates/**/*.md"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+
+# All other template files - 30 days cache
+[[headers]]
+  for = "/templates/**/*"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+
+# Language data - 1 week cache
+[[headers]]
+  for = "/ALL-langs-data/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/ALL-langs-compact.json"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"

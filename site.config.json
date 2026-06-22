@@ -1,0 +1,14 @@
+{
+  "templates": ["John", "TGS", "OBS"],
+  "region": {
+    "languages": ["*"],
+    "defaultLanguage": "eng"
+  },
+  "imageOverrides": {
+    "John": {
+      "base_url": "/img/john-pics",
+      "medium_pattern": "640px/{filename}",
+      "thumbs_pattern": "640px/{filename}"
+    }
+  }
+}
