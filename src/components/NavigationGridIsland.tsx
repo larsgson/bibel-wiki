@@ -20,8 +20,7 @@ interface Props {
 /** Coverage status for a story given the selected language */
 type CoverageStatus = "full" | "partial" | "none" | null
 
-const assetBase = import.meta.env.PUBLIC_ASSET_BASE || ''
-const FALLBACK_IMAGE = `${assetBase}/img/obs-icon.png`
+const FALLBACK_IMAGE = "/fallback-icon.svg"
 
 export default function NavigationGridIsland({
   templateName,

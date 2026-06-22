@@ -19,11 +19,16 @@ export interface ImageConfig {
   medium_pattern?: string
 }
 
+export interface AudioConfig {
+  base_url: string
+}
+
 export interface TemplateStructure {
   name: string
   image: string
   layoutTheme: string | null
   imageConfig: ImageConfig | null
+  audioConfig: AudioConfig | null
   categories: TemplateCategory[]
 }
 

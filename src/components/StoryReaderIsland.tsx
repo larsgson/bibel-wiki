@@ -37,6 +37,7 @@ interface Props {
   markdownContent: string
   allLocales: Record<string, LocaleData>
   imageConfig?: ImageConfig | null
+  audioConfig?: { base_url: string } | null
 }
 
 export default function StoryReaderIsland({
@@ -47,6 +48,7 @@ export default function StoryReaderIsland({
   markdownContent,
   allLocales,
   imageConfig = null,
+  audioConfig = null,
 }: Props) {
   const selectedLang = useStore($selectedLanguage)
   const secondaryLangs = useStore($secondaryLanguages)
@@ -321,7 +323,7 @@ export default function StoryReaderIsland({
           }
           const filesetId = audioFilesetIds[testament] || Object.values(audioFilesetIds)[0]
           if (!filesetId) { audioUrlMap.set(key, null); return }
-          const url = await fetchAudioUrl(filesetId, book, chapter, audioLang || undefined)
+          const url = await fetchAudioUrl(filesetId, book, chapter, audioLang || undefined, audioConfig)
           audioUrlMap.set(key, url)
         }),
       )
@@ -733,13 +735,14 @@ async function fetchAudioUrl(
   bookCode: string,
   chapter: number,
   langCode?: string,
+  audioConfig?: { base_url: string } | null,
 ): Promise<string | null> {
-  // 1. Try contrib audio (local files)
+  // 1. Try contrib audio (CDN or local files)
   if (langCode) {
     const contrib = contribRegistry[langCode]
     if (contrib) {
-      const assetBase = import.meta.env.PUBLIC_ASSET_BASE || ''
-      const contribUrl = `${assetBase}/audio/${langCode}/${contrib.id}/${bookCode}_${chapter}.mp3`
+      const audioBase = audioConfig?.base_url || ''
+      const contribUrl = `${audioBase}/${langCode}/${contrib.id}/${bookCode}_${chapter}.mp3`
       try {
         const resp = await fetch(contribUrl, { method: "HEAD" })
         if (resp.ok) {

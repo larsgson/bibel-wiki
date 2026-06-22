@@ -47,6 +47,7 @@ export function getStaticPaths() {
             markdownContent: loadMarkdownContent(name, cat.id, story.id) || "",
             allLocales: loadAllLocaleData(name),
             imageConfig: structure.imageConfig,
+            audioConfig: structure.audioConfig,
             layoutTheme: structure.layoutTheme,
           },
         })
@@ -87,6 +88,7 @@ const pageTitle = props.engLocale?.bookTitle || props.templateName
         markdownContent={props.markdownContent}
         allLocales={props.allLocales}
         imageConfig={props.imageConfig}
+        audioConfig={props.audioConfig}
       />
     </div>
   )}

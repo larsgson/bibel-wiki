@@ -167,6 +167,18 @@ export function loadTemplateStructure(
     }
   }
 
+  // Parse [audio] config (base_url)
+  let audioConfig: import("./types").AudioConfig | null = null
+  const audioBlock = rootContent.match(
+    /\[audio\]\s*\n((?:\s*(?:\w+\s*=\s*"[^"]*"|#[^\n]*)\s*\n?)*)/,
+  )
+  if (audioBlock) {
+    const audioBaseMatch = audioBlock[1].match(/base_url\s*=\s*"([^"]+)"/)
+    if (audioBaseMatch) {
+      audioConfig = { base_url: audioBaseMatch[1] }
+    }
+  }
+
   // Apply site.config.json imageOverrides (takes precedence over template's index.toml)
   const overrides = (siteConfig as any).imageOverrides?.[templateName]
   if (overrides) {
@@ -279,7 +291,7 @@ export function loadTemplateStructure(
     coverImage = categories[0].stories[0].image
   }
 
-  return { name: templateName, image: coverImage, layoutTheme, imageConfig, categories }
+  return { name: templateName, image: coverImage, layoutTheme, imageConfig, audioConfig, categories }
 }
 
 export function loadAllTemplates(): Record<string, TemplateStructure> {

@@ -19,10 +19,10 @@ interface Props {
   templates: TemplateInfo[]
 }
 
-const assetBase = import.meta.env.PUBLIC_ASSET_BASE || ''
+const FALLBACK_IMAGE = "/fallback-icon.svg"
 
 const FALLBACK_IMAGES: Record<string, string> = {
-  OBS: `${assetBase}/img/obs-icon.png`,
+  OBS: FALLBACK_IMAGE,
 }
 
 export default function TemplateSelectorIsland({ templates }: Props) {
@@ -49,7 +49,7 @@ export default function TemplateSelectorIsland({ templates }: Props) {
               className="w-full h-full object-cover group-hover:scale-105 transition-transform"
               onError={(e) => {
                 ;(e.target as HTMLImageElement).src =
-                  FALLBACK_IMAGES[t.name] || `${assetBase}/img/obs-icon.png`
+                  FALLBACK_IMAGES[t.name] || FALLBACK_IMAGE
               }}
             />
             <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-4">

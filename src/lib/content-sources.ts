@@ -51,9 +51,10 @@ export function getContribAudioUrl(
   contribId: string,
   book: string,
   chapter: number,
+  audioBaseUrl?: string,
 ): string {
-  const base = import.meta.env.PUBLIC_ASSET_BASE || ''
-  return `${base}/audio/${lang}/${contribId}/${book}_${chapter}.mp3`
+  const base = audioBaseUrl || ''
+  return `${base}/${lang}/${contribId}/${book}_${chapter}.mp3`
 }
 
 /**
