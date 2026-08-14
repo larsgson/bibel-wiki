@@ -1,5 +1,6 @@
 {
   "eng": { "preferredFileset": { "nt": "EN1ESV", "ot": "ENGESV" } },
   "swe": { "preferredFileset": "SWESFV" },
-  "ind": { "preferredFileset": { "nt": "INDTSI" } }
+  "ind": { "preferredFileset": { "nt": "INDTSI" } },
+  "nor": { "preferredFileset": { "nt": "NORNBS" } }
 }
