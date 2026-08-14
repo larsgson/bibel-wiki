@@ -171,15 +171,18 @@ export default function StoryReaderIsland({
         const langData = await loadLanguageData(lang)
         if (!langData?.data) continue
 
-        // Build text fileset IDs per canon
+        // Build text fileset IDs per canon, using the reading pick (which may be
+        // a text-only preferred version, distinct from the audio pick).
         const canonData = langData.canonData as Record<string, any> | undefined
+        const ntSrc = canonData?.nt || langData
+        const otSrc = canonData?.ot || langData
         const ntTextId = parseTextFilesetId(
-          canonData?.nt?.data?.t || langData.data?.t,
-          canonData?.nt?.distinctId || langData.distinctId,
+          ntSrc?.readingData?.t || ntSrc?.data?.t || langData.data?.t,
+          ntSrc?.readingDistinctId || ntSrc?.distinctId || langData.distinctId,
         )
         const otTextId = parseTextFilesetId(
-          canonData?.ot?.data?.t || langData.data?.t,
-          canonData?.ot?.distinctId || langData.distinctId,
+          otSrc?.readingData?.t || otSrc?.data?.t || langData.data?.t,
+          otSrc?.readingDistinctId || otSrc?.distinctId || langData.distinctId,
         )
 
         if (!ntTextId && !otTextId) continue
@@ -238,21 +241,16 @@ export default function StoryReaderIsland({
         return langData
       }
 
-      // Build audio fileset IDs per canon, respecting language preferences
+      // Build audio fileset IDs per canon. Audio follows the resolved audio pick
+      // (cData) — NOT a text-only reading preference — so a text-only preferred
+      // version still plays audio from the timecoded version. When the preference
+      // is itself audio-capable, cData already reflects it (the resolver tries the
+      // preferred fileset first within each category).
       const audioFilesetIds: Record<string, string> = {}
-      const prefRaw = (languagePreferences as Record<string, any>)[audioLang]?.preferredFileset
-      const getPreferred = (canon: string): string | null => {
-        if (!prefRaw) return null
-        if (typeof prefRaw === "string") return prefRaw
-        return prefRaw[canon] || null
-      }
-
       for (const testament of neededTestaments) {
         const cData = getCanonLangData(testament)
         if (cData?.data) {
-          const distinctId = getPreferred(testament) || cData.distinctId
-          const id = parseAudioFilesetId(cData.data?.a, distinctId)
-
+          const id = parseAudioFilesetId(cData.data?.a, cData.distinctId)
           if (id) audioFilesetIds[testament] = id
         }
       }

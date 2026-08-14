@@ -247,6 +247,30 @@ export async function loadLanguageData(langCode: string) {
     let result: any = null
     const canonResults: Record<string, any> = {}
 
+    // Resolve a "reading" pick: the preferred fileset wherever it lives (even a
+    // text-only version), used for the displayed text. The audio/primary pick
+    // stays separate, so a text-only preference still gets working audio from
+    // the timecoded version while showing the preferred text when just reading.
+    const resolveReadingPick = async (canon: string, preferredFileset: string | null) => {
+      if (!preferredFileset) return null
+      for (const cat of categories) {
+        const langEntries = manifest?.files?.[canon]?.[cat]
+        if (!langEntries || !langEntries[langCode]) continue
+        const ids = langEntries[langCode]
+        const idList = Array.isArray(ids) ? ids : Object.keys(ids)
+        if (!idList.includes(preferredFileset)) continue
+        try {
+          const resp = await fetch(`/ALL-langs-data/${canon}/${cat}/${langCode}/${preferredFileset}/data.json`)
+          if (!resp.ok) continue
+          const data = await resp.json()
+          return { distinctId: preferredFileset, data, category: cat }
+        } catch {
+          continue
+        }
+      }
+      return null
+    }
+
     for (const canon of ["nt", "ot"]) {
       const preferredFileset = getPreferred(canon)
       let canonResult: any = null
@@ -279,6 +303,16 @@ export async function loadLanguageData(langCode: string) {
         if (canonResult && canonResult.category === "with-timecode") break
       }
       if (canonResult) {
+        // Reading text may prefer a text-only version; audio keeps canonResult.
+        // readingData/readingDistinctId default to the primary pick when no
+        // separate reading version applies.
+        let readingPick = null
+        if (preferredFileset && preferredFileset !== canonResult.distinctId) {
+          readingPick = await resolveReadingPick(canon, preferredFileset)
+        }
+        canonResult.readingDistinctId = readingPick?.distinctId || canonResult.distinctId
+        canonResult.readingData = readingPick?.data || canonResult.data
+
         canonResults[canon] = canonResult
         // Prefer with-timecode as the primary result
         if (!result || (canonResult.category === "with-timecode" && result.category !== "with-timecode")) {
